@@ -13,6 +13,7 @@
     "mobile:web": "npm --prefix mobile run web",
     "db:generate": "npm --prefix api run prisma:generate",
     "db:migrate": "npm --prefix api run prisma:migrate",
+    "db:studio": "npm --prefix api run prisma:studio",
     "db:seed": "npm --prefix api run prisma:seed"
   },
   "dependencies": {

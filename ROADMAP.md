@@ -1,6 +1,6 @@
 # CampusGig Development Roadmap
 
-Last updated: August 29, 2026
+Last updated: August 30, 2026
 
 Related documentation: [project setup and current API status](./README.md) and [mobile source-code guide](./mobile/SOURCE_CODE_GUIDE.md).
 
@@ -10,8 +10,8 @@ CampusGig is in the **foundation and interactive-prototype stage**. The project 
 
 Estimated progress:
 
-- **Phase 1 MVP:** approximately 25% complete
-- **Full production platform:** approximately 10–15% complete
+- **Phase 1 MVP:** approximately 45% complete
+- **Full production platform:** approximately 20% complete
 
 These percentages measure working end-to-end functionality, not only screens or database tables.
 
@@ -28,11 +28,12 @@ These percentages measure working end-to-end functionality, not only screens or 
 - npm-based start and build commands configured
 - Web, API, and mobile TypeScript builds validated
 
-### Database design — Designed, awaiting full integration
+### Database design — Designed and partially integrated
 
 The Prisma schema already covers:
 
 - Users and multiple role assignments
+- Client-only accounts and optional Student Client registration
 - Schools and student profiles
 - Student-verification requests
 - Service categories, services, and package tiers
@@ -54,7 +55,18 @@ Only the approved service categories are seeded. There are no fabricated users, 
 - Preferred-school filtering on web and mobile
 - Clean loading and empty states
 
-Remaining: provider service creation, editing, publishing, real pagination, sorting, favorites, and production-grade search.
+Remaining: service editing, administrator publishing, real pagination, sorting, favorites, and production-grade search.
+
+### Provider workspace — Foundation complete
+
+- Verified-provider web sign-in and session restoration
+- Persisted provider headline, bio, skill list, and availability
+- Real service draft creation using the approved categories
+- Persisted Basic package price, delivery time, and revision limit
+- Provider listing status view and submission to `PENDING_REVIEW`
+- Verified-provider authorization enforced by the API
+
+Remaining: service editing, cover/portfolio files, Standard and Premium package UI, and administrator listing moderation.
 
 ### Dashboard interfaces — Prototype complete
 
@@ -66,6 +78,25 @@ Remaining: provider service creation, editing, publishing, real pagination, sort
 - Mobile Orders, Messages, and Profile navigation
 
 Dashboard values and actions are not yet fully connected to authenticated database operations.
+
+### Participating schools and verification — Backend and mobile flow complete
+
+- Admin-only participating-school list, creation, and status endpoints
+- Role guards for admin and provider API areas
+- Authenticated student profile read/update endpoints
+- Mobile school, program, year-level, and bio profile form
+- Private JPG, PNG, and PDF student-ID upload with a 5 MB limit
+- Persisted verification queue and authenticated status tracking
+- Admin-only document viewing, approval, and rejection with required reasons
+- Approved students automatically receive provider eligibility
+- Web administrator session restoration through the unified account flow
+- Unified web login/sign-up with automatic role-based routing
+- Connected school-management and student-verification dashboard
+- Live administrator statistics from PostgreSQL
+- No invented schools: the mobile app shows an honest empty state until an administrator adds a real participating school
+- Platform administrators can assign an existing verified account as a school administrator
+- School administrators receive a private dashboard limited to verification requests and documents from their assigned school
+- School-level access is isolated from platform statistics, service moderation, and school management
 
 ## Phase 1 MVP roadmap
 
@@ -79,7 +110,7 @@ Progress: **complete for local development.** Docker Desktop is running PostgreS
 - Configure `DATABASE_URL`
 - Run Prisma migrations
 - Seed only the approved categories
-- Add an admin-controlled way to register participating schools
+- Admin-controlled participating-school endpoints implemented
 - Confirm the web and mobile apps can reach the API
 - Add environment setup documentation
 
@@ -89,15 +120,17 @@ Definition of done: categories and approved schools survive application restarts
 
 Goal: replace the anonymous prototype with real accounts and protected roles.
 
-Progress: **backend foundation and mobile authentication implemented; web authentication, refresh sessions, password recovery, and complete authorization remain.**
+Progress: **backend, web, and mobile authentication are implemented, including new-account email codes, password recovery, and authenticated password changes from mobile Account Settings. Existing accounts were safely grandfathered as verified. Production email-provider configuration, refresh sessions, and endpoint-by-endpoint authorization hardening remain.**
 
 - Local email/password authentication selected for the MVP backend
 - Registration, login, password hashing, JWT issuance, and `/auth/me` implemented
 - Mobile persistent login and logout implemented
+- Mobile Profile next steps now include real provider-profile editing and account security settings
+- Web and mobile profile pictures are stored by the API and refreshed across account and profile icons
 - Initial Prisma migration applied and real `User` creation verified
-- Add web authentication, forgot-password, and refresh-token rotation
-- Add role-based access control for Student, Provider, Organization, and Admin
-- Protect API endpoints with authentication guards
+- Web authentication and forgot/reset-password flow implemented; refresh-token rotation remains
+- Role-based guard infrastructure added for Student, Provider, Organization, and Admin
+- Admin, provider, order, school-administration, and student-profile routes protected
 - Add route protection to web and mobile screens
 - Add account suspension and deactivation handling
 
@@ -107,13 +140,15 @@ Definition of done: users can securely sign in and can access only actions allow
 
 Goal: allow CampusGig to verify that a user belongs to a participating school.
 
-- Student profile creation and editing
-- School selection, program, and year level
+Progress: **profile setup, identity-document submission, backend approval, and the admin web review UI are complete; production object storage remains.**
+
+- Student profile creation and editing implemented in the API and mobile app
+- School selection, program, and year level implemented
 - School-email verification where supported
-- Student-ID upload to private storage
-- Verification-request submission
-- Admin approve/reject flow with rejection reason
-- Verified badge and provider eligibility rules
+- Student-ID upload to private local storage implemented for development
+- Verification-request submission implemented in mobile and API
+- Admin approve/reject API flow implemented with rejection reason
+- Verified status and provider eligibility rules implemented
 - Privacy rules for student numbers and uploaded IDs
 
 Definition of done: an admin can approve a real student, and only verified students can publish services or accept jobs.
@@ -122,11 +157,13 @@ Definition of done: an admin can approve a real student, and only verified stude
 
 Goal: let verified providers manage real Fiverr-style listings.
 
-- Create, edit, preview, pause, and archive a service
-- Add Basic, Standard, and Premium packages
-- Upload service cover images and portfolio files
+Progress: **provider profile, listing creation and editing, Basic/Standard/Premium packages, private cover/portfolio uploads, moderation submission, administrator approval/publishing, rejection feedback, and the web moderation queue are implemented. Production object storage remains.**
+
+- Create and edit draft/rejected services — implemented; preview, pause, and archive remain
+- Add Basic, Standard, and Premium packages — implemented
+- Upload service cover images and portfolio files — implemented with private local development storage; production object storage remains
 - Submit listings for moderation
-- Admin listing approval or rejection
+- Admin listing approval or rejection — implemented
 - Public service detail endpoint
 - Category, school, price, rating, and delivery filters
 - Pagination and sorting
@@ -137,14 +174,16 @@ Definition of done: a verified provider can publish a moderated service that cli
 
 Goal: complete the first end-to-end marketplace transaction without online payment.
 
-- Create an order from a selected service package
-- Capture client requirements and due date
-- Provider accept or reject actions
+Progress: **client package selection, requirement capture, transactional order creation, immutable snapshots, initial status history, automatic conversations, mobile client order listing, provider new-request notifications, provider accept/reject decisions, and client decision notifications are implemented. Starting work and later lifecycle transitions are next.**
+
+- Create an order from a selected service package — complete
+- Capture client requirements and due date — complete
+- Provider accept or reject actions — complete
 - Enforce valid status transitions
 - Start work, submit deliverable, request revision, resubmit, and complete
-- Store an immutable service/package snapshot on every order
+- Store an immutable service/package snapshot on every order — complete
 - Add order timeline and status history
-- Implement client and provider order lists and detail screens
+- Implement client and provider order lists and detail screens — client list complete; provider actions next
 - Add cancellation rules
 
 Definition of done: two authenticated users can complete the full order lifecycle with persisted history.
@@ -153,7 +192,7 @@ Definition of done: two authenticated users can complete the full order lifecycl
 
 Goal: support safe collaboration tied to a real order.
 
-- Automatically create one conversation per order
+- Automatically create one conversation per order — complete
 - Send and retrieve messages
 - Real-time updates using WebSockets or a managed realtime service
 - Read status and unread counts
@@ -251,7 +290,7 @@ Payments, proposals, Pro subscriptions, and featured listings should not be deve
 Assuming one- or two-week student sprints:
 
 1. **Sprint 1:** PostgreSQL, initial migration, authentication API, and mobile authentication — substantially complete; finish web auth and authorization.
-2. **Sprint 2:** student profiles, participating-school administration, student-ID storage, and verification approval.
+2. **Sprint 2:** student profiles, participating-school administration, private student-ID submission, and web verification review complete; production object storage remains.
 3. **Sprint 3:** provider service CRUD, package CRUD, service moderation, and real marketplace filtering.
 4. **Sprint 4:** order creation, lifecycle transitions, order detail screens, and status history.
 
@@ -259,4 +298,4 @@ Messaging, uploads, reviews, disputes, automated tests, and deployment follow in
 
 ## Best next task
 
-The next development task should be **participating-school administration and student profile setup**, followed by student verification. Authentication and database persistence now provide the foundation those workflows require.
+The next development task should be **listing preview, pause, and archive controls**, followed by production object storage.

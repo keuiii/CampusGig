@@ -4,6 +4,7 @@ export type AuthenticatedUser = {
   id: string;
   email: string;
   displayName: string;
+  hasAvatar: boolean;
   status: UserStatus;
   roles: UserRole[];
 };

@@ -8,6 +8,7 @@
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@types/express": "^5.0.3",
+    "@types/multer": "^2.2.0",
     "@types/node": "^24.3.0",
     "prisma": "^6.15.0",
     "tsx": "^4.20.5",

@@ -1,6 +1,6 @@
 # CampusGig Mobile Source-Code Guide
 
-CampusGig Mobile is the Expo React Native client for student clients and student service providers. It is currently an interactive Phase 1 prototype connected to the CampusGig REST API.
+CampusGig Mobile is the Expo React Native client for general clients, student clients, and student service providers. It is currently an interactive Phase 1 prototype connected to the CampusGig REST API.
 
 Refer to the repository-level [development roadmap](../ROADMAP.md) for overall completion and remaining milestones.
 
@@ -11,7 +11,10 @@ Refer to the repository-level [development roadmap](../ROADMAP.md) for overall c
 - Preferred-school filtering
 - Approved Phase 1 service categories
 - API-loaded active schools and published services
-- Orders empty state and lifecycle-ready navigation
+- Service detail and Basic/Standard/Premium package selection
+- Real client requirement submission and database-backed order creation
+- Real Orders tab with order number, provider, package, total, due date, and status
+- Real notification bell for provider acceptance and rejection updates
 - Order-based messaging empty state
 - Student-profile and school-verification setup interface
 - Provider-profile entry point
@@ -19,10 +22,11 @@ Refer to the repository-level [development roadmap](../ROADMAP.md) for overall c
 - Loading and clean empty states
 - Android emulator support
 - Real registration and login screens
+- Client-only signup by default with an optional Student selection
 - Persistent JWT session restoration and sign-out
 - Authenticated profile identity and role display
 
-Orders, Messages, verification, booking, and provider actions are not complete backend workflows yet. Authentication is now connected to the real CampusGig API and database; the remaining incomplete areas intentionally show prototype or empty states.
+Authentication, profiles, verification submission, service discovery, booking, and the initial client order list are connected to the real CampusGig API and database. Provider order decisions, later lifecycle transitions, and messaging/file screens remain incomplete.
 
 The project contains no fabricated users, schools, services, orders, messages, reviews, or marketplace statistics. Category values remain because they are the approved system taxonomy.
 
@@ -95,6 +99,8 @@ The app currently reads:
 - `GET /api/v1/schools`
 - `GET /api/v1/services`
 
+Authenticated users can also upload a JPG or PNG profile picture from the Profile avatar. The API stores it outside source control and both the web and mobile apps use the same saved picture.
+
 Preferred-school selection matches the selected active school ID against the service provider's `schoolId`. “All schools” is the default and does not restrict results.
 
 ## Validate the source
@@ -105,13 +111,12 @@ Preferred-school selection matches the selected active school ID against the ser
 
 ## What should be developed next
 
-1. Refresh-token rotation, password recovery, and stronger production session storage
-2. Student profiles and school-verification submission
-3. Complete role-based endpoint and navigation protection
-4. Real service and provider details
-5. Order creation and lifecycle screens
-6. Real-time order messaging and private file uploads
-7. Revisions, completion, and verified reviews
+1. Refresh-token rotation and stronger production session storage
+2. Complete role-based endpoint and navigation protection
+3. Mobile service creation and provider dashboard screens
+4. Order creation and lifecycle screens
+5. Real-time order messaging and private file uploads
+6. Revisions, completion, and verified reviews
 8. Automated testing and Android release builds
 
 Complete the fixed-price service and order flow before adding the Phase 2 custom job-posting and proposal marketplace.
