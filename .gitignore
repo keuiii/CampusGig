@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.next
+out
+.env
+.env.local
+api/.env
+api/dist
+api/node_modules
+*.log
+*.zip
+.DS_Store

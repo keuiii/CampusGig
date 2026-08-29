@@ -1,0 +1,36 @@
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+
+@Injectable()
+export class ServicesService {
+  constructor(private readonly prisma: PrismaService) {}
+  async findAll(query?: string, categoryId?: string, schoolId?: string) {
+    const services = await this.prisma.service.findMany({
+      where: {
+        status: "PUBLISHED",
+        ...(categoryId ? { categoryId } : {}),
+        ...(schoolId ? { provider: { studentProfile: { schoolId } } } : {}),
+        ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { description: { contains: query, mode: "insensitive" } }] } : {}),
+      },
+      include: { category: true, provider: { include: { studentProfile: { include: { school: true } } } }, packages: { where: { isActive: true }, orderBy: { priceCentavos: "asc" } } },
+      orderBy: { publishedAt: "desc" },
+      take: 50,
+    });
+    return { data: services.map((service) => this.toResponse(service)) };
+  }
+  async findOne(id: string) {
+    const service = await this.prisma.service.findFirst({ where: { id, status: "PUBLISHED" }, include: { category: true, provider: { include: { studentProfile: { include: { school: true } } } }, packages: { where: { isActive: true }, orderBy: { priceCentavos: "asc" } } } });
+    if (!service) throw new NotFoundException("Service not found");
+    return this.toResponse(service);
+  }
+  private toResponse(service: any) {
+    const profile = service.provider.studentProfile;
+    return {
+      id: service.id, title: service.title, description: service.description,
+      provider: service.provider.displayName, initials: service.provider.displayName.split(" ").map((part: string) => part[0]).slice(0, 2).join(""),
+      program: profile?.program ?? "", schoolId: profile?.schoolId ?? "", school: profile?.school?.name ?? "", category: service.category.name,
+      price: (service.packages[0]?.priceCentavos ?? 0) / 100, rating: Number(profile?.ratingAverage ?? 0), reviews: profile?.reviewCount ?? 0,
+      delivery: service.packages[0] ? `${service.packages[0].deliveryDays} days` : "", packages: service.packages,
+    };
+  }
+}
