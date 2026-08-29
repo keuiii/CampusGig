@@ -18,8 +18,11 @@ Refer to the repository-level [development roadmap](../ROADMAP.md) for overall c
 - Responsive bottom navigation
 - Loading and clean empty states
 - Android emulator support
+- Real registration and login screens
+- Persistent JWT session restoration and sign-out
+- Authenticated profile identity and role display
 
-The Orders, Messages, Profile, authentication, verification, booking, and provider actions are not complete backend workflows yet. They intentionally show prototype or empty states until authenticated endpoints are implemented.
+Orders, Messages, verification, booking, and provider actions are not complete backend workflows yet. Authentication is now connected to the real CampusGig API and database; the remaining incomplete areas intentionally show prototype or empty states.
 
 The project contains no fabricated users, schools, services, orders, messages, reviews, or marketplace statistics. Category values remain because they are the approved system taxonomy.
 
@@ -102,9 +105,9 @@ Preferred-school selection matches the selected active school ID against the ser
 
 ## What should be developed next
 
-1. Authentication and persistent sessions
+1. Refresh-token rotation, password recovery, and stronger production session storage
 2. Student profiles and school-verification submission
-3. Protected navigation based on user role
+3. Complete role-based endpoint and navigation protection
 4. Real service and provider details
 5. Order creation and lifecycle screens
 6. Real-time order messaging and private file uploads

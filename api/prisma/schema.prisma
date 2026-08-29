@@ -86,24 +86,25 @@ enum RevisionStatus {
 }
 
 model User {
-  id                String                @id @db.Uuid
-  email             String                @unique
+  id                String                    @id @default(uuid()) @db.Uuid
+  email             String                    @unique
+  passwordHash      String
   displayName       String
   avatarPath        String?
-  status            UserStatus            @default(PENDING)
+  status            UserStatus                @default(PENDING)
   lastSeenAt        DateTime?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
   roles             UserRoleAssignment[]
   studentProfile    StudentProfile?
-  services          Service[]             @relation("ProviderServices")
-  clientOrders      Order[]               @relation("ClientOrders")
-  providerOrders    Order[]               @relation("ProviderOrders")
+  services          Service[]                 @relation("ProviderServices")
+  clientOrders      Order[]                   @relation("ClientOrders")
+  providerOrders    Order[]                   @relation("ProviderOrders")
   sentMessages      Message[]
   conversationLinks ConversationParticipant[]
   uploadedFiles     OrderFile[]
-  reviewsWritten    Review[]              @relation("ReviewsWritten")
-  reviewsReceived   Review[]              @relation("ReviewsReceived")
+  reviewsWritten    Review[]                  @relation("ReviewsWritten")
+  reviewsReceived   Review[]                  @relation("ReviewsReceived")
   statusChanges     OrderStatusHistory[]
   revisionRequests  RevisionRequest[]
 }
@@ -113,21 +114,22 @@ model UserRoleAssignment {
   role      UserRole
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([userId, role])
 }
 
 model School {
-  id             String        @id @default(uuid()) @db.Uuid
-  name           String
-  shortName      String
-  emailDomain    String?
-  address        String?
-  city           String        @default("Lipa City")
-  status         SchoolStatus  @default(PENDING)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id              String                @id @default(uuid()) @db.Uuid
+  name            String
+  shortName       String
+  emailDomain     String?
+  address         String?
+  city            String                @default("Lipa City")
+  status          SchoolStatus          @default(PENDING)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   studentProfiles StudentProfile[]
-  verifications  VerificationRequest[]
+  verifications   VerificationRequest[]
 }
 
 model StudentProfile {
@@ -136,14 +138,15 @@ model StudentProfile {
   studentNumberCipher String?
   program             String?
   yearLevel           Int?
-  bio                  String?
+  bio                 String?
   verificationStatus  VerificationStatus @default(UNSUBMITTED)
-  verifiedAt           DateTime?
-  ratingAverage        Decimal            @default(0) @db.Decimal(3, 2)
-  reviewCount          Int                @default(0)
-  completedOrderCount  Int                @default(0)
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school               School             @relation(fields: [schoolId], references: [id])
+  verifiedAt          DateTime?
+  ratingAverage       Decimal            @default(0) @db.Decimal(3, 2)
+  reviewCount         Int                @default(0)
+  completedOrderCount Int                @default(0)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school              School             @relation(fields: [schoolId], references: [id])
+
   @@index([schoolId, verificationStatus])
 }
 
@@ -157,120 +160,125 @@ model VerificationRequest {
   reviewedAt        DateTime?
   reviewedBy        String?            @db.Uuid
   rejectionReason   String?
-  school             School            @relation(fields: [schoolId], references: [id])
+  school            School             @relation(fields: [schoolId], references: [id])
+
   @@index([status, submittedAt])
 }
 
 model Category {
-  id        String     @id
+  id        String    @id
   name      String
   icon      String?
   color     String?
-  isActive  Boolean    @default(true)
-  sortOrder Int        @default(0)
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
   services  Service[]
 }
 
 model Service {
-  id             String         @id @default(uuid()) @db.Uuid
-  providerId     String         @db.Uuid
+  id             String           @id @default(uuid()) @db.Uuid
+  providerId     String           @db.Uuid
   categoryId     String
   title          String
-  slug           String         @unique
+  slug           String           @unique
   description    String
-  deliveryMethod DeliveryMethod @default(ONLINE)
+  deliveryMethod DeliveryMethod   @default(ONLINE)
   campusLocation String?
-  status         ServiceStatus  @default(DRAFT)
+  status         ServiceStatus    @default(DRAFT)
   publishedAt    DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   deletedAt      DateTime?
-  provider       User           @relation("ProviderServices", fields: [providerId], references: [id])
-  category       Category       @relation(fields: [categoryId], references: [id])
+  provider       User             @relation("ProviderServices", fields: [providerId], references: [id])
+  category       Category         @relation(fields: [categoryId], references: [id])
   packages       ServicePackage[]
   orders         Order[]
+
   @@index([status, categoryId, publishedAt])
   @@index([providerId, status])
 }
 
 model ServicePackage {
-  id             String      @id @default(uuid()) @db.Uuid
-  serviceId      String      @db.Uuid
-  tier           PackageTier
-  name           String
-  description    String
-  priceCentavos  Int
-  deliveryDays   Int
-  revisionLimit  Int         @default(0)
-  isActive       Boolean     @default(true)
-  service        Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  orders         Order[]
+  id            String      @id @default(uuid()) @db.Uuid
+  serviceId     String      @db.Uuid
+  tier          PackageTier
+  name          String
+  description   String
+  priceCentavos Int
+  deliveryDays  Int
+  revisionLimit Int         @default(0)
+  isActive      Boolean     @default(true)
+  service       Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  orders        Order[]
+
   @@unique([serviceId, tier])
 }
 
 model Order {
-  id                 String             @id @default(uuid()) @db.Uuid
-  orderNumber        String             @unique
-  clientId           String             @db.Uuid
-  providerId         String             @db.Uuid
-  serviceId          String             @db.Uuid
-  servicePackageId   String             @db.Uuid
-  titleSnapshot      String
-  packageSnapshot    Json
-  subtotalCentavos   Int
-  platformFeeCentavos Int               @default(0)
-  totalCentavos      Int
-  currency           String             @default("PHP")
-  requirements       String
-  dueAt              DateTime
-  status             OrderStatus        @default(REQUESTED)
-  revisionLimit      Int                @default(0)
-  revisionsUsed      Int                @default(0)
-  acceptedAt         DateTime?
-  startedAt          DateTime?
-  submittedAt        DateTime?
-  completedAt        DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  client             User               @relation("ClientOrders", fields: [clientId], references: [id])
-  provider           User               @relation("ProviderOrders", fields: [providerId], references: [id])
-  service            Service            @relation(fields: [serviceId], references: [id])
-  servicePackage     ServicePackage     @relation(fields: [servicePackageId], references: [id])
-  history            OrderStatusHistory[]
-  files              OrderFile[]
-  conversation       Conversation?
-  revisions          RevisionRequest[]
-  review             Review?
+  id                  String               @id @default(uuid()) @db.Uuid
+  orderNumber         String               @unique
+  clientId            String               @db.Uuid
+  providerId          String               @db.Uuid
+  serviceId           String               @db.Uuid
+  servicePackageId    String               @db.Uuid
+  titleSnapshot       String
+  packageSnapshot     Json
+  subtotalCentavos    Int
+  platformFeeCentavos Int                  @default(0)
+  totalCentavos       Int
+  currency            String               @default("PHP")
+  requirements        String
+  dueAt               DateTime
+  status              OrderStatus          @default(REQUESTED)
+  revisionLimit       Int                  @default(0)
+  revisionsUsed       Int                  @default(0)
+  acceptedAt          DateTime?
+  startedAt           DateTime?
+  submittedAt         DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  client              User                 @relation("ClientOrders", fields: [clientId], references: [id])
+  provider            User                 @relation("ProviderOrders", fields: [providerId], references: [id])
+  service             Service              @relation(fields: [serviceId], references: [id])
+  servicePackage      ServicePackage       @relation(fields: [servicePackageId], references: [id])
+  history             OrderStatusHistory[]
+  files               OrderFile[]
+  conversation        Conversation?
+  revisions           RevisionRequest[]
+  review              Review?
+
   @@index([clientId, status, createdAt])
   @@index([providerId, status, createdAt])
 }
 
 model OrderStatusHistory {
-  id        String      @id @default(uuid()) @db.Uuid
-  orderId   String      @db.Uuid
+  id         String       @id @default(uuid()) @db.Uuid
+  orderId    String       @db.Uuid
   fromStatus OrderStatus?
-  toStatus  OrderStatus
-  changedBy String      @db.Uuid
-  note      String?
-  createdAt DateTime    @default(now())
-  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  actor     User        @relation(fields: [changedBy], references: [id])
+  toStatus   OrderStatus
+  changedBy  String       @db.Uuid
+  note       String?
+  createdAt  DateTime     @default(now())
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor      User         @relation(fields: [changedBy], references: [id])
+
   @@index([orderId, createdAt])
 }
 
 model OrderFile {
-  id           String           @id @default(uuid()) @db.Uuid
-  orderId      String           @db.Uuid
-  uploadedBy   String           @db.Uuid
+  id           String              @id @default(uuid()) @db.Uuid
+  orderId      String              @db.Uuid
+  uploadedBy   String              @db.Uuid
   purpose      OrderFilePurpose
-  storagePath  String           @unique
+  storagePath  String              @unique
   originalName String
   mimeType     String
   sizeBytes    Int
   checksum     String?
-  createdAt    DateTime         @default(now())
-  order        Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  uploader     User             @relation(fields: [uploadedBy], references: [id])
+  createdAt    DateTime            @default(now())
+  order        Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploader     User                @relation(fields: [uploadedBy], references: [id])
   attachments  MessageAttachment[]
 }
 
@@ -284,30 +292,32 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  conversationId   String    @db.Uuid
-  userId           String    @db.Uuid
-  lastReadMessageId String?   @db.Uuid
+  conversationId    String       @db.Uuid
+  userId            String       @db.Uuid
+  lastReadMessageId String?      @db.Uuid
   lastReadAt        DateTime?
-  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([conversationId, userId])
 }
 
 model Message {
-  id             String      @id @default(uuid()) @db.Uuid
-  conversationId String      @db.Uuid
-  senderId       String      @db.Uuid
+  id             String              @id @default(uuid()) @db.Uuid
+  conversationId String              @db.Uuid
+  senderId       String              @db.Uuid
   body           String?
-  messageType    MessageType @default(TEXT)
-  replyToId      String?     @db.Uuid
-  createdAt      DateTime    @default(now())
+  messageType    MessageType         @default(TEXT)
+  replyToId      String?             @db.Uuid
+  createdAt      DateTime            @default(now())
   editedAt       DateTime?
   deletedAt      DateTime?
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id])
-  replyTo        Message?     @relation("MessageReplies", fields: [replyToId], references: [id])
-  replies        Message[]    @relation("MessageReplies")
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User                @relation(fields: [senderId], references: [id])
+  replyTo        Message?            @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies        Message[]           @relation("MessageReplies")
   attachments    MessageAttachment[]
+
   @@index([conversationId, createdAt])
 }
 
@@ -316,6 +326,7 @@ model MessageAttachment {
   orderFileId String    @db.Uuid
   message     Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
   orderFile   OrderFile @relation(fields: [orderFileId], references: [id])
+
   @@id([messageId, orderFileId])
 }
 
@@ -330,6 +341,7 @@ model RevisionRequest {
   createdAt      DateTime       @default(now())
   order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   requester      User           @relation(fields: [requestedBy], references: [id])
+
   @@unique([orderId, sequenceNumber])
 }
 
@@ -348,5 +360,6 @@ model Review {
   order               Order    @relation(fields: [orderId], references: [id])
   reviewer            User     @relation("ReviewsWritten", fields: [reviewerId], references: [id])
   reviewee            User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+
   @@index([revieweeId, createdAt])
 }

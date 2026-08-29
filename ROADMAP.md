@@ -73,6 +73,8 @@ Dashboard values and actions are not yet fully connected to authenticated databa
 
 Goal: make the backend persist and retrieve real development data.
 
+Progress: **complete for local development.** Docker Desktop is running PostgreSQL 17, the initial migration is applied, and the clean seed contains six categories with no fabricated marketplace records.
+
 - Start PostgreSQL locally using Docker or a local PostgreSQL installation
 - Configure `DATABASE_URL`
 - Run Prisma migrations
@@ -87,9 +89,13 @@ Definition of done: categories and approved schools survive application restarts
 
 Goal: replace the anonymous prototype with real accounts and protected roles.
 
-- Choose and configure authentication, preferably Supabase Auth or another managed provider
-- Implement registration, login, logout, forgot-password, and session refresh
-- Create or synchronize the local `User` record after registration
+Progress: **backend foundation and mobile authentication implemented; web authentication, refresh sessions, password recovery, and complete authorization remain.**
+
+- Local email/password authentication selected for the MVP backend
+- Registration, login, password hashing, JWT issuance, and `/auth/me` implemented
+- Mobile persistent login and logout implemented
+- Initial Prisma migration applied and real `User` creation verified
+- Add web authentication, forgot-password, and refresh-token rotation
 - Add role-based access control for Student, Provider, Organization, and Admin
 - Protect API endpoints with authentication guards
 - Add route protection to web and mobile screens
@@ -244,7 +250,7 @@ Payments, proposals, Pro subscriptions, and featured listings should not be deve
 
 Assuming one- or two-week student sprints:
 
-1. **Sprint 1:** PostgreSQL setup, migrations, authentication, user synchronization, and protected API routes.
+1. **Sprint 1:** PostgreSQL, initial migration, authentication API, and mobile authentication — substantially complete; finish web auth and authorization.
 2. **Sprint 2:** student profiles, participating-school administration, student-ID storage, and verification approval.
 3. **Sprint 3:** provider service CRUD, package CRUD, service moderation, and real marketplace filtering.
 4. **Sprint 4:** order creation, lifecycle transitions, order detail screens, and status history.
@@ -253,4 +259,4 @@ Messaging, uploads, reviews, disputes, automated tests, and deployment follow in
 
 ## Best next task
 
-The next development task should be **Milestone 1 followed immediately by authentication**. Every later feature needs real users, roles, schools, and database persistence; building additional disconnected screens before these foundations would not produce a working marketplace.
+The next development task should be **participating-school administration and student profile setup**, followed by student verification. Authentication and database persistence now provide the foundation those workflows require.

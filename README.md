@@ -19,11 +19,13 @@ Implemented:
 - NestJS API with Swagger documentation
 - PostgreSQL/Prisma schema for the Phase 1 domain
 - Clean category-only database seed
+- Local PostgreSQL container and initial Prisma migration
+- Working registration, login, JWT, protected profile, and mobile authentication screens
 
 Not yet fully implemented:
 
-- Authentication and session management
-- Real user and role authorization
+- Web authentication screens and production-grade refresh-token sessions
+- Applying role authorization to all protected marketplace endpoints
 - Student ID upload and verification workflow
 - Service creation, editing, and moderation
 - Persistent order creation and lifecycle actions
@@ -164,6 +166,14 @@ Placeholder routes that still require implementation:
 - `POST /api/v1/admin/verifications/:id/approve`
 - `POST /api/v1/admin/verifications/:id/reject`
 
+Authentication routes implemented in the API:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me` (Bearer token required)
+
+Registration creates a local account with a hashed password and the default `STUDENT` role. Registration, login, JWT issuance, and `/auth/me` have been tested end-to-end against the local PostgreSQL container. The temporary test account was removed after verification.
+
 ## Build validation
 
 ```powershell
@@ -174,10 +184,9 @@ npm run build
 
 ## Recommended next milestone
 
-Complete the local PostgreSQL setup, then implement authentication and role-based API protection. All later workflows depend on real users, schools, roles, and persistent sessions.
+Add participating-school administration and student-profile setup, then apply role-based protection to marketplace endpoints. Web authentication and stronger refresh-token/session handling also remain.
 
 ## Documentation
 
 - [Development roadmap](./ROADMAP.md)
 - [Mobile source-code guide](./mobile/SOURCE_CODE_GUIDE.md)
-
