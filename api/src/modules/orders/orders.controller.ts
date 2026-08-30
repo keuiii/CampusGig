@@ -15,4 +15,5 @@ export class OrdersController {
   @Post() create(@Req() request: AuthenticatedRequest, @Body() input: CreateOrderDto) { return this.orders.create(request.auth.sub, input); }
   @Post(":id/accept") accept(@Req() request: AuthenticatedRequest, @Param("id") id: string) { return this.orders.accept(request.auth.sub, id); }
   @Post(":id/reject") reject(@Req() request: AuthenticatedRequest, @Param("id") id: string, @Body() input: RejectOrderDto) { return this.orders.reject(request.auth.sub, id, input.reason); }
+  @Post(":id/start") start(@Req() request: AuthenticatedRequest, @Param("id") id: string) { return this.orders.start(request.auth.sub, id); }
 }

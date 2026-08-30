@@ -42,15 +42,13 @@ export class OrdersService {
   async accept(providerId: string, orderId: string) {
     const order = await this.requireProviderOrder(providerId, orderId);
     if (order.status !== "REQUESTED") throw new ConflictException("Only a requested order can be accepted");
-    const updated = await this.prisma.$transaction(async (database) => database.order.update({
-      where: { id: order.id },
-      data: {
-        status: "ACCEPTED", acceptedAt: new Date(),
-        history: { create: { fromStatus: "REQUESTED", toStatus: "ACCEPTED", changedBy: providerId, note: "Provider accepted the service request" } },
-        notifications: { create: { recipientId: order.clientId, type: "ORDER_ACCEPTED", title: "Service request accepted", body: `${order.provider.displayName} accepted your request for ${order.titleSnapshot}.` } },
-      },
-      include: this.orderInclude,
-    }));
+    const updated = await this.prisma.$transaction(async (database) => {
+      const changed = await database.order.updateMany({ where: { id: order.id, providerId, status: "REQUESTED" }, data: { status: "ACCEPTED", acceptedAt: new Date() } });
+      if (changed.count !== 1) throw new ConflictException("This request has already been decided");
+      await database.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: "REQUESTED", toStatus: "ACCEPTED", changedBy: providerId, note: "Provider accepted the service request" } });
+      await database.notification.create({ data: { orderId: order.id, recipientId: order.clientId, type: "ORDER_ACCEPTED", title: "Service request accepted", body: `${order.provider.displayName} accepted your request for ${order.titleSnapshot}.` } });
+      return database.order.findUniqueOrThrow({ where: { id: order.id }, include: this.orderInclude });
+    });
     return { data: this.toResponse(updated), message: "Request accepted and the client has been notified." };
   }
 
@@ -58,16 +56,27 @@ export class OrdersService {
     const order = await this.requireProviderOrder(providerId, orderId);
     if (order.status !== "REQUESTED") throw new ConflictException("Only a requested order can be rejected");
     const note = reason.trim();
-    const updated = await this.prisma.$transaction(async (database) => database.order.update({
-      where: { id: order.id },
-      data: {
-        status: "REJECTED",
-        history: { create: { fromStatus: "REQUESTED", toStatus: "REJECTED", changedBy: providerId, note } },
-        notifications: { create: { recipientId: order.clientId, type: "ORDER_REJECTED", title: "Service request declined", body: `${order.provider.displayName} declined your request for ${order.titleSnapshot}. Reason: ${note}` } },
-      },
-      include: this.orderInclude,
-    }));
+    const updated = await this.prisma.$transaction(async (database) => {
+      const changed = await database.order.updateMany({ where: { id: order.id, providerId, status: "REQUESTED" }, data: { status: "REJECTED" } });
+      if (changed.count !== 1) throw new ConflictException("This request has already been decided");
+      await database.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: "REQUESTED", toStatus: "REJECTED", changedBy: providerId, note } });
+      await database.notification.create({ data: { orderId: order.id, recipientId: order.clientId, type: "ORDER_REJECTED", title: "Service request declined", body: `${order.provider.displayName} declined your request for ${order.titleSnapshot}. Reason: ${note}` } });
+      return database.order.findUniqueOrThrow({ where: { id: order.id }, include: this.orderInclude });
+    });
     return { data: this.toResponse(updated), message: "Request declined and the client has been notified." };
+  }
+
+  async start(providerId: string, orderId: string) {
+    const order = await this.requireProviderOrder(providerId, orderId);
+    if (order.status !== "ACCEPTED") throw new ConflictException("Only an accepted order can be started");
+    const updated = await this.prisma.$transaction(async (database) => {
+      const changed = await database.order.updateMany({ where: { id: order.id, providerId, status: "ACCEPTED" }, data: { status: "IN_PROGRESS", startedAt: new Date() } });
+      if (changed.count !== 1) throw new ConflictException("This order has already been started or updated");
+      await database.orderStatusHistory.create({ data: { orderId: order.id, fromStatus: "ACCEPTED", toStatus: "IN_PROGRESS", changedBy: providerId, note: "Provider started working on the order" } });
+      await database.notification.create({ data: { orderId: order.id, recipientId: order.clientId, type: "ORDER_STARTED", title: "Work has started", body: `${order.provider.displayName} started working on ${order.titleSnapshot}.` } });
+      return database.order.findUniqueOrThrow({ where: { id: order.id }, include: this.orderInclude });
+    });
+    return { data: this.toResponse(updated), message: "Order started and the client has been notified." };
   }
 
   private async requireProviderOrder(providerId: string, orderId: string) {

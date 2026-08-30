@@ -6,12 +6,12 @@ Related documentation: [project setup and current API status](./README.md) and [
 
 ## Current status
 
-CampusGig is in the **foundation and interactive-prototype stage**. The project has a working web interface, a working Expo mobile interface, a NestJS API foundation, and a PostgreSQL/Prisma data model. Marketplace discovery and preferred-school filtering are implemented structurally, but the complete authenticated order workflow is not yet operational.
+CampusGig is in the **integrated MVP development stage**. The web and Expo mobile apps use the NestJS API and PostgreSQL database for authentication, profiles, school verification, moderated service listings, marketplace discovery, order requests, notifications, and provider accept/reject decisions. The later order lifecycle, messaging, deliverables, revisions, reviews, and payments are not yet operational.
 
 Estimated progress:
 
-- **Phase 1 MVP:** approximately 45% complete
-- **Full production platform:** approximately 20% complete
+- **Phase 1 MVP:** approximately 65% complete
+- **Full production platform:** approximately 30% complete
 
 These percentages measure working end-to-end functionality, not only screens or database tables.
 
@@ -45,7 +45,7 @@ The Prisma schema already covers:
 
 Only the approved service categories are seeded. There are no fabricated users, schools, services, orders, or reviews.
 
-### Marketplace discovery — Partially complete
+### Marketplace discovery — Core flow complete
 
 - Category browsing
 - Service search interface
@@ -55,20 +55,24 @@ Only the approved service categories are seeded. There are no fabricated users, 
 - Preferred-school filtering on web and mobile
 - Clean loading and empty states
 
-Remaining: service editing, administrator publishing, real pagination, sorting, favorites, and production-grade search.
+Remaining: price/rating/delivery filters, pagination, sorting, favorites, and production-grade search.
 
-### Provider workspace — Foundation complete
+### Provider workspace — Core listing and request flow complete
 
 - Verified-provider web sign-in and session restoration
 - Persisted provider headline, bio, skill list, and availability
 - Real service draft creation using the approved categories
-- Persisted Basic package price, delivery time, and revision limit
+- Persisted Basic, Standard, and Premium package options
+- Cover and portfolio uploads using private local development storage
 - Provider listing status view and submission to `PENDING_REVIEW`
+- Administrator listing moderation and publication
+- Client request list with provider accept/reject actions
+- Durable provider notifications and unread counts
 - Verified-provider authorization enforced by the API
 
-Remaining: service editing, cover/portfolio files, Standard and Premium package UI, and administrator listing moderation.
+Remaining: listing preview/pause/archive, order detail and timeline, later lifecycle actions, messaging, deliverables, and production object storage.
 
-### Dashboard interfaces — Prototype complete
+### Dashboard interfaces — Partially connected
 
 - Provider dashboard layout
 - Admin dashboard layout
@@ -77,7 +81,7 @@ Remaining: service editing, cover/portfolio files, Standard and Premium package 
 - Profile setup interface
 - Mobile Orders, Messages, and Profile navigation
 
-Dashboard values and actions are not yet fully connected to authenticated database operations.
+Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, and accept/reject actions use authenticated database operations. Messaging, full order details, later lifecycle actions, and some empty states remain prototypes.
 
 ### Participating schools and verification — Backend and mobile flow complete
 
@@ -125,6 +129,8 @@ Progress: **backend, web, and mobile authentication are implemented, including n
 - Local email/password authentication selected for the MVP backend
 - Registration, login, password hashing, JWT issuance, and `/auth/me` implemented
 - Mobile persistent login and logout implemented
+- Persistent animated night-mode controls implemented for mobile and web, including dark cards, forms, navigation, and status-bar treatment
+- Web-wide motion system implemented for navigation, scrolling, cards, forms, dropdowns, page transitions, and accessibility preferences
 - Mobile Profile next steps now include real provider-profile editing and account security settings
 - Web and mobile profile pictures are stored by the API and refreshed across account and profile icons
 - Initial Prisma migration applied and real `User` creation verified
@@ -174,16 +180,17 @@ Definition of done: a verified provider can publish a moderated service that cli
 
 Goal: complete the first end-to-end marketplace transaction without online payment.
 
-Progress: **client package selection, requirement capture, transactional order creation, immutable snapshots, initial status history, automatic conversations, mobile client order listing, provider new-request notifications, provider accept/reject decisions, and client decision notifications are implemented. Starting work and later lifecycle transitions are next.**
+Progress: **client package selection, requirement capture, transactional order creation, immutable snapshots, status history, automatic conversations, mobile client order listing, provider notifications and accept/reject decisions, starting accepted work, and client lifecycle notifications are implemented. Deliverable submission and later lifecycle transitions are next.**
 
 - Create an order from a selected service package — complete
 - Capture client requirements and due date — complete
 - Provider accept or reject actions — complete
 - Enforce valid status transitions
-- Start work, submit deliverable, request revision, resubmit, and complete
+- Start work — complete
+- Submit deliverable, request revision, resubmit, and complete
 - Store an immutable service/package snapshot on every order — complete
 - Add order timeline and status history
-- Implement client and provider order lists and detail screens — client list complete; provider actions next
+- Implement client and provider order lists and detail screens — client list and provider request actions complete; dedicated detail screens remain
 - Add cancellation rules
 
 Definition of done: two authenticated users can complete the full order lifecycle with persisted history.

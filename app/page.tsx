@@ -41,6 +41,54 @@ export default function CampusGigApp() {
   const [headerNotifications, setHeaderNotifications] = useState<AppNotification[]>([]);
   const [headerUnreadCount, setHeaderUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [nightMode, setNightMode] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [pageScrolled, setPageScrolled] = useState(false);
+
+  useEffect(() => {
+    const enabled = window.localStorage.getItem("campusgig.nightMode") === "true";
+    setNightMode(enabled);
+    document.documentElement.dataset.theme = enabled ? "dark" : "light";
+  }, []);
+
+  useEffect(() => {
+    let frame = 0;
+    const updateScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const maximum = document.documentElement.scrollHeight - window.innerHeight;
+        setScrollProgress(maximum > 0 ? Math.min(100,(window.scrollY / maximum) * 100) : 0);
+        setPageScrolled(window.scrollY > 18);
+      });
+    };
+    updateScroll();
+    window.addEventListener("scroll",updateScroll,{passive:true});
+    window.addEventListener("resize",updateScroll);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll",updateScroll); window.removeEventListener("resize",updateScroll); };
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const selector = "section, footer, .service-card, .category-card, .panel, .stat-card, .access-card, .provider-request, .table-card, .how-step";
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (entry.isIntersecting) { entry.target.classList.add("motion-visible"); observer.unobserve(entry.target); }
+    }),{threshold:.08,rootMargin:"0px 0px -35px"});
+    const observeNewElements = () => document.querySelectorAll(selector).forEach((element) => {
+      if (!element.classList.contains("motion-reveal")) { element.classList.add("motion-reveal"); observer.observe(element); }
+    });
+    observeNewElements();
+    document.documentElement.classList.add("motion-ready");
+    const mutations = new MutationObserver(observeNewElements);
+    mutations.observe(document.body,{childList:true,subtree:true});
+    return () => { mutations.disconnect(); observer.disconnect(); document.documentElement.classList.remove("motion-ready"); };
+  }, []);
+
+  function toggleNightMode() {
+    const enabled = !nightMode;
+    setNightMode(enabled);
+    window.localStorage.setItem("campusgig.nightMode", String(enabled));
+    document.documentElement.dataset.theme = enabled ? "dark" : "light";
+  }
 
   useEffect(() => {
     if (!backendConfigured) return;
@@ -122,7 +170,8 @@ export default function CampusGigApp() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
+      <div className="scroll-progress" aria-hidden="true"><span style={{width:`${scrollProgress}%`}}/></div>
+      <header className={`topbar ${pageScrolled ? "scrolled" : ""}`}>
         <div className="nav-wrap">
           <Logo onClick={() => navigate("home")}/>
           <nav>
@@ -131,6 +180,7 @@ export default function CampusGigApp() {
             <button className={view === "provider" ? "active" : ""} onClick={() => navigate("provider")}>For providers</button>
           </nav>
           <div className="nav-actions">
+            <button className={`web-theme-toggle ${nightMode ? "dark" : ""}`} role="switch" aria-checked={nightMode} aria-label="Toggle night mode" onClick={toggleNightMode}><span className="theme-sun">☀</span><span className="theme-moon">☾</span><i>{nightMode?"☾":"☀"}</i></button>
             <div className="notification-menu"><button className="icon-button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => void toggleNotifications()}><Icon name="bell"/>{headerUnreadCount>0&&<span className="notification-count">{headerUnreadCount>9?"9+":headerUnreadCount}</span>}</button>{notificationsOpen&&<div className="notification-dropdown"><div className="notification-dropdown-head"><div><span className="kicker">NOTIFICATIONS</span><b>Account activity</b></div><small>{headerUnreadCount} unread</small></div>{headerNotifications.length ? headerNotifications.slice(0,8).map((item) => <button key={item.id} className={item.readAt ? "read" : "unread"} onClick={() => void readHeaderNotification(item)}><span>{item.type === "NEW_ORDER" ? "↗" : item.type === "ORDER_ACCEPTED" ? "✓" : "!"}</span><div><b>{item.title}</b><small>{item.body}</small><time>{new Date(item.createdAt).toLocaleString()}</time></div>{!item.readAt&&<i/>}</button>) : <div className="notification-empty"><span>♧</span><b>No notifications yet</b><small>New order activity will appear here.</small></div>}</div>}</div>
             <button className="profile-chip" onClick={() => navigate("access")}><span className="avatar small">{webUser?.hasAvatar ? <img src={api.avatarUrl(webUser.id, avatarVersion)} alt=""/> : webUser ? webUser.displayName.slice(0, 2).toUpperCase() : "?"}</span><span>{webUser?.displayName ?? "Account"}</span></button>
           </div>
@@ -190,7 +240,7 @@ function Home({ query, setQuery, activeCategory, setActiveCategory, categories, 
         </div>
       </section>
 
-      <section className="section services-section">
+      <section className="section services-section" id="services-marketplace">
         <div className="section-heading"><div><span className="kicker">POPULAR RIGHT NOW</span><h2>{activeCategory === "All" ? "Services students love" : activeCategory}</h2></div><span className="result-count">{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span></div>
         <div className="service-grid">
           {filtered.map((service) => <ServiceCard key={service.id} service={service} open={() => openService(service)} />)}
@@ -200,11 +250,12 @@ function Home({ query, setQuery, activeCategory, setActiveCategory, categories, 
       </section>
 
       <section className="how-section">
-        <div className="section how-inner"><span className="kicker light">HOW CAMPUSGIG WORKS</span><h2>From idea to done—in three simple steps.</h2><div className="steps">
-          <div><span>01</span><b>Discover</b><p>Browse services from verified student providers.</p></div><i>→</i>
-          <div><span>02</span><b>Book & collaborate</b><p>Send requirements and chat inside your order.</p></div><i>→</i>
-          <div><span>03</span><b>Receive & review</b><p>Approve the work and support student talent.</p></div>
-        </div></div>
+        <div className="how-orb how-orb-one"/><div className="how-orb how-orb-two"/>
+        <div className="section how-inner"><div className="how-heading"><span className="kicker light">HOW CAMPUSGIG WORKS</span><h2>A simple path from idea to <em>finished.</em></h2><p>CampusGig keeps discovery, collaboration, and delivery together so every student project stays clear and organized.</p></div><div className="steps">
+          <article className="how-step"><div className="step-top"><span className="step-number">01</span><span className="step-icon">⌕</span></div><span className="step-label">EXPLORE</span><b>Discover campus talent</b><p>Browse verified student providers, compare packages, and filter services by your preferred school.</p><small>Find the right match <span>→</span></small></article>
+          <article className="how-step featured"><div className="step-top"><span className="step-number">02</span><span className="step-icon">✦</span></div><span className="step-label">COLLABORATE</span><b>Book with confidence</b><p>Choose a package, share clear requirements, and follow every update through your CampusGig order.</p><small>Stay connected <span>→</span></small></article>
+          <article className="how-step"><div className="step-top"><span className="step-number">03</span><span className="step-icon">✓</span></div><span className="step-label">COMPLETE</span><b>Receive and review</b><p>Review the final work, request revisions when needed, and recognize excellent student talent.</p><small>Support student skills <span>→</span></small></article>
+        </div><button className="how-cta" onClick={()=>{setActiveCategory("All");document.getElementById("services-marketplace")?.scrollIntoView({behavior:"smooth"});}}>Explore student services <Icon name="arrow"/></button></div>
       </section>
     </main>
     <Footer />
@@ -214,7 +265,7 @@ function Home({ query, setQuery, activeCategory, setActiveCategory, categories, 
 function ServiceCard({ service, open }: { service: Service; open: () => void }) {
   return <article className="service-card" onClick={open}>
     <div className={`service-cover ${service.color ?? "service-green"}`}>{service.coverMediaId ? <img src={api.serviceMediaUrl(service.id, service.coverMediaId)} alt={`${service.title} cover`}/> : <><span className="cover-grid"/><span className="cover-icon">{service.icon ?? "◇"}</span></>}<span className="category-pill">{service.category}</span><button className="heart" aria-label="Save service" onClick={(e) => e.stopPropagation()}>♡</button></div>
-    <div className="service-body"><div className="provider-line"><span className="avatar">{service.initials}</span><div><b>{service.provider} <i>✓</i></b><small>{service.school}</small></div></div><h3>{service.title}</h3><div className="rating"><span>★</span> <b>{service.rating}</b> <small>({service.reviews})</small></div><div className="card-footer"><small>STARTING AT</small><strong>₱{service.price}</strong></div></div>
+    <div className="service-body"><div className="provider-line"><span className="avatar">{service.providerHasAvatar ? <img src={api.avatarUrl(service.providerId,service.providerAvatarVersion)} alt={`${service.provider} profile`}/> : service.initials}</span><div><b>{service.provider} <i>✓</i></b><small>{service.school}</small></div></div><h3>{service.title}</h3><div className="rating"><span>★</span> <b>{service.rating}</b> <small>({service.reviews})</small></div><div className="card-footer"><small>STARTING AT</small><strong>₱{service.price}</strong></div></div>
   </article>;
 }
 
@@ -225,7 +276,7 @@ function ServiceDetail({ service, booked, onBook, back }: { service: Service; bo
   return <main className="detail-page">
     <button className="back-button" onClick={back}>← Back to services</button>
     <div className="detail-grid">
-      <section><span className="detail-category">{service.category}</span><h1>{service.title}</h1><div className="detail-provider"><span className="avatar large">{service.initials}</span><div><b>{service.provider} <i>✓</i></b><span>{service.program} · {service.school}</span><small><span className="star">★</span> {service.rating} ({service.reviews} reviews)</small></div></div><div className={`detail-cover ${service.color ?? "service-green"}`}>{service.coverMediaId ? <img src={api.serviceMediaUrl(service.id, service.coverMediaId)} alt={`${service.title} cover`}/> : <><span className="cover-grid"/><span>{service.icon ?? "◇"}</span></>}</div><div className="about"><h2>About this service</h2><p>{service.description}</p>{service.portfolio?.length ? <><h3>Portfolio</h3><div className="portfolio-links">{service.portfolio.map((item) => <a key={item.id} href={api.serviceMediaUrl(service.id, item.id)} target="_blank" rel="noreferrer">{item.originalName}</a>)}</div></> : null}<h3>What you&apos;ll get</h3><ul><li><Icon name="check"/>Original, student-focused work</li><li><Icon name="check"/>Editable source files</li><li><Icon name="check"/>Clear in-app communication</li><li><Icon name="check"/>Revisions included with your package</li></ul></div></section>
+      <section><span className="detail-category">{service.category}</span><h1>{service.title}</h1><div className="detail-provider"><span className="avatar large">{service.providerHasAvatar ? <img src={api.avatarUrl(service.providerId,service.providerAvatarVersion)} alt={`${service.provider} profile`}/> : service.initials}</span><div><b>{service.provider} <i>✓</i></b><span>{service.program} · {service.school}</span><small><span className="star">★</span> {service.rating} ({service.reviews} reviews)</small></div></div><div className={`detail-cover ${service.color ?? "service-green"}`}>{service.coverMediaId ? <img src={api.serviceMediaUrl(service.id, service.coverMediaId)} alt={`${service.title} cover`}/> : <><span className="cover-grid"/><span>{service.icon ?? "◇"}</span></>}</div><div className="about"><h2>About this service</h2><p>{service.description}</p>{service.portfolio?.length ? <><h3>Portfolio</h3><div className="portfolio-links">{service.portfolio.map((item) => <a key={item.id} href={api.serviceMediaUrl(service.id, item.id)} target="_blank" rel="noreferrer">{item.originalName}</a>)}</div></> : null}<h3>What you&apos;ll get</h3><ul><li><Icon name="check"/>Original, student-focused work</li><li><Icon name="check"/>Editable source files</li><li><Icon name="check"/>Clear in-app communication</li><li><Icon name="check"/>Revisions included with your package</li></ul></div></section>
       <aside className="booking-card"><div className="tier-tabs">{(["Basic", "Standard", "Premium"] as const).map((item) => <button className={tier === item ? "active" : ""} onClick={() => setTier(item)} key={item}>{item}</button>)}</div><div className="package-title"><h3>{tier} package</h3><strong>₱{prices[tier]}</strong></div><p>{tier === "Basic" ? "A focused package for a simple student requirement." : tier === "Standard" ? "More coverage and revisions for larger projects." : "Complete support for your most important projects."}</p><div className="package-meta"><span><Icon name="clock"/> {tier === "Basic" ? service.delivery : tier === "Standard" ? "3 days" : "4 days"} delivery</span><span>↻ {tier === "Basic" ? 2 : tier === "Standard" ? 3 : 5} revisions</span></div><ul><li><Icon name="check"/>Requirements consultation</li><li><Icon name="check"/>Final high-quality output</li><li><Icon name="check"/>Source file included</li></ul><button className="primary-button wide" onClick={onBook}>Continue — ₱{prices[tier]} <Icon name="arrow"/></button><small className="safe-note">You won&apos;t be charged in this prototype.</small></aside>
     </div>
   </main>;
@@ -351,11 +402,17 @@ function ProviderDashboard({ token, user, categories, notify, onLogout }: { toke
       setProviderOrders((items) => items.map((item) => item.id === order.id ? result.data : item)); notify(result.message); await refresh();
     } catch (caught) { notify(caught instanceof Error ? caught.message : "Unable to update the request"); }
   }
+  async function startOrder(order: MarketplaceOrder) {
+    try {
+      const result = await api.startOrder(token, order.id);
+      setProviderOrders((items) => items.map((item) => item.id === order.id ? result.data : item)); notify(result.message); await refresh();
+    } catch (caught) { notify(caught instanceof Error ? caught.message : "Unable to start the order"); }
+  }
 
   return <main className="dashboard-page">
     <DashboardHeader kicker="PROVIDER WORKSPACE" title="Provider dashboard" subtitle={`Verified account · ${user.displayName}`} action={<button className="outline-action" onClick={onLogout}>Sign out</button>}/>
     <div className="stats-grid"><Stat label="Active orders" value={String(stats.activeOrders)} change="Current work" icon="↗"/><Stat label="Pending requests" value={String(stats.pendingRequests)} change="Awaiting response" icon="◷"/><Stat label="Completed orders" value={String(stats.completedOrders)} change="Finished projects" icon="✓"/><Stat label="Average rating" value={stats.averageRating.toFixed(1)} change={`From ${stats.reviewCount} reviews`} icon="★"/></div>
-    <section className="panel provider-requests"><div className="panel-title"><div><span className="kicker">ORDER REQUESTS</span><h2>Client service requests</h2></div><span className="queue-count">{providerOrders.filter((order) => order.status === "REQUESTED").length} awaiting decision</span></div>{providerOrders.length ? providerOrders.map((order) => <article className="provider-request" key={order.id}><div className="request-main"><span className={`listing-status ${order.status.toLowerCase()}`}>{order.status.replaceAll("_"," ")}</span><small>{order.orderNumber}</small><h3>{order.title}</h3><p>{order.requirements}</p><div className="request-facts"><span><small>CLIENT</small><b>{order.client.displayName}</b></span><span><small>PACKAGE</small><b>{order.package.name}</b></span><span><small>TOTAL</small><b>₱{(order.totalCentavos/100).toLocaleString()}</b></span><span><small>DUE</small><b>{new Date(order.dueAt).toLocaleDateString()}</b></span></div></div>{order.status === "REQUESTED" ? <div className="request-actions"><button className="approve" onClick={() => void decideOrder(order,"accept")}>Accept request</button><button className="reject" onClick={() => void decideOrder(order,"reject")}>Reject</button></div> : <div className="request-decision">Decision recorded · Client notified</div>}</article>) : <div className="empty compact"><span>◇</span><h3>No service requests yet</h3><p>New client bookings will appear here for your decision.</p></div>}</section>
+    <section className="panel provider-requests"><div className="panel-title"><div><span className="kicker">ORDER REQUESTS</span><h2>Client service requests</h2></div><span className="queue-count">{providerOrders.filter((order) => order.status === "REQUESTED").length} awaiting decision</span></div>{providerOrders.length ? providerOrders.map((order) => <article className="provider-request" key={order.id}><div className="request-main"><span className={`listing-status ${order.status.toLowerCase()}`}>{order.status.replaceAll("_"," ")}</span><small>{order.orderNumber}</small><h3>{order.title}</h3><p>{order.requirements}</p><div className="request-facts"><span><small>CLIENT</small><b>{order.client.displayName}</b></span><span><small>PACKAGE</small><b>{order.package.name}</b></span><span><small>TOTAL</small><b>₱{(order.totalCentavos/100).toLocaleString()}</b></span><span><small>DUE</small><b>{new Date(order.dueAt).toLocaleDateString()}</b></span></div></div>{order.status === "REQUESTED" ? <div className="request-actions"><button className="approve" onClick={() => void decideOrder(order,"accept")}>Accept request</button><button className="reject" onClick={() => void decideOrder(order,"reject")}>Reject</button></div> : order.status === "ACCEPTED" ? <div className="request-actions"><button className="approve" onClick={() => void startOrder(order)}>Start working</button></div> : <div className="request-decision">{order.status === "IN_PROGRESS" ? "Work in progress · Client notified" : "Decision recorded · Client notified"}</div>}</article>) : <div className="empty compact"><span>◇</span><h3>No service requests yet</h3><p>New client bookings will appear here for your decision.</p></div>}</section>
     <section className="panel provider-notifications"><div className="panel-title"><div><span className="kicker">NOTIFICATIONS</span><h2>Client activity</h2></div><span className="queue-count">{unreadCount} unread</span></div>{notifications.length ? notifications.slice(0,5).map((item) => <button key={item.id} className={`provider-notification ${item.readAt ? "read" : "unread"}`} onClick={() => void readNotification(item)}><span>↗</span><div><b>{item.title}</b><small>{item.body} · {new Date(item.createdAt).toLocaleString()}</small></div>{!item.readAt&&<i>NEW</i>}</button>) : <div className="empty compact"><span>♧</span><h3>No notifications yet</h3><p>New client service requests will appear here immediately.</p></div>}</section>
     <div className="provider-setup-grid"><section className="panel"><span className="kicker">PROVIDER IDENTITY</span><h2>{profile ? "Update your provider profile" : "Create your provider profile"}</h2><form className="provider-form" onSubmit={saveProfile}><label>Professional headline<input value={profileForm.headline} onChange={(event) => setProfileForm({ ...profileForm, headline: event.target.value })} minLength={3} maxLength={100} placeholder="Student graphic designer and illustrator" required/></label><label>Provider bio<textarea value={profileForm.bio} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} minLength={20} maxLength={1000} placeholder="Describe your experience and the value you provide." required/></label><label>Skills <small>Separate with commas</small><input value={profileForm.skills} onChange={(event) => setProfileForm({ ...profileForm, skills: event.target.value })} placeholder="Logo design, Canva, Illustration" required/></label><label className="availability-check"><input type="checkbox" checked={profileForm.isAvailable} onChange={(event) => setProfileForm({ ...profileForm, isAvailable: event.target.checked })}/> Available for new orders</label><button className="primary-button" disabled={savingProfile}>{savingProfile ? "Saving…" : "Save provider profile"}</button></form></section>
     <section className="panel"><span className="kicker">{editingServiceId ? "EDIT LISTING" : "NEW LISTING"}</span><h2>{editingServiceId ? "Update service draft" : "Create a service draft"}</h2>{!profile ? <div className="provider-gate">Complete your provider profile before creating a listing.</div> : <form className="provider-form" onSubmit={saveService}><label>Category<select value={serviceForm.categoryId} onChange={(event) => setServiceForm({ ...serviceForm, categoryId: event.target.value })} required>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label><label>Service title<input value={serviceForm.title} onChange={(event) => setServiceForm({ ...serviceForm, title: event.target.value })} minLength={10} maxLength={120} required/></label><label>Description<textarea value={serviceForm.description} onChange={(event) => setServiceForm({ ...serviceForm, description: event.target.value })} minLength={50} maxLength={3000} required/></label><div className="provider-form-row"><label>Delivery<select value={serviceForm.deliveryMethod} onChange={(event) => setServiceForm({ ...serviceForm, deliveryMethod: event.target.value })}><option value="ONLINE">Online</option><option value="IN_PERSON">In person</option><option value="HYBRID">Hybrid</option></select></label><label>Campus location <small>Optional</small><input value={serviceForm.campusLocation} onChange={(event) => setServiceForm({ ...serviceForm, campusLocation: event.target.value })}/></label></div><div className="package-stack">{serviceForm.packages.map((item) => <div className={`package-editor ${item.enabled ? "" : "disabled"}`} key={item.tier}><label className="package-toggle"><input type="checkbox" checked={item.enabled} disabled={item.tier === "BASIC"} onChange={(event) => updatePackage(item.tier, { enabled: event.target.checked })}/><b>{item.tier[0] + item.tier.slice(1).toLowerCase()} package</b>{item.tier === "BASIC" ? <small>Required</small> : <small>Optional</small>}</label>{item.enabled && <><label>Package name<input value={item.name} onChange={(event) => updatePackage(item.tier, { name: event.target.value })} required/></label><label>What is included?<textarea value={item.description} onChange={(event) => updatePackage(item.tier, { description: event.target.value })} minLength={10} required/></label><div className="provider-form-row three"><label>Price (₱)<input type="number" min="1" step="1" value={item.pricePesos} onChange={(event) => updatePackage(item.tier, { pricePesos: event.target.value })} required/></label><label>Delivery days<input type="number" min="1" max="90" value={item.deliveryDays} onChange={(event) => updatePackage(item.tier, { deliveryDays: event.target.value })} required/></label><label>Revisions<input type="number" min="0" max="20" value={item.revisionLimit} onChange={(event) => updatePackage(item.tier, { revisionLimit: event.target.value })} required/></label></div></>}</div>)}</div><div className="service-form-actions"><button className="primary-button" disabled={savingService}>{savingService ? "Saving…" : editingServiceId ? "Save changes" : "Create draft"}</button>{editingServiceId && <button type="button" className="outline-button" onClick={resetServiceForm}>Cancel editing</button>}</div></form>}</section></div>

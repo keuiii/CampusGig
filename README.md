@@ -2,7 +2,7 @@
 
 CampusGig is a multi-school student-services marketplace for participating schools in Lipa City. It combines fixed-price student service listings with a planned custom job-posting and proposal marketplace.
 
-The repository currently represents the **Phase 1 foundation and interactive prototype**. It includes a Next.js web app, an Expo React Native mobile app, a NestJS REST API, and a PostgreSQL database design using Prisma.
+The repository currently represents an **integrated Phase 1 MVP in active development**. It includes a Next.js web app, an Expo React Native mobile app, a NestJS REST API, and a PostgreSQL database using Prisma.
 
 For the full progress report and remaining milestones, read [ROADMAP.md](./ROADMAP.md).
 
@@ -41,21 +41,23 @@ Implemented:
 - Real client Orders tab and provider notification feed
 - Functional web notification bell with unread badges and provider Accept/Reject request actions
 - Client notifications for provider decisions, visible from the mobile bell
+- Persistent animated night-mode controls on mobile (Profile → Appearance) and the web header
+- Shared web interaction system with scroll progress, section reveals, page transitions, card motion, and reduced-motion accessibility
 
 Not yet fully implemented:
 
 - Production email-provider configuration and production-grade refresh-token sessions
 - Completing role authorization as new marketplace endpoints are implemented
-- Admin web login and a connected verification-review screen
-- Service editing, cover uploads, additional package tiers, and administrator moderation
-- Persistent order creation and lifecycle actions
+- Production object storage for profile, verification, and service media files
+- Listing preview, pause, archive, pagination, sorting, and advanced marketplace filters
+- Order detail/timeline screens and lifecycle actions after provider acceptance
 - Real-time messaging and private file sharing
 - Revisions, disputes, and reviews
 - Payments, commissions, Pro subscriptions, and featured listings
 - Custom job postings and proposals
 - Production deployment and automated testing
 
-The current admin, provider, order, message, and profile screens include prototype or empty states where their backend workflows have not yet been connected.
+The current messaging, later order lifecycle, deliverable, revision, dispute, and review screens include prototype or empty states where their backend workflows have not yet been connected.
 
 ## Technology
 
@@ -211,6 +213,7 @@ Order and notification routes implemented:
 - `POST /api/v1/orders` (Bearer token required)
 - `POST /api/v1/orders/:id/accept` (Order provider only)
 - `POST /api/v1/orders/:id/reject` (Order provider only; reason required)
+- `POST /api/v1/orders/:id/start` (Order provider only; accepted orders only)
 - `GET /api/v1/notifications` (Bearer token required)
 - `PATCH /api/v1/notifications/:id/read` (Bearer token required)
 

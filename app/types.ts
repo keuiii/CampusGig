@@ -9,7 +9,10 @@ export type Category = {
 export type Service = {
   id: string;
   title: string;
+  providerId: string;
   provider: string;
+  providerHasAvatar: boolean;
+  providerAvatarVersion: number;
   initials: string;
   program: string;
   school: string;

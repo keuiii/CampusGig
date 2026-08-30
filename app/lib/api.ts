@@ -65,6 +65,7 @@ export const api = {
   providerOrders: async (token: string) => items(await request<Collection<MarketplaceOrder>>("/orders?scope=provider", undefined, token)),
   acceptOrder: (token: string, id: string) => request<{ data: MarketplaceOrder; message: string }>(`/orders/${id}/accept`, { method: "POST" }, token),
   rejectOrder: (token: string, id: string, reason: string) => request<{ data: MarketplaceOrder; message: string }>(`/orders/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }, token),
+  startOrder: (token: string, id: string) => request<{ data: MarketplaceOrder; message: string }>(`/orders/${id}/start`, { method: "POST" }, token),
   providerProfile: (token: string) => request<{ data: ProviderProfile | null }>("/provider/profile", undefined, token),
   updateProviderProfile: (token: string, input: { headline: string; bio: string; skills: string[]; isAvailable: boolean }) => request<{ data: ProviderProfile }>("/provider/profile", { method: "PUT", body: JSON.stringify(input) }, token),
   providerServices: async (token: string) => items(await request<Collection<ProviderService>>("/provider/services", undefined, token)),

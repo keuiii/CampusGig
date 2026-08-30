@@ -32,7 +32,8 @@ export class ServicesService {
     const profile = service.provider.studentProfile;
     return {
       id: service.id, title: service.title, description: service.description,
-      provider: service.provider.displayName, initials: service.provider.displayName.split(" ").map((part: string) => part[0]).slice(0, 2).join(""),
+      providerId: service.provider.id, provider: service.provider.displayName, initials: service.provider.displayName.split(" ").map((part: string) => part[0]).slice(0, 2).join(""),
+      providerHasAvatar: Boolean(service.provider.avatarPath), providerAvatarVersion: service.provider.updatedAt?.getTime?.() ?? Date.now(),
       program: profile?.program ?? "", schoolId: profile?.schoolId ?? "", school: profile?.school?.name ?? "", category: service.category.name,
       price: (service.packages[0]?.priceCentavos ?? 0) / 100, rating: Number(profile?.ratingAverage ?? 0), reviews: profile?.reviewCount ?? 0,
       delivery: service.packages[0] ? `${service.packages[0].deliveryDays} days` : "", packages: service.packages,
