@@ -84,7 +84,14 @@ export type ProviderStats = {
 };
 
 export type AppNotification = { id: string; type: string; title: string; body: string; orderId?: string | null; readAt?: string | null; createdAt: string };
-export type MarketplaceOrder = { id: string; orderNumber: string; title: string; status: string; requirements: string; totalCentavos: number; currency: string; dueAt: string; createdAt: string; client: { id: string; displayName: string }; provider: { id: string; displayName: string }; package: { id: string; tier: string; name: string; deliveryDays: number; revisionLimit: number } };
+export type OrderFile = { id: string; purpose: string; originalName: string; mimeType: string; sizeBytes: number; createdAt: string };
+export type OrderRevision = { id: string; sequenceNumber: number; instructions: string; status: string; createdAt: string; resolvedAt: string | null };
+export type OrderReview = { id: string; overallRating: number; qualityRating: number | null; communicationRating: number | null; timelinessRating: number | null; comment: string | null; createdAt: string };
+export type MarketplaceOrder = { id: string; orderNumber: string; title: string; status: string; requirements: string; totalCentavos: number; currency: string; dueAt: string; createdAt: string; revisionsUsed: number; revisionLimit: number; files: OrderFile[]; revisions: OrderRevision[]; review: OrderReview | null; client: { id: string; displayName: string }; provider: { id: string; displayName: string }; package: { id: string; tier: string; name: string; deliveryDays: number; revisionLimit: number } };
+export type OrderHistoryItem = { id: string; fromStatus: string | null; toStatus: string; note: string | null; createdAt: string; actor: { id: string; displayName: string } };
+export type MessageAttachment = { id: string; originalName: string; mimeType: string; sizeBytes: number; createdAt: string };
+export type OrderMessage = { id: string; body: string | null; messageType: string; createdAt: string; isMine: boolean; attachments: MessageAttachment[]; sender: { id: string; displayName: string; hasAvatar: boolean; avatarVersion: number } };
+export type OrderWorkspace = MarketplaceOrder & { history: OrderHistoryItem[] };
 
 export type ProviderProfile = { userId: string; headline: string; bio: string; skills: string[]; isAvailable: boolean };
 export type ProviderPackage = { id: string; tier: "BASIC" | "STANDARD" | "PREMIUM"; name: string; description: string; priceCentavos: number; deliveryDays: number; revisionLimit: number; isActive: boolean };

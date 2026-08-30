@@ -6,11 +6,11 @@ Related documentation: [project setup and current API status](./README.md) and [
 
 ## Current status
 
-CampusGig is in the **integrated MVP development stage**. The web and Expo mobile apps use the NestJS API and PostgreSQL database for authentication, profiles, school verification, moderated service listings, marketplace discovery, order requests, notifications, and provider accept/reject decisions. The later order lifecycle, messaging, deliverables, revisions, reviews, and payments are not yet operational.
+CampusGig is in the **integrated MVP development stage**. The web and Expo mobile apps use the NestJS API and PostgreSQL database for authentication, profiles, school verification, moderated service listings, marketplace discovery, full fixed-price order lifecycle actions, private order messaging, deliverables, revisions, notifications, and verified reviews. Disputes and payments are not yet operational.
 
 Estimated progress:
 
-- **Phase 1 MVP:** approximately 65% complete
+- **Phase 1 MVP:** approximately 78% complete
 - **Full production platform:** approximately 30% complete
 
 These percentages measure working end-to-end functionality, not only screens or database tables.
@@ -70,7 +70,7 @@ Remaining: price/rating/delivery filters, pagination, sorting, favorites, and pr
 - Durable provider notifications and unread counts
 - Verified-provider authorization enforced by the API
 
-Remaining: listing preview/pause/archive, order detail and timeline, later lifecycle actions, messaging, deliverables, and production object storage.
+Remaining: listing preview/pause/archive and production object storage. Provider order workspaces, timelines, messaging, and delivery submission are connected.
 
 ### Dashboard interfaces — Partially connected
 
@@ -81,7 +81,7 @@ Remaining: listing preview/pause/archive, order detail and timeline, later lifec
 - Profile setup interface
 - Mobile Orders, Messages, and Profile navigation
 
-Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, and accept/reject actions use authenticated database operations. Messaging, full order details, later lifecycle actions, and some empty states remain prototypes.
+Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, order workspaces, messaging, delivery/revision/completion transitions, and reviews use authenticated database operations. Disputes and some secondary empty states remain prototypes.
 
 ### Participating schools and verification — Backend and mobile flow complete
 
@@ -180,17 +180,17 @@ Definition of done: a verified provider can publish a moderated service that cli
 
 Goal: complete the first end-to-end marketplace transaction without online payment.
 
-Progress: **client package selection, requirement capture, transactional order creation, immutable snapshots, status history, automatic conversations, mobile client order listing, provider notifications and accept/reject decisions, starting accepted work, and client lifecycle notifications are implemented. Deliverable submission and later lifecycle transitions are next.**
+Progress: **client package selection, requirement capture, transactional order creation, immutable snapshots, status history, automatic conversations, mobile client order workspaces, provider decisions, delivery uploads, revision requests/resubmission, completion, and lifecycle notifications are implemented.**
 
 - Create an order from a selected service package — complete
 - Capture client requirements and due date — complete
 - Provider accept or reject actions — complete
 - Enforce valid status transitions
 - Start work — complete
-- Submit deliverable, request revision, resubmit, and complete
+- Submit deliverable, request revision, resubmit, and complete — complete
 - Store an immutable service/package snapshot on every order — complete
-- Add order timeline and status history
-- Implement client and provider order lists and detail screens — client list and provider request actions complete; dedicated detail screens remain
+- Add order timeline and status history — complete
+- Implement client and provider order lists and detail screens — mobile client and web provider workspaces complete
 - Add cancellation rules
 
 Definition of done: two authenticated users can complete the full order lifecycle with persisted history.
@@ -200,10 +200,11 @@ Definition of done: two authenticated users can complete the full order lifecycl
 Goal: support safe collaboration tied to a real order.
 
 - Automatically create one conversation per order — complete
-- Send and retrieve messages
+- Send and retrieve participant-only persisted messages — complete on mobile client and provider web workspaces
+- Order detail workspace and persisted status timeline — complete on mobile client and provider web
 - Real-time updates using WebSockets or a managed realtime service
 - Read status and unread counts
-- Upload requirements, attachments, and deliverables
+- Upload requirements, attachments, and deliverables — deliverables and message attachments complete
 - Private signed file URLs
 - File type, size, and malware-safety validation
 - Prevent users outside the order from accessing messages or files
@@ -214,9 +215,9 @@ Definition of done: only the order’s client and provider can exchange messages
 
 Goal: establish marketplace trust and finish the MVP lifecycle.
 
-- Enforce package revision limits
+- Enforce package revision limits — complete
 - Revision instructions and resolution tracking
-- One review per completed order
+- One review per completed order — complete
 - Rating validation and aggregate recalculation
 - Provider rating display
 - Basic report/dispute submission
@@ -305,4 +306,4 @@ Messaging, uploads, reviews, disputes, automated tests, and deployment follow in
 
 ## Best next task
 
-The next development task should be **listing preview, pause, and archive controls**, followed by production object storage.
+The next development task should be **basic dispute handling**, followed by automated order-state and permission tests.

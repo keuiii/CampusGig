@@ -1,4 +1,4 @@
-import type { AppNotification, AuthResponse, AuthUser, Category, CodeResponse, DashboardStats, MarketplaceOrder, ModerationService, Order, ProviderProfile, ProviderService, ProviderStats, RegistrationResponse, School, SchoolAdministrator, Service, Verification } from "../types";
+import type { AppNotification, AuthResponse, AuthUser, Category, CodeResponse, DashboardStats, MarketplaceOrder, ModerationService, Order, OrderMessage, OrderWorkspace, ProviderProfile, ProviderService, ProviderStats, RegistrationResponse, School, SchoolAdministrator, Service, Verification } from "../types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
@@ -13,6 +13,7 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
 
   const response = await fetch(`${API_URL}/api/v1${path}`, {
     ...init,
+    cache: "no-store",
     credentials: "include",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
   });
@@ -63,9 +64,23 @@ export const api = {
   notifications: (token: string) => request<{ data: AppNotification[]; unreadCount: number }>("/notifications", undefined, token),
   markNotificationRead: (token: string, id: string) => request<{ data: AppNotification }>(`/notifications/${id}/read`, { method: "PATCH" }, token),
   providerOrders: async (token: string) => items(await request<Collection<MarketplaceOrder>>("/orders?scope=provider", undefined, token)),
+  order: (token: string, id: string) => request<{ data: OrderWorkspace }>(`/orders/${id}`, undefined, token),
+  messages: (token: string, orderId: string) => request<{ data: OrderMessage[] }>(`/orders/${orderId}/messages`, undefined, token),
+  sendMessage: (token: string, orderId: string, body: string) => request<{ data: OrderMessage }>(`/orders/${orderId}/messages`, { method: "POST", body: JSON.stringify({ body }) }, token),
+  sendMessageAttachments: async (token: string, orderId: string, files: File[], body?: string) => {
+    const form = new FormData(); if (body?.trim()) form.append("body", body.trim()); files.forEach((file) => form.append("files", file));
+    const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/messages/attachments`, { method: "POST", cache: "no-store", headers: { Authorization: `Bearer ${token}` }, body: form });
+    const payload = await response.json().catch(() => null); if (!response.ok) throw new ApiError(response.status, Array.isArray(payload?.message) ? payload.message.join(" ") : payload?.message ?? "Attachment upload failed"); return payload as { data: OrderMessage };
+  },
   acceptOrder: (token: string, id: string) => request<{ data: MarketplaceOrder; message: string }>(`/orders/${id}/accept`, { method: "POST" }, token),
   rejectOrder: (token: string, id: string, reason: string) => request<{ data: MarketplaceOrder; message: string }>(`/orders/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }, token),
   startOrder: (token: string, id: string) => request<{ data: MarketplaceOrder; message: string }>(`/orders/${id}/start`, { method: "POST" }, token),
+  deliverOrder: async (token: string, id: string, note: string, files: File[]) => {
+    const form = new FormData(); form.append("note", note); files.forEach((file) => form.append("files", file));
+    const response = await fetch(`${API_URL}/api/v1/orders/${id}/deliver`, { method: "POST", cache: "no-store", headers: { Authorization: `Bearer ${token}` }, body: form });
+    const body = await response.json().catch(() => null); if (!response.ok) throw new ApiError(response.status, Array.isArray(body?.message) ? body.message.join(" ") : body?.message ?? "Delivery upload failed"); return body as { data: MarketplaceOrder; message: string };
+  },
+  orderFile: async (token: string, orderId: string, fileId: string) => { const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/files/${fileId}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } }); if (!response.ok) throw new ApiError(response.status, "Unable to download file"); return response.blob(); },
   providerProfile: (token: string) => request<{ data: ProviderProfile | null }>("/provider/profile", undefined, token),
   updateProviderProfile: (token: string, input: { headline: string; bio: string; skills: string[]; isAvailable: boolean }) => request<{ data: ProviderProfile }>("/provider/profile", { method: "PUT", body: JSON.stringify(input) }, token),
   providerServices: async (token: string) => items(await request<Collection<ProviderService>>("/provider/services", undefined, token)),

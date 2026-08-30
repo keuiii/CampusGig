@@ -43,6 +43,8 @@ Implemented:
 - Client notifications for provider decisions, visible from the mobile bell
 - Persistent animated night-mode controls on mobile (Profile → Appearance) and the web header
 - Shared web interaction system with scroll progress, section reveals, page transitions, card motion, and reduced-motion accessibility
+- Participant-only order workspaces with persisted status timelines, client/provider messaging, and private message attachments
+- Private provider deliverable uploads, client revision requests with package-limit enforcement, delivery acceptance, completion, and verified post-order reviews
 
 Not yet fully implemented:
 
@@ -52,12 +54,12 @@ Not yet fully implemented:
 - Listing preview, pause, archive, pagination, sorting, and advanced marketplace filters
 - Order detail/timeline screens and lifecycle actions after provider acceptance
 - Real-time messaging and private file sharing
-- Revisions, disputes, and reviews
+- Dispute reporting and administrator dispute resolution
 - Payments, commissions, Pro subscriptions, and featured listings
 - Custom job postings and proposals
 - Production deployment and automated testing
 
-The current messaging, later order lifecycle, deliverable, revision, dispute, and review screens include prototype or empty states where their backend workflows have not yet been connected.
+Dispute handling, payment processing, production email delivery, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
 
 ## Technology
 
@@ -214,6 +216,15 @@ Order and notification routes implemented:
 - `POST /api/v1/orders/:id/accept` (Order provider only)
 - `POST /api/v1/orders/:id/reject` (Order provider only; reason required)
 - `POST /api/v1/orders/:id/start` (Order provider only; accepted orders only)
+- `GET /api/v1/orders/:id` (Order client or provider only; includes status history)
+- `POST /api/v1/orders/:id/deliver` (Order provider only; multipart delivery files)
+- `GET /api/v1/orders/:id/files/:fileId` (Order participants only)
+- `POST /api/v1/orders/:id/revision` (Order client only; revision limit enforced)
+- `POST /api/v1/orders/:id/complete` (Order client only; submitted work only)
+- `POST /api/v1/orders/:id/review` (Order client only; one review per completed order)
+- `GET /api/v1/orders/:orderId/messages` (Order participants only)
+- `POST /api/v1/orders/:orderId/messages` (Order participants only)
+- `POST /api/v1/orders/:orderId/messages/attachments` (Order participants only; up to three private files)
 - `GET /api/v1/notifications` (Bearer token required)
 - `PATCH /api/v1/notifications/:id/read` (Bearer token required)
 

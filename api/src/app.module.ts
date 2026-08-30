@@ -11,9 +11,10 @@ import { ServicesModule } from "./modules/services/services.module";
 import { SchoolsModule } from "./modules/schools/schools.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { MessagesModule } from "./modules/messages/messages.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, SchoolsModule, CategoriesModule, ServicesModule, OrdersModule, NotificationsModule, ProfileModule, ProviderModule, AdminModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, SchoolsModule, CategoriesModule, ServicesModule, OrdersModule, MessagesModule, NotificationsModule, ProfileModule, ProviderModule, AdminModule],
   controllers: [AppController],
 })
 export class AppModule {}
