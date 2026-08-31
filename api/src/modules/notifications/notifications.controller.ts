@@ -10,6 +10,13 @@ import { NotificationsService } from "./notifications.service";
 @Controller("notifications")
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
-  @Get() list(@Req() request: AuthenticatedRequest) { return this.notifications.list(request.auth.sub); }
-  @Patch(":id/read") markRead(@Req() request: AuthenticatedRequest, @Param("id") id: string) { return this.notifications.markRead(request.auth.sub, id); }
+  @Get() list(@Req() request: AuthenticatedRequest) {
+    return this.notifications.list(request.auth.sub);
+  }
+  @Patch(":id/read") markRead(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+  ) {
+    return this.notifications.markRead(request.auth.sub, id);
+  }
 }

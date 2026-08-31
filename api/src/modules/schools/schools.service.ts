@@ -15,12 +15,24 @@ export class SchoolsService {
     return { data: schools };
   }
   async findAllForAdmin() {
-    return { data: await this.prisma.school.findMany({ orderBy: { name: "asc" } }) };
+    return {
+      data: await this.prisma.school.findMany({ orderBy: { name: "asc" } }),
+    };
   }
   async create(input: CreateSchoolDto) {
-    return this.prisma.school.create({ data: { name: input.name.trim(), shortName: input.shortName.trim(), emailDomain: input.emailDomain?.trim().toLowerCase() || null, address: input.address?.trim() || null } });
+    return this.prisma.school.create({
+      data: {
+        name: input.name.trim(),
+        shortName: input.shortName.trim(),
+        emailDomain: input.emailDomain?.trim().toLowerCase() || null,
+        address: input.address?.trim() || null,
+      },
+    });
   }
   async updateStatus(id: string, input: UpdateSchoolStatusDto) {
-    return this.prisma.school.update({ where: { id }, data: { status: input.status } });
+    return this.prisma.school.update({
+      where: { id },
+      data: { status: input.status },
+    });
   }
 }

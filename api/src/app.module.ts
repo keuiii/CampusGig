@@ -14,7 +14,20 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { MessagesModule } from "./modules/messages/messages.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, SchoolsModule, CategoriesModule, ServicesModule, OrdersModule, MessagesModule, NotificationsModule, ProfileModule, ProviderModule, AdminModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    SchoolsModule,
+    CategoriesModule,
+    ServicesModule,
+    OrdersModule,
+    MessagesModule,
+    NotificationsModule,
+    ProfileModule,
+    ProviderModule,
+    AdminModule,
+  ],
   controllers: [AppController],
 })
 export class AppModule {}

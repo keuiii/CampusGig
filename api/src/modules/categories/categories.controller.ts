@@ -6,5 +6,7 @@ import { CategoriesService } from "./categories.service";
 @Controller("categories")
 export class CategoriesController {
   constructor(private readonly categories: CategoriesService) {}
-  @Get() findAll() { return this.categories.findAll(); }
+  @Get() findAll() {
+    return this.categories.findAll();
+  }
 }

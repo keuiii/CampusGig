@@ -81,7 +81,7 @@ Remaining: listing preview/pause/archive and production object storage. Provider
 - Profile setup interface
 - Mobile Orders, Messages, and Profile navigation
 
-Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, order workspaces, messaging, delivery/revision/completion transitions, and reviews use authenticated database operations. Disputes and some secondary empty states remain prototypes.
+Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, lifecycle-focused order workspaces, dedicated mobile conversations, delivery/revision/completion transitions, and reviews use authenticated database operations. Disputes and some secondary empty states remain prototypes.
 
 ### Participating schools and verification — Backend and mobile flow complete
 
@@ -124,10 +124,11 @@ Definition of done: categories and approved schools survive application restarts
 
 Goal: replace the anonymous prototype with real accounts and protected roles.
 
-Progress: **backend, web, and mobile authentication are implemented, including new-account email codes, password recovery, and authenticated password changes from mobile Account Settings. Existing accounts were safely grandfathered as verified. Production email-provider configuration, refresh sessions, and endpoint-by-endpoint authorization hardening remain.**
+Progress: **backend, web, and mobile authentication are implemented, including new-account email codes, password recovery, authenticated password changes, and a secure Google ID-token/account-linking foundation. Existing accounts were safely grandfathered as verified. Google OAuth credentials, production email-provider configuration, refresh sessions, and endpoint-by-endpoint authorization hardening remain deployment setup work.**
 
 - Local email/password authentication selected for the MVP backend
 - Registration, login, password hashing, JWT issuance, and `/auth/me` implemented
+- Google social sign-in implemented for web and mobile with backend token verification, persistent social-account links, and configuration-aware disabled states
 - Mobile persistent login and logout implemented
 - Persistent animated night-mode controls implemented for mobile and web, including dark cards, forms, navigation, and status-bar treatment
 - Web-wide motion system implemented for navigation, scrolling, cards, forms, dropdowns, page transitions, and accessibility preferences

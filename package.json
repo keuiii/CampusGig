@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit --noUnusedLocals",
+    "check": "npm run typecheck && npm --prefix mobile run typecheck && npm --prefix api run build",
+    "format": "prettier --write app mobile/App.tsx mobile/src api/src README.md ROADMAP.md ARCHITECTURE.md",
+    "format:check": "prettier --check app mobile/App.tsx mobile/src api/src README.md ROADMAP.md ARCHITECTURE.md",
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",
     "mobile:start": "npm --prefix mobile run start",
@@ -25,6 +29,7 @@
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
+    "prettier": "3.6.2",
     "typescript": "^5.9.2"
   }
 }

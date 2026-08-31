@@ -1,6 +1,19 @@
 import { Type } from "class-transformer";
 import { DeliveryMethod, PackageTier } from "@prisma/client";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from "class-validator";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
 
 export class CreateServicePackageDto {
   @IsEnum(PackageTier) tier!: PackageTier;
@@ -17,5 +30,10 @@ export class CreateServiceDto {
   @IsString() @MinLength(50) @MaxLength(3000) description!: string;
   @IsEnum(DeliveryMethod) deliveryMethod!: DeliveryMethod;
   @IsOptional() @IsString() @MaxLength(160) campusLocation?: string;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(3) @ValidateNested({ each: true }) @Type(() => CreateServicePackageDto) packages!: CreateServicePackageDto[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => CreateServicePackageDto)
+  packages!: CreateServicePackageDto[];
 }

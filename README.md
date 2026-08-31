@@ -21,6 +21,7 @@ Implemented:
 - Clean category-only database seed
 - Local PostgreSQL container and initial Prisma migration
 - Working registration, six-digit email verification, login, forgot/reset password, JWT, protected profile, and mobile authentication screens
+- Secure Google social sign-in foundation for web and mobile, including verified ID-token exchange and persistent provider-account linking
 - Role-protected platform admin, school admin, provider, and order API foundations
 - Admin endpoints for registering participating schools and changing their status
 - Database-backed student profile setup in the mobile app
@@ -44,6 +45,7 @@ Implemented:
 - Persistent animated night-mode controls on mobile (Profile → Appearance) and the web header
 - Shared web interaction system with scroll progress, section reveals, page transitions, card motion, and reduced-motion accessibility
 - Participant-only order workspaces with persisted status timelines, client/provider messaging, and private message attachments
+- Dedicated mobile conversation inbox and chat screen with latest-message previews, unread counts, search, attachments, and downloads; order workspaces remain focused on project lifecycle actions
 - Private provider deliverable uploads, client revision requests with package-limit enforcement, delivery acceptance, completion, and verified post-order reviews
 
 Not yet fully implemented:
@@ -71,6 +73,32 @@ Dispute handling, payment processing, production email delivery, and production 
 - **Local database option:** Docker Compose
 
 Local email/password authentication with JWT, new-account verification codes, and forgot/reset password are implemented. Personal email accounts are accepted and school-provided email is optional. Production email delivery, refresh-token handling, and production object storage still need to be configured before deployment.
+
+## Google social sign-in setup
+
+Google sign-in is implemented but remains disabled until you create OAuth client IDs in Google Cloud Console. Keep email/password login available as the fallback.
+
+1. Create a Google Cloud project and configure its OAuth consent screen.
+2. Create a **Web application** OAuth client. Add `http://localhost:3000` as an authorized JavaScript origin.
+3. Create an **Android** OAuth client for package `com.campusgig.app`, using the SHA-1 certificate fingerprint of the development or release build.
+4. Add the client IDs to the local environment files:
+
+```env
+# .env.local
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+
+# api/.env
+GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleusercontent.com
+
+# mobile/.env
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleusercontent.com
+```
+
+Restart the API, web, and Expo terminals after editing environment files. The web button works with the web client ID. Native Google authentication should be tested using an Expo development build because provider redirects and native identity configuration are not production-equivalent in Expo Go.
+
+The API accepts only Google-signed ID tokens whose audience matches one of the configured client IDs. Google accounts are stored in `SocialAccount`, so returning users keep the same CampusGig roles, profiles, orders, and provider workspace.
 
 ## Repository structure
 
@@ -178,6 +206,15 @@ npm run mobile:start
 
 Press `a` in the Expo terminal to launch the connected Android emulator.
 
+Google sign-in uses native Android code and therefore requires the CampusGig development build instead of Expo Go. With the emulator running, create and install it using:
+
+```powershell
+cd D:\CampusGig\mobile
+.\node_modules\.bin\expo.cmd run:android
+```
+
+After the first native build, normal JavaScript-only changes can be loaded with `npm run mobile:start -- --dev-client`. Rebuild with `expo.cmd run:android` whenever native dependencies or `mobile/app.json` change.
+
 ## Current API status
 
 Database-backed routes:
@@ -225,6 +262,7 @@ Order and notification routes implemented:
 - `GET /api/v1/orders/:orderId/messages` (Order participants only)
 - `POST /api/v1/orders/:orderId/messages` (Order participants only)
 - `POST /api/v1/orders/:orderId/messages/attachments` (Order participants only; up to three private files)
+- `GET /api/v1/conversations` (Signed-in user’s participant-only conversation inbox)
 - `GET /api/v1/notifications` (Bearer token required)
 - `PATCH /api/v1/notifications/:id/read` (Bearer token required)
 

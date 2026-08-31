@@ -8,6 +8,9 @@ api/.env
 api/dist
 api/node_modules
 api/private-storage
+mobile/android
+mobile/ios
 *.log
+*.tsbuildinfo
 *.zip
 .DS_Store

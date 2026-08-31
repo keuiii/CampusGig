@@ -1,5 +1,7 @@
 # CampusGig Mobile Source-Code Guide
 
+> The mobile source is now modular. `App.tsx` coordinates the application, while models, configuration, theme styles, components, and extracted screens live under `mobile/src/`. See [ARCHITECTURE.md](../ARCHITECTURE.md) for the current repository structure.
+
 CampusGig Mobile is the Expo React Native client for general clients, student clients, and student service providers. It is currently an interactive Phase 1 prototype connected to the CampusGig REST API.
 
 Refer to the repository-level [development roadmap](../ROADMAP.md) for overall completion and remaining milestones.

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { UserRole } from "@prisma/client";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -12,7 +20,9 @@ import { SchoolsService } from "./schools.service";
 @Controller("schools")
 export class SchoolsController {
   constructor(private readonly schools: SchoolsService) {}
-  @Get() findAll() { return this.schools.findAll(); }
+  @Get() findAll() {
+    return this.schools.findAll();
+  }
 }
 
 @ApiTags("admin schools")
@@ -22,7 +32,16 @@ export class SchoolsController {
 @Roles(UserRole.ADMIN)
 export class AdminSchoolsController {
   constructor(private readonly schools: SchoolsService) {}
-  @Get() findAll() { return this.schools.findAllForAdmin(); }
-  @Post() create(@Body() input: CreateSchoolDto) { return this.schools.create(input); }
-  @Patch(":id/status") updateStatus(@Param("id") id: string, @Body() input: UpdateSchoolStatusDto) { return this.schools.updateStatus(id, input); }
+  @Get() findAll() {
+    return this.schools.findAllForAdmin();
+  }
+  @Post() create(@Body() input: CreateSchoolDto) {
+    return this.schools.create(input);
+  }
+  @Patch(":id/status") updateStatus(
+    @Param("id") id: string,
+    @Body() input: UpdateSchoolStatusDto,
+  ) {
+    return this.schools.updateStatus(id, input);
+  }
 }

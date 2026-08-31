@@ -8,8 +8,15 @@ export class CategoriesService {
     const categories = await this.prisma.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
-      include: { _count: { select: { services: { where: { status: "PUBLISHED" } } } } },
+      include: {
+        _count: { select: { services: { where: { status: "PUBLISHED" } } } },
+      },
     });
-    return { data: categories.map(({ _count, ...category }) => ({ ...category, serviceCount: _count.services })) };
+    return {
+      data: categories.map(({ _count, ...category }) => ({
+        ...category,
+        serviceCount: _count.services,
+      })),
+    };
   }
 }

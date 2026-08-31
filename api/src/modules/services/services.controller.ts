@@ -9,7 +9,24 @@ import { ServicesService } from "./services.service";
 @Controller("services")
 export class ServicesController {
   constructor(private readonly services: ServicesService) {}
-  @Get() findAll(@Query("query") query?: string, @Query("categoryId") categoryId?: string, @Query("schoolId") schoolId?: string) { return this.services.findAll(query, categoryId, schoolId); }
-  @Get(":id") findOne(@Param("id") id: string) { return this.services.findOne(id); }
-  @Get(":id/media/:mediaId") async media(@Param("id") id: string, @Param("mediaId") mediaId: string, @Res() response: Response) { const media = await this.services.getPublicMedia(id, mediaId); return response.sendFile(resolve(serviceMediaStorageRoot, basename(media.storagePath))); }
+  @Get() findAll(
+    @Query("query") query?: string,
+    @Query("categoryId") categoryId?: string,
+    @Query("schoolId") schoolId?: string,
+  ) {
+    return this.services.findAll(query, categoryId, schoolId);
+  }
+  @Get(":id") findOne(@Param("id") id: string) {
+    return this.services.findOne(id);
+  }
+  @Get(":id/media/:mediaId") async media(
+    @Param("id") id: string,
+    @Param("mediaId") mediaId: string,
+    @Res() response: Response,
+  ) {
+    const media = await this.services.getPublicMedia(id, mediaId);
+    return response.sendFile(
+      resolve(serviceMediaStorageRoot, basename(media.storagePath)),
+    );
+  }
 }
