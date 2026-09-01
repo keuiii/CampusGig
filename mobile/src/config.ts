@@ -5,4 +5,5 @@ export const STORAGE_KEYS = {
   accessToken: "campusgig.accessToken",
   nightMode: "campusgig.nightMode",
   downloadDirectory: "campusgig.downloadDirectory",
+  trustedDevice: "campusgig.trustedDevice",
 } as const;

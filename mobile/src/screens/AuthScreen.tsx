@@ -23,6 +23,7 @@ function GoogleSocialButton({
   mode,
   nightMode,
   onAuthenticate,
+  onMfaChallenge,
 }: {
   mode: "login" | "register";
   nightMode: boolean;
@@ -30,6 +31,7 @@ function GoogleSocialButton({
     path: string,
     values: Record<string, unknown>,
   ) => Promise<any>;
+  onMfaChallenge: (token: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   async function signIn() {
@@ -43,7 +45,11 @@ function GoogleSocialButton({
       const idToken = result.data.idToken;
       if (!idToken)
         throw new Error("Google did not return a secure identity token.");
-      await onAuthenticate("social", { provider: "GOOGLE", idToken });
+      const response = await onAuthenticate("social", {
+        provider: "GOOGLE",
+        idToken,
+      });
+      if (response?.requiresTwoFactor) onMfaChallenge(response.challengeToken);
     } catch (error) {
       Alert.alert(
         "Google sign-in failed",
@@ -94,12 +100,17 @@ export function AuthScreen({
   ) => Promise<any>;
 }) {
   const [mode, setMode] = useState<
-    "login" | "register" | "verify" | "forgot" | "reset"
+    "login" | "register" | "verify" | "forgot" | "reset" | "mfa"
   >("login");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [mfaChallenge, setMfaChallenge] = useState("");
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
+  const [resetMfaCode, setResetMfaCode] = useState("");
+  const [resetUsesRecovery, setResetUsesRecovery] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -113,20 +124,24 @@ export function AuthScreen({
   const sliderX = useRef(new Animated.Value(0)).current;
   const formMotion = useRef(new Animated.Value(1)).current;
   const formReady =
-    mode === "verify"
-      ? code.length === 6
-      : mode === "forgot"
-        ? Boolean(email.trim())
-        : mode === "reset"
-          ? code.length === 6 && password.length >= 8
-          : Boolean(
-              email.trim() &&
-                password.length >= 8 &&
-                (mode === "login" || displayName.trim().length >= 2),
-            );
+    mode === "mfa"
+      ? useRecoveryCode
+        ? code.replace(/[^a-zA-Z0-9]/g, "").length === 10
+        : code.length === 6
+      : mode === "verify"
+        ? code.length === 6
+        : mode === "forgot"
+          ? Boolean(email.trim())
+          : mode === "reset"
+            ? code.length === 6 && password.length >= 8
+            : Boolean(
+                email.trim() &&
+                  password.length >= 8 &&
+                  (mode === "login" || displayName.trim().length >= 2),
+              );
 
   function switchMode(
-    nextMode: "login" | "register" | "verify" | "forgot" | "reset",
+    nextMode: "login" | "register" | "verify" | "forgot" | "reset" | "mfa",
   ) {
     if (nextMode === mode) return;
     const segmentWidth = Math.max(0, (tabTrackWidth - 8) / 2);
@@ -155,6 +170,12 @@ export function AuthScreen({
     });
   }
 
+  function openMfaChallenge(challengeToken: string) {
+    setMfaChallenge(challengeToken);
+    setUseRecoveryCode(false);
+    switchMode("mfa");
+  }
+
   async function submit() {
     if (!formReady)
       return Alert.alert(
@@ -163,9 +184,13 @@ export function AuthScreen({
       );
     setSubmitting(true);
     try {
-      if (mode === "login")
-        await onAuthenticate("login", { email: email.trim(), password });
-      else if (mode === "register") {
+      if (mode === "login") {
+        const result = await onAuthenticate("login", {
+          email: email.trim(),
+          password,
+        });
+        if (result?.requiresTwoFactor) openMfaChallenge(result.challengeToken);
+      } else if (mode === "register") {
         const result = (await onAuthenticate("register", {
           email: email.trim(),
           password,
@@ -195,14 +220,23 @@ export function AuthScreen({
             ? "Your development code has been filled in."
             : result.message,
         );
-      } else {
+      } else if (mode === "reset") {
         const result = await onAuthenticate("reset-password", {
           email: email.trim(),
           code,
           password,
+          mfaCode: resetMfaCode || undefined,
+          recoveryCode: resetUsesRecovery,
         });
         Alert.alert("Password updated", result.message);
         switchMode("login");
+      } else {
+        await onAuthenticate("mfa/challenge", {
+          challengeToken: mfaChallenge,
+          code,
+          recoveryCode: useRecoveryCode,
+          rememberDevice,
+        });
       }
     } catch (error) {
       Alert.alert(
@@ -251,7 +285,9 @@ export function AuthScreen({
                   ? "Forgot password?"
                   : mode === "reset"
                     ? "Create a new password"
-                    : "Welcome to CampusGig"}
+                    : mode === "mfa"
+                      ? "Two-factor verification"
+                      : "Welcome to CampusGig"}
             </Text>
             <Text
               style={[styles.authSubtitle, nightMode && darkStyles.mutedText]}
@@ -262,7 +298,11 @@ export function AuthScreen({
                   ? "We’ll send a reset code to your account email."
                   : mode === "reset"
                     ? "Enter your code and choose a secure new password."
-                    : "Your trusted marketplace for verified student skills and services."}
+                    : mode === "mfa"
+                      ? useRecoveryCode
+                        ? "Enter one of your saved recovery codes."
+                        : "Enter the current code from your authenticator app."
+                      : "Your trusted marketplace for verified student skills and services."}
             </Text>
           </View>
           <View style={[styles.authCard, nightMode && darkStyles.card]}>
@@ -386,6 +426,7 @@ export function AuthScreen({
                     styles.studentChoice,
                     nightMode && darkStyles.input,
                     isStudent && styles.studentChoiceActive,
+                    nightMode && isStudent && darkStyles.selectedCard,
                     pressed && styles.pressed,
                   ]}
                 >
@@ -419,9 +460,15 @@ export function AuthScreen({
                   </View>
                 </Pressable>
               )}
-              {(mode === "verify" || mode === "reset") && (
+              {(mode === "verify" || mode === "reset" || mode === "mfa") && (
                 <>
-                  <Text style={styles.inputLabel}>SIX-DIGIT CODE</Text>
+                  <Text style={styles.inputLabel}>
+                    {mode === "mfa" && useRecoveryCode
+                      ? "RECOVERY CODE"
+                      : mode === "mfa"
+                        ? "AUTHENTICATOR CODE"
+                        : "SIX-DIGIT CODE"}
+                  </Text>
                   <View
                     style={[styles.inputShell, nightMode && darkStyles.input]}
                   >
@@ -429,19 +476,79 @@ export function AuthScreen({
                     <TextInput
                       value={code}
                       onChangeText={(value) =>
-                        setCode(value.replace(/\D/g, "").slice(0, 6))
+                        setCode(
+                          mode === "mfa" && useRecoveryCode
+                            ? value.toUpperCase().slice(0, 11)
+                            : value.replace(/\D/g, "").slice(0, 6),
+                        )
                       }
-                      placeholder="000000"
+                      placeholder={useRecoveryCode ? "ABCDE-12345" : "000000"}
                       placeholderTextColor="#929A96"
                       style={[
                         styles.authInput,
                         nightMode && darkStyles.primaryText,
                       ]}
-                      keyboardType="number-pad"
-                      maxLength={6}
+                      keyboardType={useRecoveryCode ? "default" : "number-pad"}
+                      maxLength={useRecoveryCode ? 11 : 6}
                     />
                   </View>
                 </>
+              )}
+              {mode === "mfa" && (
+                <Pressable
+                  onPress={() => setRememberDevice((value) => !value)}
+                  style={({ pressed }) => [
+                    styles.studentChoice,
+                    nightMode && darkStyles.input,
+                    rememberDevice && styles.studentChoiceActive,
+                    nightMode && rememberDevice && darkStyles.selectedCard,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.studentCheckbox,
+                      rememberDevice && styles.studentCheckboxActive,
+                    ]}
+                  >
+                    <Text style={styles.studentCheckboxText}>
+                      {rememberDevice ? "✓" : ""}
+                    </Text>
+                  </View>
+                  <View style={styles.studentChoiceCopy}>
+                    <Text
+                      style={[
+                        styles.studentChoiceTitle,
+                        nightMode && darkStyles.primaryText,
+                      ]}
+                    >
+                      Trust this device for 30 days
+                    </Text>
+                    <Text
+                      style={[
+                        styles.studentChoiceBody,
+                        nightMode && darkStyles.mutedText,
+                      ]}
+                    >
+                      Skip the authenticator code on this device until it
+                      expires.
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+              {mode === "mfa" && (
+                <Pressable
+                  onPress={() => {
+                    setUseRecoveryCode((value) => !value);
+                    setCode("");
+                  }}
+                >
+                  <Text style={styles.authTextLink}>
+                    {useRecoveryCode
+                      ? "Use authenticator app instead"
+                      : "Use a recovery code"}
+                  </Text>
+                </Pressable>
               )}
               {(mode === "login" ||
                 mode === "register" ||
@@ -497,6 +604,49 @@ export function AuthScreen({
                   </View>
                 </>
               )}
+              {mode === "reset" && (
+                <>
+                  <Text style={styles.inputLabel}>
+                    {resetUsesRecovery ? "RECOVERY CODE" : "AUTHENTICATOR CODE"}{" "}
+                    (IF ENABLED)
+                  </Text>
+                  <View
+                    style={[styles.inputShell, nightMode && darkStyles.input]}
+                  >
+                    <Text style={styles.inputGlyph}>#</Text>
+                    <TextInput
+                      value={resetMfaCode}
+                      onChangeText={(value) =>
+                        setResetMfaCode(
+                          resetUsesRecovery
+                            ? value.toUpperCase().slice(0, 11)
+                            : value.replace(/\D/g, "").slice(0, 6),
+                        )
+                      }
+                      placeholder={
+                        resetUsesRecovery ? "ABCDE-12345" : "Optional"
+                      }
+                      placeholderTextColor="#929A96"
+                      style={[
+                        styles.authInput,
+                        nightMode && darkStyles.primaryText,
+                      ]}
+                    />
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      setResetUsesRecovery((value) => !value);
+                      setResetMfaCode("");
+                    }}
+                  >
+                    <Text style={styles.authTextLink}>
+                      {resetUsesRecovery
+                        ? "Use authenticator code"
+                        : "Use recovery code"}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
               <Pressable
                 disabled={submitting || !formReady}
                 onPress={submit}
@@ -519,7 +669,9 @@ export function AuthScreen({
                             ? "Verify email"
                             : mode === "forgot"
                               ? "Send reset code"
-                              : "Update password"}
+                              : mode === "reset"
+                                ? "Update password"
+                                : "Verify and sign in"}
                     </Text>
                     <Text style={styles.authButtonArrow}>→</Text>
                   </>
@@ -530,7 +682,10 @@ export function AuthScreen({
                   <Text style={styles.authTextLink}>Forgot password?</Text>
                 </Pressable>
               )}
-              {(mode === "verify" || mode === "forgot" || mode === "reset") && (
+              {(mode === "verify" ||
+                mode === "forgot" ||
+                mode === "reset" ||
+                mode === "mfa") && (
                 <Pressable onPress={() => switchMode("login")}>
                   <Text style={styles.authTextLink}>← Back to login</Text>
                 </Pressable>
@@ -565,6 +720,7 @@ export function AuthScreen({
                     mode={mode}
                     nightMode={nightMode}
                     onAuthenticate={onAuthenticate}
+                    onMfaChallenge={openMfaChallenge}
                   />
                 ) : (
                   <Pressable

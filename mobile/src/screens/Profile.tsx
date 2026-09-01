@@ -17,6 +17,8 @@ import { darkStyles, green, styles } from "../theme";
 import { ThemeToggle } from "../components/ThemeToggle";
 import type {
   AuthUser,
+  MfaSetup,
+  MfaStatus,
   ProviderProfileData,
   School,
   StudentProfile,
@@ -32,6 +34,12 @@ function AccountSettings({
   user: AuthUser;
   nightMode: boolean;
 }) {
+  type PasswordChangeRequest = {
+    id: string;
+    status: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED" | "EXPIRED";
+    expiresAt: string;
+    createdAt?: string;
+  };
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -39,12 +47,92 @@ function AccountSettings({
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
+  const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [passwordRequest, setPasswordRequest] =
+    useState<PasswordChangeRequest | null>(null);
+  const [cancellingPasswordRequest, setCancellingPasswordRequest] =
+    useState(false);
   const canUpdatePassword = Boolean(
     currentPassword &&
       newPassword.length >= 8 &&
       newPassword === confirmPassword &&
       !saving,
   );
+
+  async function authRequest<T>(path: string, init?: RequestInit) {
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    const response = await fetch(`${API_URL}/api/v1/auth/${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(init?.headers ?? {}),
+      },
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok)
+      throw new Error(
+        Array.isArray(result?.message)
+          ? result.message.join("\n")
+          : (result?.message ?? "Unable to update security settings."),
+      );
+    return result as T;
+  }
+
+  async function loadMfaStatus() {
+    setMfaStatus(await authRequest<MfaStatus>("mfa/status"));
+  }
+  useEffect(() => {
+    void loadMfaStatus().catch(() => undefined);
+    void authRequest<PasswordChangeRequest | null>("password-change/pending")
+      .then(setPasswordRequest)
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!passwordRequest || passwordRequest.status !== "PENDING") return;
+    const timer = setInterval(() => {
+      void authRequest<PasswordChangeRequest>(
+        `password-change/${passwordRequest.id}/status`,
+      )
+        .then((result) => {
+          if (result.status === "PENDING") return setPasswordRequest(result);
+          setPasswordRequest(null);
+          if (result.status === "CONFIRMED")
+            Alert.alert(
+              "Password changed",
+              "Your email confirmation was accepted. Use the new password next time you sign in.",
+            );
+          else
+            Alert.alert(
+              "Password unchanged",
+              result.status === "REJECTED"
+                ? "The email confirmation was rejected."
+                : "The password request is no longer valid.",
+            );
+        })
+        .catch(() => undefined);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [passwordRequest?.id, passwordRequest?.status]);
+
+  async function runMfa(action: () => Promise<void>) {
+    setMfaBusy(true);
+    try {
+      await action();
+    } catch (error) {
+      Alert.alert(
+        "Security update failed",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    } finally {
+      setMfaBusy(false);
+    }
+  }
 
   async function changePassword() {
     if (newPassword.length < 8)
@@ -75,13 +163,10 @@ function AccountSettings({
             ? result.message.join("\n")
             : (result?.message ?? "Unable to update your password."),
         );
+      setPasswordRequest(result as PasswordChangeRequest);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      Alert.alert(
-        "Password updated",
-        "Use your new password the next time you sign in.",
-      );
     } catch (error) {
       Alert.alert(
         "Could not update password",
@@ -91,6 +176,96 @@ function AccountSettings({
       setSaving(false);
     }
   }
+
+  async function cancelPasswordRequest() {
+    if (!passwordRequest) return;
+    setCancellingPasswordRequest(true);
+    try {
+      await authRequest(`password-change/${passwordRequest.id}/cancel`, {
+        method: "POST",
+      });
+      setPasswordRequest(null);
+      Alert.alert(
+        "Request cancelled",
+        "The email confirmation link is no longer valid. Your password was not changed.",
+      );
+    } catch (error) {
+      Alert.alert(
+        "Unable to cancel",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    } finally {
+      setCancellingPasswordRequest(false);
+    }
+  }
+
+  if (passwordRequest?.status === "PENDING")
+    return (
+      <View style={[styles.passwordWaitingCard, nightMode && darkStyles.card]}>
+        <View style={styles.passwordWaitingIcon}>
+          <Text style={styles.passwordWaitingIconText}>✉</Text>
+        </View>
+        <Text
+          style={[
+            styles.passwordWaitingTitle,
+            nightMode && darkStyles.primaryText,
+          ]}
+        >
+          Waiting for email confirmation
+        </Text>
+        <Text
+          style={[
+            styles.passwordWaitingBody,
+            nightMode && darkStyles.mutedText,
+          ]}
+        >
+          Open the email sent to {user.email}, review the request, then confirm
+          or reject it. Your current password remains active while you wait.
+        </Text>
+        <View
+          style={[styles.passwordWaitingStatus, nightMode && darkStyles.input]}
+        >
+          <ActivityIndicator color={green} size="small" />
+          <Text
+            style={[
+              styles.passwordWaitingStatusText,
+              nightMode && darkStyles.primaryText,
+            ]}
+          >
+            Checking for your decision…
+          </Text>
+        </View>
+        <Text
+          style={[
+            styles.passwordWaitingExpiry,
+            nightMode && darkStyles.mutedText,
+          ]}
+        >
+          Expires{" "}
+          {new Date(passwordRequest.expiresAt).toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </Text>
+        <Pressable
+          disabled={cancellingPasswordRequest}
+          onPress={() => void cancelPasswordRequest()}
+          style={({ pressed }) => [
+            styles.passwordCancelButton,
+            cancellingPasswordRequest && styles.authButtonDisabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          {cancellingPasswordRequest ? (
+            <ActivityIndicator color="#B54747" />
+          ) : (
+            <Text style={styles.passwordCancelButtonText}>
+              Cancel password change
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    );
 
   return (
     <View style={[styles.expandPanel, nightMode && darkStyles.card]}>
@@ -233,6 +408,223 @@ function AccountSettings({
           <Text style={styles.saveProfileText}>Update password</Text>
         )}
       </Pressable>
+      <View style={[styles.mobileMfaCard, nightMode && darkStyles.input]}>
+        <View style={styles.mobileMfaHeading}>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[styles.formTitle, nightMode && darkStyles.primaryText]}
+            >
+              Two-factor authentication
+            </Text>
+            <Text style={[styles.formHelp, nightMode && darkStyles.mutedText]}>
+              Protect web and mobile sign-ins with an authenticator app.
+            </Text>
+          </View>
+          <Text style={styles.mobileMfaBadge}>
+            {mfaStatus?.enabled ? "ON" : "OFF"}
+          </Text>
+        </View>
+        {!mfaStatus?.enabled && !mfaSetup && (
+          <Pressable
+            disabled={mfaBusy}
+            onPress={() =>
+              void runMfa(async () =>
+                setMfaSetup(
+                  await authRequest<MfaSetup>("mfa/setup", { method: "POST" }),
+                ),
+              )
+            }
+            style={({ pressed }) => [
+              styles.saveProfileButton,
+              mfaBusy && styles.authButtonDisabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.saveProfileText}>Set up authenticator</Text>
+          </Pressable>
+        )}
+        {mfaSetup && !mfaStatus?.enabled && (
+          <View>
+            <Image
+              source={{ uri: mfaSetup.qrCodeDataUrl }}
+              style={styles.mobileMfaQr}
+            />
+            <Text style={[styles.formHelp, nightMode && darkStyles.mutedText]}>
+              Scan this QR code, or enter this setup key:
+            </Text>
+            <Text
+              selectable
+              style={[
+                styles.mobileMfaSecret,
+                nightMode && darkStyles.primaryText,
+              ]}
+            >
+              {mfaSetup.secret}
+            </Text>
+            <Text style={styles.inputLabel}>AUTHENTICATOR CODE</Text>
+            <TextInput
+              value={mfaCode}
+              onChangeText={(value) =>
+                setMfaCode(value.replace(/\D/g, "").slice(0, 6))
+              }
+              keyboardType="number-pad"
+              placeholder="000000"
+              placeholderTextColor="#929A96"
+              style={[
+                styles.mobileMfaInput,
+                nightMode && darkStyles.input,
+                nightMode && darkStyles.primaryText,
+              ]}
+            />
+            <Pressable
+              disabled={mfaBusy || mfaCode.length !== 6}
+              onPress={() =>
+                void runMfa(async () => {
+                  const result = await authRequest<{ recoveryCodes: string[] }>(
+                    "mfa/setup/confirm",
+                    { method: "POST", body: JSON.stringify({ code: mfaCode }) },
+                  );
+                  setRecoveryCodes(result.recoveryCodes);
+                  setMfaSetup(null);
+                  setMfaCode("");
+                  await loadMfaStatus();
+                })
+              }
+              style={({ pressed }) => [
+                styles.saveProfileButton,
+                (mfaBusy || mfaCode.length !== 6) && styles.authButtonDisabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.saveProfileText}>Verify and enable</Text>
+            </Pressable>
+          </View>
+        )}
+        {recoveryCodes.length > 0 && (
+          <View style={styles.mobileRecoveryBox}>
+            <Text
+              style={[styles.formTitle, nightMode && darkStyles.primaryText]}
+            >
+              Save these recovery codes
+            </Text>
+            <Text style={[styles.formHelp, nightMode && darkStyles.mutedText]}>
+              Each code works once and will not be shown again.
+            </Text>
+            {recoveryCodes.map((item) => (
+              <Text
+                selectable
+                key={item}
+                style={[
+                  styles.mobileRecoveryCode,
+                  nightMode && darkStyles.primaryText,
+                ]}
+              >
+                {item}
+              </Text>
+            ))}
+          </View>
+        )}
+        {mfaStatus?.enabled && recoveryCodes.length === 0 && (
+          <View>
+            <Text style={[styles.formHelp, nightMode && darkStyles.mutedText]}>
+              {mfaStatus.recoveryCodesRemaining} recovery codes remain.
+            </Text>
+            <Text style={[styles.formHelp, nightMode && darkStyles.mutedText]}>
+              {mfaStatus.trustedDeviceCount} remembered device
+              {mfaStatus.trustedDeviceCount === 1 ? "" : "s"}.
+            </Text>
+            {mfaStatus.trustedDeviceCount > 0 && (
+              <Pressable
+                disabled={mfaBusy}
+                onPress={() =>
+                  void runMfa(async () => {
+                    const result = await authRequest<{ revoked: number }>(
+                      "mfa/trusted-devices/revoke",
+                      { method: "POST" },
+                    );
+                    await AsyncStorage.removeItem(STORAGE_KEYS.trustedDevice);
+                    await loadMfaStatus();
+                    Alert.alert(
+                      "Remembered devices removed",
+                      `${result.revoked} device${result.revoked === 1 ? "" : "s"} will require a code next time.`,
+                    );
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.mobileMfaDanger,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.mobileMfaDangerText}>
+                  Remove remembered devices
+                </Text>
+              </Pressable>
+            )}
+            <Text style={styles.inputLabel}>CURRENT AUTHENTICATOR CODE</Text>
+            <TextInput
+              value={mfaCode}
+              onChangeText={(value) =>
+                setMfaCode(value.replace(/\D/g, "").slice(0, 6))
+              }
+              keyboardType="number-pad"
+              placeholder="000000"
+              placeholderTextColor="#929A96"
+              style={[
+                styles.mobileMfaInput,
+                nightMode && darkStyles.input,
+                nightMode && darkStyles.primaryText,
+              ]}
+            />
+            <Pressable
+              disabled={mfaBusy || mfaCode.length !== 6}
+              onPress={() =>
+                void runMfa(async () => {
+                  const result = await authRequest<{ recoveryCodes: string[] }>(
+                    "mfa/recovery-codes",
+                    { method: "POST", body: JSON.stringify({ code: mfaCode }) },
+                  );
+                  setRecoveryCodes(result.recoveryCodes);
+                  setMfaCode("");
+                  await loadMfaStatus();
+                })
+              }
+              style={({ pressed }) => [
+                styles.saveProfileButton,
+                (mfaBusy || mfaCode.length !== 6) && styles.authButtonDisabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.saveProfileText}>Replace recovery codes</Text>
+            </Pressable>
+            {!mfaStatus.required && (
+              <Pressable
+                disabled={mfaBusy || mfaCode.length !== 6 || !currentPassword}
+                onPress={() =>
+                  void runMfa(async () => {
+                    await authRequest("mfa/disable", {
+                      method: "POST",
+                      body: JSON.stringify({ currentPassword, code: mfaCode }),
+                    });
+                    setMfaCode("");
+                    setCurrentPassword("");
+                    await loadMfaStatus();
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.mobileMfaDanger,
+                  (mfaBusy || mfaCode.length !== 6 || !currentPassword) &&
+                    styles.authButtonDisabled,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.mobileMfaDangerText}>
+                  Disable two-factor authentication
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -1092,15 +1484,26 @@ export function Profile({
               onPress={chooseStudentId}
               style={({ pressed }) => [
                 styles.filePicker,
+                nightMode && darkStyles.input,
                 pressed && styles.pressed,
               ]}
             >
               <Text style={styles.filePickerIcon}>▤</Text>
               <View style={styles.filePickerCopy}>
-                <Text style={styles.filePickerTitle}>
+                <Text
+                  style={[
+                    styles.filePickerTitle,
+                    nightMode && darkStyles.primaryText,
+                  ]}
+                >
                   {studentId?.name ?? "Choose student ID"}
                 </Text>
-                <Text style={styles.filePickerBody}>
+                <Text
+                  style={[
+                    styles.filePickerBody,
+                    nightMode && darkStyles.mutedText,
+                  ]}
+                >
                   {studentId
                     ? `${Math.max(1, Math.round((studentId.size ?? 0) / 1024))} KB selected`
                     : "JPG, PNG, or PDF · maximum 5 MB"}

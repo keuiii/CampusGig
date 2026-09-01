@@ -1093,6 +1093,127 @@ button:disabled {
     animation: none;
   }
 }
+
+.mfa-security-card {
+  width: min(100%, 650px);
+  margin: 0 auto 20px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.mfa-security-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+.mfa-security-heading h2 {
+  margin: 7px 0;
+  font-size: 24px;
+}
+.mfa-security-heading p,
+.mfa-security-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.mfa-status {
+  flex: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 14%, var(--white));
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+.mfa-status.enabled {
+  background: color-mix(in srgb, var(--mint) 20%, var(--white));
+  color: var(--green);
+}
+.mfa-setup-grid {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 24px;
+}
+.mfa-setup-grid > img {
+  width: 210px;
+  border-radius: 14px;
+}
+.mfa-security-card label {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0;
+  font-size: 11px;
+  font-weight: 800;
+}
+.mfa-security-card input {
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+}
+.mfa-setup-grid code {
+  display: block;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  color: var(--green);
+}
+.mfa-recovery-box {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--green) 35%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--green) 7%, var(--white));
+}
+.mfa-recovery-box > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 15px 0;
+}
+.mfa-recovery-box code {
+  padding: 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--ink) 6%, var(--white));
+  text-align: center;
+}
+.mfa-enabled-actions {
+  display: grid;
+  gap: 10px;
+}
+.mfa-disable-row {
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.outline-action.danger {
+  color: #b64141;
+  border-color: color-mix(in srgb, #b64141 45%, var(--line));
+}
+html[data-theme="dark"] .mfa-security-card,
+html[data-theme="dark"] .mfa-security-card input {
+  background: var(--panel);
+}
+@media (max-width: 620px) {
+  .mfa-security-heading {
+    flex-direction: column;
+  }
+  .mfa-setup-grid {
+    grid-template-columns: 1fr;
+  }
+  .mfa-setup-grid > img {
+    width: min(100%, 240px);
+    margin: auto;
+  }
+  .mfa-recovery-box > div {
+    grid-template-columns: 1fr;
+  }
+}
 .view-transition {
   animation: view-enter 0.34s cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "../../lib/api";
 import type { AuthUser } from "../../types";
+import { MfaSecurityPanel } from "./MfaSecurityPanel";
 
 export function WebAccountProfile({
   token,
@@ -117,6 +118,7 @@ export function WebAccountProfile({
           </button>
         </div>
       </section>
+      <MfaSecurityPanel token={token} notify={notify} />
     </main>
   );
 }

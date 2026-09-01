@@ -69,7 +69,30 @@ export type AuthUser = {
   status: string;
   roles: string[];
 };
-export type AuthResponse = { accessToken: string; user: AuthUser };
+export type SessionResponse = {
+  accessToken: string;
+  user: AuthUser;
+  trustedDeviceToken?: string;
+  trustedForDays?: number;
+};
+export type MfaChallengeResponse = {
+  requiresTwoFactor: true;
+  challengeToken: string;
+  method: "AUTHENTICATOR";
+};
+export type AuthResponse = SessionResponse | MfaChallengeResponse;
+export type MfaStatus = {
+  enabled: boolean;
+  enabledAt: string | null;
+  recoveryCodesRemaining: number;
+  required: boolean;
+  trustedDeviceCount: number;
+};
+export type MfaSetup = {
+  secret: string;
+  otpauthUri: string;
+  qrCodeDataUrl: string;
+};
 export type StudentProfile = {
   userId: string;
   schoolId: string;

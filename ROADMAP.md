@@ -124,7 +124,7 @@ Definition of done: categories and approved schools survive application restarts
 
 Goal: replace the anonymous prototype with real accounts and protected roles.
 
-Progress: **backend, web, and mobile authentication are implemented, including new-account email codes, password recovery, authenticated password changes, and a secure Google ID-token/account-linking foundation. Existing accounts were safely grandfathered as verified. Google OAuth credentials, production email-provider configuration, refresh sessions, and endpoint-by-endpoint authorization hardening remain deployment setup work.**
+Progress: **backend, web, and mobile authentication are implemented, including new-account email codes, password recovery, email-approved in-app password changes with cancel/reject/expiry handling, Google ID-token/account linking, authenticator-app 2FA with encrypted secrets and hashed one-use recovery codes, plus revocable 30-day trusted devices. Existing accounts were safely grandfathered as verified. Production Resend credentials/domain verification, refresh sessions, and endpoint-by-endpoint authorization hardening remain deployment setup work.**
 
 - Local email/password authentication selected for the MVP backend
 - Registration, login, password hashing, JWT issuance, and `/auth/me` implemented

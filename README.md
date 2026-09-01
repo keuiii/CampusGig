@@ -20,7 +20,7 @@ Implemented:
 - PostgreSQL/Prisma schema for the Phase 1 domain
 - Clean category-only database seed
 - Local PostgreSQL container and initial Prisma migration
-- Working registration, six-digit email verification, login, forgot/reset password, JWT, protected profile, and mobile authentication screens
+- Working registration, six-digit email verification, login, forgot/reset password, JWT, authenticator-app two-factor authentication, one-use recovery codes, protected profiles, and mobile authentication screens
 - Secure Google social sign-in foundation for web and mobile, including verified ID-token exchange and persistent provider-account linking
 - Role-protected platform admin, school admin, provider, and order API foundations
 - Admin endpoints for registering participating schools and changing their status
@@ -50,7 +50,7 @@ Implemented:
 
 Not yet fully implemented:
 
-- Production email-provider configuration and production-grade refresh-token sessions
+- Production Resend credentials/domain verification and production-grade refresh-token sessions
 - Completing role authorization as new marketplace endpoints are implemented
 - Production object storage for profile, verification, and service media files
 - Listing preview, pause, archive, pagination, sorting, and advanced marketplace filters
@@ -61,7 +61,7 @@ Not yet fully implemented:
 - Custom job postings and proposals
 - Production deployment and automated testing
 
-Dispute handling, payment processing, production email delivery, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
+Dispute handling, payment processing, production email credential setup, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
 
 ## Technology
 
@@ -72,7 +72,29 @@ Dispute handling, payment processing, production email delivery, and production 
 - **API documentation:** Swagger
 - **Local database option:** Docker Compose
 
-Local email/password authentication with JWT, new-account verification codes, and forgot/reset password are implemented. Personal email accounts are accepted and school-provided email is optional. Production email delivery, refresh-token handling, and production object storage still need to be configured before deployment.
+Local email/password authentication with JWT, new-account verification codes, forgot/reset password, and optional authenticator-app 2FA are implemented. Authenticator secrets are AES-256-GCM encrypted, recovery codes are hashed and one-use, and login challenges expire after five minutes. Users may trust a web browser or mobile installation for 30 days after completing 2FA; only a random token hash is stored by the server, expiry is enforced by the API, and all remembered devices can be revoked from account security. In-app password changes remain pending until the account owner approves the secure email review; rejection, cancellation, or 15-minute expiry leaves the existing password unchanged. Personal email accounts are accepted and school-provided email is optional. Production email credentials, refresh-token handling, and production object storage still need to be configured before deployment.
+
+### Real verification email setup
+
+CampusGig already sends signup and password-reset codes through Resend when credentials are configured. Create and verify a sending domain in Resend, then place these values in `api/.env`:
+
+```env
+RESEND_API_KEY=re_your_api_key
+EMAIL_FROM=CampusGig <accounts@your-verified-domain.com>
+MFA_ENCRYPTION_KEY=use-a-long-random-secret-different-from-jwt-secret
+```
+
+Restart the API after changing the environment file. Without these two email values, development mode intentionally shows the test code in the application and API terminal. Production mode refuses to expose a development code.
+
+For development or a school demonstration without a custom domain, Gmail SMTP is also supported. Turn on 2-Step Verification for the sending Google account, create a dedicated Google App Password named `CampusGig`, then configure:
+
+```env
+SMTP_USER=your-campusgig-sender@gmail.com
+SMTP_APP_PASSWORD=your-16-character-google-app-password
+EMAIL_FROM=CampusGig <your-campusgig-sender@gmail.com>
+```
+
+Gmail SMTP takes priority when both SMTP values are present. Do not use or store your normal Google password. The App Password belongs only in the ignored `api/.env` file and must never be committed. Resend remains the recommended production provider after CampusGig obtains a domain.
 
 ## Google social sign-in setup
 
@@ -272,6 +294,17 @@ Authentication routes implemented in the API:
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/verify-email`
 - `POST /api/v1/auth/resend-verification`
+- `POST /api/v1/auth/mfa/challenge`
+- `GET /api/v1/auth/mfa/status` (Bearer token required)
+- `POST /api/v1/auth/mfa/setup` (Bearer token required)
+- `POST /api/v1/auth/mfa/setup/confirm` (Bearer token required)
+- `POST /api/v1/auth/mfa/recovery-codes` (Bearer token required)
+- `POST /api/v1/auth/mfa/disable` (Bearer token required; unavailable to administrator roles)
+- `POST /api/v1/auth/mfa/trusted-devices/revoke` (Bearer token required)
+- `POST /api/v1/auth/change-password` (creates a pending email-approved request)
+- `GET /api/v1/auth/password-change/pending` (Bearer token required)
+- `GET /api/v1/auth/password-change/:id/status` (Bearer token required)
+- `POST /api/v1/auth/password-change/:id/cancel` (Bearer token required)
 - `POST /api/v1/auth/forgot-password`
 - `POST /api/v1/auth/reset-password`
 - `POST /api/v1/auth/change-password` (Bearer token required)

@@ -6,6 +6,8 @@ import type {
   CodeResponse,
   DashboardStats,
   MarketplaceOrder,
+  MfaSetup,
+  MfaStatus,
   ModerationService,
   OrderMessage,
   OrderWorkspace,
@@ -13,6 +15,7 @@ import type {
   ProviderService,
   ProviderStats,
   RegistrationResponse,
+  SessionResponse,
   School,
   SchoolAdministrator,
   Service,
@@ -60,15 +63,34 @@ export const api = {
     items(
       await request<Collection<MarketplaceOrder>>("/orders", undefined, token),
     ),
-  login: (email: string, password: string) =>
+  login: (email: string, password: string, trustedDeviceToken?: string) =>
     request<AuthResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, trustedDeviceToken }),
     }),
-  socialLogin: (provider: "GOOGLE", idToken: string) =>
+  socialLogin: (
+    provider: "GOOGLE",
+    idToken: string,
+    trustedDeviceToken?: string,
+  ) =>
     request<AuthResponse>("/auth/social", {
       method: "POST",
-      body: JSON.stringify({ provider, idToken }),
+      body: JSON.stringify({ provider, idToken, trustedDeviceToken }),
+    }),
+  verifyMfaChallenge: (
+    challengeToken: string,
+    code: string,
+    recoveryCode = false,
+    rememberDevice = false,
+  ) =>
+    request<import("../types").SessionResponse>("/auth/mfa/challenge", {
+      method: "POST",
+      body: JSON.stringify({
+        challengeToken,
+        code,
+        recoveryCode,
+        rememberDevice,
+      }),
     }),
   register: (
     displayName: string,
@@ -81,7 +103,7 @@ export const api = {
       body: JSON.stringify({ displayName, email, password, isStudent }),
     }),
   verifyEmail: (email: string, code: string) =>
-    request<AuthResponse>("/auth/verify-email", {
+    request<SessionResponse>("/auth/verify-email", {
       method: "POST",
       body: JSON.stringify({ email, code }),
     }),
@@ -95,12 +117,46 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
-  resetPassword: (email: string, code: string, password: string) =>
+  resetPassword: (
+    email: string,
+    code: string,
+    password: string,
+    mfaCode?: string,
+    recoveryCode = false,
+  ) =>
     request<CodeResponse>("/auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ email, code, password }),
+      body: JSON.stringify({ email, code, password, mfaCode, recoveryCode }),
     }),
   me: (token: string) => request<AuthUser>("/auth/me", undefined, token),
+  mfaStatus: (token: string) =>
+    request<MfaStatus>("/auth/mfa/status", undefined, token),
+  beginMfaSetup: (token: string) =>
+    request<MfaSetup>("/auth/mfa/setup", { method: "POST" }, token),
+  confirmMfaSetup: (token: string, code: string) =>
+    request<{ enabled: true; recoveryCodes: string[] }>(
+      "/auth/mfa/setup/confirm",
+      { method: "POST", body: JSON.stringify({ code }) },
+      token,
+    ),
+  disableMfa: (token: string, currentPassword: string, code: string) =>
+    request<{ enabled: false }>(
+      "/auth/mfa/disable",
+      { method: "POST", body: JSON.stringify({ currentPassword, code }) },
+      token,
+    ),
+  regenerateRecoveryCodes: (token: string, code: string) =>
+    request<{ recoveryCodes: string[] }>(
+      "/auth/mfa/recovery-codes",
+      { method: "POST", body: JSON.stringify({ code }) },
+      token,
+    ),
+  revokeTrustedDevices: (token: string) =>
+    request<{ revoked: number }>(
+      "/auth/mfa/trusted-devices/revoke",
+      { method: "POST" },
+      token,
+    ),
   studentProfile: (token: string) =>
     request<{ data: StudentProfile | null }>(
       "/profile/student",

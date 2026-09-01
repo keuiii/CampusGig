@@ -23,6 +23,8 @@ import type { EmailOnlyDto } from "./dto/email-only.dto";
 import type { ResetPasswordDto } from "./dto/reset-password.dto";
 import type { ChangePasswordDto } from "./dto/change-password.dto";
 import type { SocialLoginDto } from "./dto/social-login.dto";
+import { MfaService } from "./mfa.service";
+import { PasswordChangeService } from "./password-change.service";
 
 @Injectable()
 export class AuthService {
@@ -32,6 +34,8 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
+    private readonly mfa: MfaService,
+    private readonly passwordChanges: PasswordChangeService,
   ) {}
 
   async register(input: RegisterDto) {
@@ -61,7 +65,7 @@ export class AuthService {
     return {
       requiresVerification: true,
       email: user.email,
-      ...(this.isDevelopment() ? { developmentCode: code } : {}),
+      ...(this.shouldExposeDevelopmentCode() ? { developmentCode: code } : {}),
     };
   }
 
@@ -78,7 +82,7 @@ export class AuthService {
     if (user.status === "SUSPENDED" || user.status === "DEACTIVATED") {
       throw new UnauthorizedException("This account is not active");
     }
-    return this.createSession(this.toAuthenticatedUser(user));
+    return this.createLoginResult(user, input.trustedDeviceToken);
   }
 
   async socialLogin(input: SocialLoginDto) {
@@ -114,7 +118,7 @@ export class AuthService {
         linked.user.status === "DEACTIVATED"
       )
         throw new UnauthorizedException("This account is not active");
-      return this.createSession(this.toAuthenticatedUser(linked.user));
+      return this.createLoginResult(linked.user, input.trustedDeviceToken);
     }
     const user = await this.prisma.$transaction(async (database) => {
       const existing = await database.user.findUnique({
@@ -161,7 +165,7 @@ export class AuthService {
         include: { roles: true },
       });
     });
-    return this.createSession(this.toAuthenticatedUser(user));
+    return this.createLoginResult(user, input.trustedDeviceToken);
   }
 
   async verifyEmail(input: EmailCodeDto) {
@@ -199,7 +203,7 @@ export class AuthService {
     const code = await this.issueCode(user.id, user.email, "VERIFY_EMAIL");
     return {
       message: "A new verification code has been sent.",
-      ...(this.isDevelopment() ? { developmentCode: code } : {}),
+      ...(this.shouldExposeDevelopmentCode() ? { developmentCode: code } : {}),
     };
   }
 
@@ -216,7 +220,7 @@ export class AuthService {
     return {
       message:
         "If an eligible account exists, a password-reset code has been sent.",
-      ...(this.isDevelopment() ? { developmentCode: code } : {}),
+      ...(this.shouldExposeDevelopmentCode() ? { developmentCode: code } : {}),
     };
   }
 
@@ -226,6 +230,17 @@ export class AuthService {
     });
     if (!user) throw new BadRequestException("Invalid or expired reset code");
     const code = await this.validateCode(user.id, "RESET_PASSWORD", input.code);
+    if (user.mfaEnabledAt) {
+      if (!input.mfaCode)
+        throw new BadRequestException(
+          "Enter your authenticator or recovery code to reset this protected account",
+        );
+      await this.mfa.verifyCurrentFactor(
+        user.id,
+        input.mfaCode,
+        input.recoveryCode,
+      );
+    }
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: user.id },
@@ -236,25 +251,39 @@ export class AuthService {
         data: { consumedAt: new Date() },
       }),
     ]);
-    return { message: "Password updated. You can now sign in." };
+    const emailResult = await this.emailService
+      .sendPasswordChanged(user.email)
+      .catch(() => ({ delivered: false }));
+    return {
+      message: emailResult.delivered
+        ? "Password updated. A confirmation email was sent. You can now sign in."
+        : "Password updated. You can now sign in.",
+      confirmationEmailSent: emailResult.delivered,
+    };
   }
 
-  async changePassword(userId: string, input: ChangePasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { passwordHash: true },
-    });
-    if (!user || !(await compare(input.currentPassword, user.passwordHash)))
-      throw new UnauthorizedException("Current password is incorrect");
-    if (await compare(input.newPassword, user.passwordHash))
-      throw new BadRequestException(
-        "Choose a new password different from your current password",
-      );
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: await hash(input.newPassword, 12) },
-    });
-    return { message: "Password updated successfully" };
+  changePassword(userId: string, input: ChangePasswordDto, origin: string) {
+    return this.passwordChanges.request(userId, input, origin);
+  }
+
+  pendingPasswordChange(userId: string) {
+    return this.passwordChanges.pending(userId);
+  }
+
+  passwordChangeStatus(userId: string, id: string) {
+    return this.passwordChanges.status(userId, id);
+  }
+
+  cancelPasswordChange(userId: string, id: string) {
+    return this.passwordChanges.cancel(userId, id);
+  }
+
+  passwordChangeReview(token: string, origin: string) {
+    return this.passwordChanges.reviewPage(token, origin);
+  }
+
+  decidePasswordChange(token: string, decision: "CONFIRMED" | "REJECTED") {
+    return this.passwordChanges.decide(token, decision);
   }
 
   async findAuthenticatedUser(userId: string): Promise<AuthenticatedUser> {
@@ -264,6 +293,73 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException("Account no longer exists");
     return this.toAuthenticatedUser(user);
+  }
+
+  async verifyMfaChallenge(
+    challengeToken: string,
+    code: string,
+    recoveryCode = false,
+    rememberDevice = false,
+  ) {
+    const result = await this.mfa.verifyChallenge(
+      challengeToken,
+      code,
+      recoveryCode,
+      rememberDevice,
+    );
+    return {
+      ...(await this.createSession(result.user)),
+      ...(result.trustedDeviceToken
+        ? { trustedDeviceToken: result.trustedDeviceToken, trustedForDays: 30 }
+        : {}),
+    };
+  }
+
+  async mfaStatus(userId: string) {
+    return {
+      ...(await this.mfa.status(userId)),
+      trustedDeviceCount: await this.mfa.trustedDeviceCount(userId),
+    };
+  }
+
+  async revokeTrustedDevices(userId: string) {
+    return this.mfa.revokeTrustedDevices(userId);
+  }
+
+  async beginMfaSetup(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true },
+    });
+    return this.mfa.beginSetup(userId, user.email);
+  }
+
+  async confirmMfaSetup(userId: string, code: string) {
+    return this.mfa.confirmSetup(userId, code);
+  }
+
+  async disableMfa(userId: string, currentPassword: string, code: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { passwordHash: true, roles: { select: { role: true } } },
+    });
+    if (!(await compare(currentPassword, user.passwordHash)))
+      throw new UnauthorizedException("Current password is incorrect");
+    if (
+      user.roles.some(
+        ({ role }) => role === UserRole.ADMIN || role === UserRole.SCHOOL_ADMIN,
+      )
+    )
+      throw new BadRequestException(
+        "Two-factor authentication is required for administrator accounts",
+      );
+    await this.mfa.verifyCurrentCode(userId, code);
+    return this.mfa.disable(userId);
+  }
+
+  async regenerateRecoveryCodes(userId: string, code: string) {
+    await this.mfa.verifyCurrentCode(userId, code);
+    return this.mfa.regenerateRecoveryCodes(userId);
   }
 
   private async createSession(user: AuthenticatedUser) {
@@ -279,11 +375,44 @@ export class AuthService {
     return { accessToken, tokenType: "Bearer", expiresIn: 604800, user };
   }
 
+  private async createLoginResult(
+    user: {
+      id: string;
+      email: string;
+      displayName: string;
+      avatarPath: string | null;
+      status: any;
+      mfaEnabledAt: Date | null;
+      roles: { role: UserRole }[];
+    },
+    trustedDeviceToken?: string,
+  ) {
+    if (
+      user.mfaEnabledAt &&
+      !(await this.mfa.isTrustedDevice(user.id, trustedDeviceToken))
+    )
+      return {
+        requiresTwoFactor: true as const,
+        challengeToken: await this.mfa.createChallenge(user.id),
+        method: "AUTHENTICATOR" as const,
+      };
+    return this.createSession(this.toAuthenticatedUser(user));
+  }
+
   private normalizeEmail(email: string) {
     return email.trim().toLowerCase();
   }
-  private isDevelopment() {
-    return this.config.get<string>("NODE_ENV") !== "production";
+  private shouldExposeDevelopmentCode() {
+    if (this.config.get<string>("NODE_ENV") === "production") return false;
+    const gmailConfigured = Boolean(
+      this.config.get<string>("SMTP_USER") &&
+        this.config.get<string>("SMTP_APP_PASSWORD"),
+    );
+    const resendConfigured = Boolean(
+      this.config.get<string>("RESEND_API_KEY") &&
+        this.config.get<string>("EMAIL_FROM"),
+    );
+    return !gmailConfigured && !resendConfigured;
   }
 
   private async issueCode(

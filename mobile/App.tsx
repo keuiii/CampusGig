@@ -85,10 +85,18 @@ function CampusGigApp() {
   async function authenticate(path: string, values: Record<string, unknown>) {
     if (!API_URL)
       throw new Error("The CampusGig API address is not configured.");
+    const trustedDeviceToken = await AsyncStorage.getItem(
+      STORAGE_KEYS.trustedDevice,
+    );
     const response = await fetch(`${API_URL}/api/v1/auth/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        ...values,
+        ...(["login", "social"].includes(path) && trustedDeviceToken
+          ? { trustedDeviceToken }
+          : {}),
+      }),
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok)
@@ -96,9 +104,16 @@ function CampusGigApp() {
         payload?.message ?? "Unable to continue. Please check your details.",
       );
     if (payload?.accessToken) {
-      const session = payload as AuthResponse;
+      const session = payload as Extract<AuthResponse, { accessToken: string }>;
       await AsyncStorage.setItem(TOKEN_KEY, session.accessToken);
       setAuthUser(session.user);
+      if (session.trustedDeviceToken)
+        await AsyncStorage.setItem(
+          STORAGE_KEYS.trustedDevice,
+          session.trustedDeviceToken,
+        );
+    } else if (payload?.requiresTwoFactor) {
+      await AsyncStorage.removeItem(STORAGE_KEYS.trustedDevice);
     }
     return payload;
   }
