@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Header } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { CategoriesService } from "./categories.service";
 
@@ -6,7 +6,9 @@ import { CategoriesService } from "./categories.service";
 @Controller("categories")
 export class CategoriesController {
   constructor(private readonly categories: CategoriesService) {}
-  @Get() findAll() {
+  @Get()
+  @Header("Cache-Control", "no-store")
+  findAll() {
     return this.categories.findAll();
   }
 }

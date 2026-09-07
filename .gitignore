@@ -15,4 +15,9 @@ mobile/ios
 *.zip
 *.backup
 backups/
+.vs/
+**/bin/
+**/obj/
+**/.codex-build/
+*.csproj.user
 .DS_Store

@@ -261,6 +261,12 @@ export const api = {
       { method: "PATCH" },
       token,
     ),
+  markAllNotificationsRead: (token: string) =>
+    request<{ updated: number; message: string }>(
+      "/notifications/read-all",
+      { method: "PATCH" },
+      token,
+    ),
   providerOrders: async (token: string) =>
     items(
       await request<Collection<MarketplaceOrder>>(

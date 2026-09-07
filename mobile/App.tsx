@@ -2,7 +2,13 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { ActivityIndicator, Animated, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  AppState,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { API_URL, STORAGE_KEYS } from "./src/config";
@@ -157,8 +163,15 @@ function CampusGigApp() {
             })),
           );
         }
-        if (schoolResult.status === "fulfilled")
-          setSchools(schoolResult.value.data ?? []);
+        if (schoolResult.status === "fulfilled") {
+          const activeSchools = (schoolResult.value.data ?? []) as School[];
+          setSchools(activeSchools);
+          setSelectedSchoolId((selectedId) =>
+            activeSchools.some((school) => school.id === selectedId)
+              ? selectedId
+              : "",
+          );
+        }
         if (serviceResult.status === "fulfilled")
           setServices(serviceResult.value.data ?? []);
       })
@@ -172,6 +185,19 @@ function CampusGigApp() {
   useEffect(() => {
     void loadMarketplace();
   }, []);
+
+  useEffect(() => {
+    if (tab !== "home" || !authUser) return;
+    const refresh = () => void loadMarketplace();
+    const timer = setInterval(refresh, 10000);
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [tab, authUser?.id]);
 
   async function loadOrders() {
     if (!authUser || !API_URL) return;

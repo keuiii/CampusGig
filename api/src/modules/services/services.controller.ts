@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Res } from "@nestjs/common";
+import { Controller, Get, Header, Param, Query, Res } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import { basename, resolve } from "node:path";
@@ -9,7 +9,9 @@ import { ServicesService } from "./services.service";
 @Controller("services")
 export class ServicesController {
   constructor(private readonly services: ServicesService) {}
-  @Get() findAll(
+  @Get()
+  @Header("Cache-Control", "no-store")
+  findAll(
     @Query("query") query?: string,
     @Query("categoryId") categoryId?: string,
     @Query("schoolId") schoolId?: string,

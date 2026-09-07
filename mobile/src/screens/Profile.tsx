@@ -40,6 +40,12 @@ function AccountSettings({
     expiresAt: string;
     createdAt?: string;
   };
+  type ImmediatePasswordChange = {
+    status: "CONFIRMED";
+    confirmationMethod: "AUTHENTICATOR" | "RECOVERY_CODE";
+    revokedTrustedDevices: number;
+    message: string;
+  };
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,6 +53,8 @@ function AccountSettings({
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordMfaCode, setPasswordMfaCode] = useState("");
+  const [usePasswordRecoveryCode, setUsePasswordRecoveryCode] = useState(false);
   const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
   const [mfaSetup, setMfaSetup] = useState<MfaSetup | null>(null);
   const [mfaCode, setMfaCode] = useState("");
@@ -57,9 +65,14 @@ function AccountSettings({
   const [cancellingPasswordRequest, setCancellingPasswordRequest] =
     useState(false);
   const canUpdatePassword = Boolean(
-    currentPassword &&
+    mfaStatus !== null &&
+      currentPassword &&
       newPassword.length >= 8 &&
       newPassword === confirmPassword &&
+      (!mfaStatus.enabled ||
+        (usePasswordRecoveryCode
+          ? passwordMfaCode.replace(/[^a-zA-Z0-9]/g, "").length === 10
+          : passwordMfaCode.length === 6)) &&
       !saving,
   );
 
@@ -154,7 +167,16 @@ function AccountSettings({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          ...(mfaStatus?.enabled
+            ? {
+                mfaCode: passwordMfaCode,
+                recoveryCode: usePasswordRecoveryCode,
+              }
+            : {}),
+        }),
       });
       const result = await response.json().catch(() => null);
       if (!response.ok)
@@ -163,10 +185,20 @@ function AccountSettings({
             ? result.message.join("\n")
             : (result?.message ?? "Unable to update your password."),
         );
-      setPasswordRequest(result as PasswordChangeRequest);
+      const passwordResult = result as
+        | PasswordChangeRequest
+        | ImmediatePasswordChange;
+      if ("confirmationMethod" in passwordResult) {
+        setPasswordRequest(null);
+        await AsyncStorage.removeItem(STORAGE_KEYS.trustedDevice);
+        Alert.alert("Password changed", passwordResult.message);
+      } else {
+        setPasswordRequest(passwordResult);
+      }
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setPasswordMfaCode("");
     } catch (error) {
       Alert.alert(
         "Could not update password",
@@ -393,6 +425,53 @@ function AccountSettings({
           </Text>
         </Pressable>
       </View>
+      {mfaStatus?.enabled && (
+        <>
+          <Text style={[styles.formHelp, nightMode && darkStyles.mutedText]}>
+            Confirm this change with your authenticator. No email approval is
+            required when two-factor authentication is enabled.
+          </Text>
+          <Text style={styles.inputLabel}>
+            {usePasswordRecoveryCode ? "RECOVERY CODE" : "AUTHENTICATOR CODE"}
+          </Text>
+          <TextInput
+            value={passwordMfaCode}
+            onChangeText={(value) =>
+              setPasswordMfaCode(
+                usePasswordRecoveryCode
+                  ? value
+                      .replace(/[^a-zA-Z0-9-]/g, "")
+                      .toUpperCase()
+                      .slice(0, 11)
+                  : value.replace(/\D/g, "").slice(0, 6),
+              )
+            }
+            autoCapitalize={usePasswordRecoveryCode ? "characters" : "none"}
+            autoCorrect={false}
+            keyboardType={usePasswordRecoveryCode ? "default" : "number-pad"}
+            placeholder={usePasswordRecoveryCode ? "ABCDE-12345" : "000000"}
+            placeholderTextColor="#929A96"
+            style={[
+              styles.mobileMfaInput,
+              nightMode && darkStyles.input,
+              nightMode && darkStyles.primaryText,
+            ]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setUsePasswordRecoveryCode((value) => !value);
+              setPasswordMfaCode("");
+            }}
+          >
+            <Text style={styles.accountPasswordToggle}>
+              {usePasswordRecoveryCode
+                ? "USE AUTHENTICATOR CODE"
+                : "USE A RECOVERY CODE INSTEAD"}
+            </Text>
+          </Pressable>
+        </>
+      )}
       <Pressable
         disabled={!canUpdatePassword}
         onPress={changePassword}
@@ -501,7 +580,9 @@ function AccountSettings({
           </View>
         )}
         {recoveryCodes.length > 0 && (
-          <View style={styles.mobileRecoveryBox}>
+          <View
+            style={[styles.mobileRecoveryBox, nightMode && darkStyles.input]}
+          >
             <Text
               style={[styles.formTitle, nightMode && darkStyles.primaryText]}
             >
@@ -786,7 +867,7 @@ function ProviderProfilePanel({ nightMode }: { nightMode: boolean }) {
     >
       <View style={styles.providerIdentityHead}>
         <View style={styles.providerIdentityIcon}>
-          <Text style={styles.providerIdentityIconText}>✦</Text>
+          <Text style={styles.providerIdentityIconText}>↗</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.formTitle, nightMode && darkStyles.primaryText]}>
@@ -1555,7 +1636,7 @@ export function Profile({
         style={[styles.settingRow, nightMode && darkStyles.outline]}
       >
         <View style={[styles.settingIcon, nightMode && darkStyles.card]}>
-          <Text style={styles.settingIconText}>✦</Text>
+          <Text style={styles.settingIconText}>↗</Text>
         </View>
         <View style={styles.settingCopy}>
           <Text

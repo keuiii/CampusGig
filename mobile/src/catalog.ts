@@ -4,7 +4,7 @@ export const defaultCategories: Category[] = [
   {
     id: "graphic-design",
     name: "Graphic Design",
-    icon: "✦",
+    icon: "▧",
     tint: "#FFE6DD",
     ink: "#C85B39",
     serviceCount: 0,

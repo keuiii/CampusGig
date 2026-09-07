@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const categories = [
-  { id: "graphic-design", name: "Graphic Design", icon: "✦", color: "coral", sortOrder: 1 },
+  { id: "graphic-design", name: "Graphic Design", icon: "▧", color: "coral", sortOrder: 1 },
   { id: "tutoring", name: "Tutoring", icon: "A+", color: "violet", sortOrder: 2 },
   { id: "programming", name: "Programming", icon: "</>", color: "blue", sortOrder: 3 },
   { id: "photography", name: "Photography", icon: "◉", color: "amber", sortOrder: 4 },

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CampusGig.Mobile.Models" xmlns:controls="clr-namespace:CampusGig.Mobile.Controls"
+             x:Class="CampusGig.Mobile.Pages.OrderWorkspacePage" Title="Order workspace"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#111713}">
+    <RefreshView x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout x:Name="WorkspaceContent" Padding="18,16,18,42" Spacing="18">
+                <Border Padding="20,16,20,22" StrokeThickness="0" StrokeShape="RoundRectangle 24"
+                        BackgroundColor="{AppThemeBinding Light=#073F31, Dark=#173429}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="8">
+                        <Button Text="‹  Orders" Clicked="OnCloseClicked" BackgroundColor="Transparent" TextColor="#DDF1E7"
+                                Padding="0" HeightRequest="36" FontAttributes="Bold" FontSize="13" HorizontalOptions="Start" />
+                        <Border Grid.Column="1" Padding="11,5" StrokeThickness="0" BackgroundColor="#DDF1E7" StrokeShape="RoundRectangle 13" VerticalOptions="Center">
+                            <Label x:Name="StatusLabel" FontSize="9" CharacterSpacing="0.7" FontAttributes="Bold" TextColor="#075B42" />
+                        </Border>
+                        <Label x:Name="TitleLabel" Grid.Row="1" Grid.ColumnSpan="2" FontSize="29" FontAttributes="Bold" TextColor="White" LineBreakMode="TailTruncation" />
+                        <Label x:Name="OrderMetaLabel" Grid.Row="2" Grid.ColumnSpan="2" FontSize="11" TextColor="#BBD3C8" LineBreakMode="TailTruncation" />
+                        <Label x:Name="StatusGuidanceLabel" Grid.Row="3" Grid.ColumnSpan="2" FontSize="11" LineHeight="1.3" TextColor="#D8E8E0" />
+                    </Grid>
+                </Border>
+
+                <Border Padding="14,12" Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 16"
+                        BackgroundColor="{AppThemeBinding Light=#EFF7F3, Dark=#192A22}">
+                    <Grid ColumnDefinitions="40,*" ColumnSpacing="12">
+                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 20"
+                                BackgroundColor="{AppThemeBinding Light=#DCEFE5, Dark=#244035}">
+                            <Label x:Name="RoleIconLabel" Text="&#x2194;" FontSize="18" TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label x:Name="WorkspaceRoleLabel" Text="YOUR ROLE" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#0F6B4F" />
+                            <Label x:Name="CounterpartyLabel" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="PROJECT BRIEF" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                            <Label Text="Project requirements" FontSize="19" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        </VerticalStackLayout>
+                        <Label x:Name="RequirementsLabel" FontSize="13" LineHeight="1.35" LineBreakMode="WordWrap" TextColor="{AppThemeBinding Light=#3E4A44, Dark=#D1DDD7}" />
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#E7ECE9, Dark=#2B3A32}" />
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="4"><Label Text="PACKAGE" FontSize="8" CharacterSpacing="1" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#738078, Dark=#93A49B}"/><Label x:Name="PackageLabel" FontAttributes="Bold" FontSize="11" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4"><Label Text="TOTAL" FontSize="8" CharacterSpacing="1" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#738078, Dark=#93A49B}"/><Label x:Name="TotalLabel" FontAttributes="Bold" FontSize="11" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="4"><Label Text="DUE" FontSize="8" CharacterSpacing="1" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#738078, Dark=#93A49B}"/><Label x:Name="DueLabel" FontAttributes="Bold" FontSize="11" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="DELIVERABLES" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                    <Border x:Name="EmptyFilesLabel" Padding="18" IsVisible="False" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                            Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 16">
+                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+                            <Border WidthRequest="36" HeightRequest="36" StrokeThickness="0" StrokeShape="RoundRectangle 18" BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}">
+                                <Label Text="↓" FontSize="18" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Waiting for delivery" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                                <Label Text="No files have been submitted yet." FontSize="10" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                    <VerticalStackLayout x:Name="FileList" Spacing="0">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:OrderFileItem">
+                                <Border Margin="0,0,0,8" Padding="14" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 15">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnFileTapped" CommandParameter="{Binding .}" /></Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="11">
+                                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 12" BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}">
+                                            <Label Text="⇩" FontSize="18" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                            <Label Text="{Binding OriginalName}" FontAttributes="Bold" FontSize="12" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding SizeLabel}" FontSize="9" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2" Text="Download  ›" FontSize="11" FontAttributes="Bold" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <Border x:Name="ProviderDecisionPanel" IsVisible="False" Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="11">
+                        <Label Text="NEW SERVICE REQUEST" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        <Label Text="Review this project" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Label Text="Accept the request to reserve the project, or provide a short reason when declining." FontSize="11" LineHeight="1.3" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <controls:BusyButton Text="Accept request" BusyText="Accepting request" Clicked="OnAcceptClicked" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                        <Editor x:Name="RejectReasonEntry" Placeholder="Reason for declining (at least 3 characters)" MaxLength="500" HeightRequest="82"
+                                BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}" />
+                        <controls:BusyButton Text="Decline request" BusyText="Declining request" Clicked="OnRejectClicked" FillColor="#FFF0ED" TextColor="#B42318" HeightRequest="46" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="ProviderStartPanel" IsVisible="False" Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="READY TO BEGIN" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        <Label Text="The client has been notified that you accepted this project." FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <controls:BusyButton Text="Start working" BusyText="Starting order" Clicked="OnStartClicked" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="ProviderDeliveryPanel" IsVisible="False" Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="11">
+                        <Label Text="DELIVERY" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        <Label x:Name="DeliveryTitleLabel" Text="Submit deliverables" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Label Text="Attach 1–5 JPG, PNG, WebP, PDF, ZIP, DOCX, or XLSX files. Maximum 15 MB each." FontSize="10" LineHeight="1.3" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <Button Text="Choose deliverable files" Clicked="OnChooseDeliveryFilesClicked" HeightRequest="46" CornerRadius="12"
+                                BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}" TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" FontAttributes="Bold" />
+                        <Label x:Name="DeliveryFilesLabel" Text="No files selected" FontSize="10" LineBreakMode="TailTruncation" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <Editor x:Name="DeliveryNoteEntry" Placeholder="Add a delivery note (at least 3 characters)" MaxLength="1000" HeightRequest="96"
+                                TextChanged="OnDeliveryNoteChanged" BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}" />
+                        <controls:BusyButton x:Name="DeliveryButton" Text="Submit delivery" BusyText="Uploading delivery" Clicked="OnDeliverClicked"
+                                IsEnabled="False" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="SubmittedActions" IsVisible="False" Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="11">
+                        <Label Text="REVIEW DELIVERY" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        <Label Text="Review the submitted files before accepting the delivery." FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <controls:BusyButton Text="Accept delivery" BusyText="Accepting delivery" Clicked="OnCompleteClicked" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                        <VerticalStackLayout x:Name="RevisionGroup" Spacing="8">
+                            <Label x:Name="RevisionsRemainingLabel" FontSize="10" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                            <Editor x:Name="RevisionEntry" Placeholder="Describe the changes needed (at least 10 characters)" MaxLength="2000" HeightRequest="100" />
+                            <controls:BusyButton Text="Request revision" BusyText="Requesting revision" Clicked="OnRevisionClicked" FillColor="#E7F1EC" TextColor="#0F6B4F" HeightRequest="48" />
+                        </VerticalStackLayout>
+                        <Label x:Name="NoRevisionsLeftLabel" Text="All included revisions have been used. Accept delivery to complete the order." FontSize="11" TextColor="#B54708" IsVisible="False" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="ReviewActions" IsVisible="False" Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                        Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="LEAVE A REVIEW" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        <Picker x:Name="RatingPicker" Title="Rating"><Picker.Items><x:String>5 - Excellent</x:String><x:String>4 - Very good</x:String><x:String>3 - Good</x:String><x:String>2 - Fair</x:String><x:String>1 - Poor</x:String></Picker.Items></Picker>
+                        <Editor x:Name="ReviewEntry" Placeholder="Share your experience (optional)" MaxLength="1000" HeightRequest="90" />
+                        <controls:BusyButton Text="Submit review" BusyText="Submitting review" Clicked="OnReviewClicked" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="ORDER HISTORY" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
+                    <VerticalStackLayout x:Name="HistoryList" Spacing="9" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

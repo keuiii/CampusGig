@@ -191,7 +191,9 @@ export function Home({
         <View style={styles.schoolSection}>
           <Text style={styles.schoolLabel}>PREFERRED SCHOOL</Text>
           <Text style={[styles.schoolHelp, nightMode && darkStyles.mutedText]}>
-            Show providers from a particular school
+            {schools.length} participating school
+            {schools.length === 1 ? "" : "s"} available · Show providers from a
+            particular school
           </Text>
           <ScrollView
             horizontal

@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\CampusGig.Mobile\Models\ApiModels.cs" Link="Models\ApiModels.cs" />
+    <Compile Include="..\CampusGig.Mobile\Models\MobileNavigation.cs" Link="Models\MobileNavigation.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ISessionStorage.cs" Link="Services\ISessionStorage.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\GoogleIdentityOptions.cs" Link="Services\GoogleIdentityOptions.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\AuthFormRules.cs" Link="Services\AuthFormRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\AuthorizationFailureRules.cs" Link="Services\AuthorizationFailureRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ApiPayloadRules.cs" Link="Services\ApiPayloadRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\DialogPresentationRules.cs" Link="Services\DialogPresentationRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\InteractionMotion.cs" Link="Services\InteractionMotion.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\MobileFileRules.cs" Link="Services\MobileFileRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\MarketplaceLoadRules.cs" Link="Services\MarketplaceLoadRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\MfaPresentationRules.cs" Link="Services\MfaPresentationRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\OrderWorkflowRules.cs" Link="Services\OrderWorkflowRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\MessagePalette.cs" Link="Services\MessagePalette.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProfileActionRules.cs" Link="Services\ProfileActionRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProfileImageRules.cs" Link="Services\ProfileImageRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\RefreshRequestRules.cs" Link="Services\RefreshRequestRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PasswordVisibilityRules.cs" Link="Services\PasswordVisibilityRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PasswordChangeFlowRules.cs" Link="Services\PasswordChangeFlowRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ServiceBookingRules.cs" Link="Services\ServiceBookingRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\SessionService.cs" Link="Services\SessionService.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\UiInteractionRules.cs" Link="Services\UiInteractionRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\UnreadBadgeRules.cs" Link="Services\UnreadBadgeRules.cs" />
+  </ItemGroup>
+
+</Project>

@@ -29,4 +29,17 @@ export class NotificationsService {
       }),
     };
   }
+  async markAllRead(userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: { recipientId: userId, readAt: null },
+      data: { readAt: new Date() },
+    });
+    return {
+      updated: result.count,
+      message:
+        result.count === 0
+          ? "All notifications were already read."
+          : `${result.count} notification${result.count === 1 ? "" : "s"} marked as read.`,
+    };
+  }
 }

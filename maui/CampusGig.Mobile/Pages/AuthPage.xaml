@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CampusGig.Mobile.Pages.AuthPage"
+             BackgroundColor="{AppThemeBinding Light=#F5F4EE, Dark=#111713}">
+    <Grid IsClippedToBounds="True">
+        <Ellipse WidthRequest="220" HeightRequest="220" HorizontalOptions="End" VerticalOptions="Start"
+                 TranslationX="95" TranslationY="-125" Fill="{AppThemeBinding Light=#DFEDB6, Dark=#244035}" Opacity="0.68" />
+        <Ellipse WidthRequest="170" HeightRequest="170" HorizontalOptions="Start" VerticalOptions="End"
+                 TranslationX="-75" TranslationY="100" Fill="{AppThemeBinding Light=#DCEDE5, Dark=#244035}" Opacity="0.75" />
+        <Border x:Name="ThemeToggle" HorizontalOptions="End" VerticalOptions="Start" Margin="0,17,18,0"
+                WidthRequest="68" HeightRequest="36" Padding="2" StrokeThickness="0" StrokeShape="RoundRectangle 18"
+                BackgroundColor="{AppThemeBinding Light=#E5EAE7, Dark=#244035}" ZIndex="3">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnThemeClicked" />
+            </Border.GestureRecognizers>
+            <Grid ColumnDefinitions="*,*">
+                <Border x:Name="ThemeThumb" Grid.Column="0" WidthRequest="30" HeightRequest="30" HorizontalOptions="Start"
+                        VerticalOptions="Center" StrokeThickness="0" StrokeShape="RoundRectangle 15"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F6B4F}" Shadow="0,2,7,#28000000" />
+                <Label Grid.Column="0" Text="☀" FontSize="14" TextColor="{AppThemeBinding Light=#8A6507, Dark=#AAB6AF}"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" />
+                <Label Grid.Column="1" Text="☾" FontSize="15" TextColor="{AppThemeBinding Light=#66716B, Dark=#F2F6F3}"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" />
+            </Grid>
+        </Border>
+
+        <ScrollView>
+            <VerticalStackLayout x:Name="AuthContent" Padding="22,28" Spacing="0" MaximumWidthRequest="430"
+                                 HorizontalOptions="Center" VerticalOptions="Center">
+                <Border WidthRequest="52" HeightRequest="52" HorizontalOptions="Center" StrokeThickness="0"
+                        BackgroundColor="#0F6B4F" StrokeShape="RoundRectangle 15">
+                    <Label Text="C" FontSize="26" FontAttributes="Bold" TextColor="#D9F36A"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+                <Label HorizontalTextAlignment="Center" Margin="0,10,0,0" FontSize="24" FontAttributes="Bold">
+                    <Label.FormattedText><FormattedString>
+                        <Span Text="Campus" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Span Text="Gig" TextColor="#0F6B4F" />
+                    </FormattedString></Label.FormattedText>
+                </Label>
+                <Label Text="STUDENT SKILLS, REAL OPPORTUNITIES" HorizontalTextAlignment="Center" Margin="0,2,0,0"
+                       FontSize="7" CharacterSpacing="1.05" FontAttributes="Bold" TextColor="#0F6B4F" />
+
+                <VerticalStackLayout Margin="12,21,12,0" Spacing="6">
+                    <Label x:Name="PageTitle" Text="Welcome to CampusGig" HorizontalTextAlignment="Center"
+                           FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                    <Label x:Name="PageSubtitle" Text="Your trusted marketplace for verified student skills and services."
+                           HorizontalTextAlignment="Center" FontSize="11" LineHeight="1.35"
+                           TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                </VerticalStackLayout>
+
+                <Border Margin="0,20,0,0" Padding="18" Stroke="#E1E6E2" StrokeShape="RoundRectangle 20"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+                    <VerticalStackLayout x:Name="FormContent" Spacing="0">
+                        <Grid x:Name="AuthTabs" HeightRequest="45" Padding="4" ColumnDefinitions="*,*"
+                              IsClippedToBounds="True" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#151D19}">
+                            <Border x:Name="TabIndicator" Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 9"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}" />
+                            <Button x:Name="LoginTabButton" Grid.Column="0" Text="Log in" Clicked="OnLoginTabClicked" Pressed="OnButtonPressed" Released="OnButtonReleased" BackgroundColor="Transparent" HorizontalOptions="Fill"
+                                    TextColor="#0F6B4F" FontSize="11" FontAttributes="Bold" Padding="0" />
+                            <Button x:Name="RegisterTabButton" Grid.Column="1" Text="Sign up" Clicked="OnRegisterTabClicked" Pressed="OnButtonPressed" Released="OnButtonReleased" BackgroundColor="Transparent" HorizontalOptions="Fill"
+                                    TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" FontSize="11" FontAttributes="Bold" Padding="0" />
+                        </Grid>
+
+                        <Border x:Name="StatusPanel" IsVisible="False" Margin="0,12,0,0" Padding="11,9"
+                                Stroke="#F2C6C2" StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{AppThemeBinding Light=#FFF2F0, Dark=#3B201D}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <Label Text="!" FontAttributes="Bold" FontSize="12" TextColor="{AppThemeBinding Light=#B42318, Dark=#FF9B91}"
+                                       VerticalTextAlignment="Center" />
+                                <Label x:Name="StatusLabel" Grid.Column="1" TextColor="{AppThemeBinding Light=#B42318, Dark=#FFB4AC}"
+                                       FontSize="10" FontAttributes="Bold" LineBreakMode="WordWrap" VerticalTextAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <VerticalStackLayout x:Name="FieldsContent" Spacing="0">
+
+                        <VerticalStackLayout x:Name="NameGroup" IsVisible="False" Margin="0,15,0,0" Spacing="6">
+                            <Label Text="FULL NAME" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                <Grid ColumnDefinitions="24,*"><Label Text="◎" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
+                                    <Entry x:Name="NameEntry" Grid.Column="1" Placeholder="Your full name" /></Grid>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="EmailGroup" Margin="0,15,0,0" Spacing="6">
+                            <Label Text="EMAIL ADDRESS" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                <Grid ColumnDefinitions="24,*"><Label Text="@" TextColor="#0F6B4F" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                    <Entry x:Name="EmailEntry" Grid.Column="1" Placeholder="you@example.com" Keyboard="Email" /></Grid>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Border x:Name="StudentGroup" IsVisible="False" Margin="0,12,0,0" Padding="11" Stroke="#DDE5E0"
+                                StrokeShape="RoundRectangle 11" BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <CheckBox x:Name="StudentCheckBox" Color="#0F6B4F" />
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                    <Label Text="I’m currently a student" FontSize="10" FontAttributes="Bold" />
+                                    <Label Text="Select for school verification and future provider access." FontSize="8" TextColor="#66716B" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+
+                        <VerticalStackLayout x:Name="CodeGroup" IsVisible="False" Margin="0,15,0,0" Spacing="6">
+                            <Label x:Name="CodeLabel" Text="SIX-DIGIT CODE" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                <Grid ColumnDefinitions="24,*"><Label Text="#" TextColor="#0F6B4F" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                    <Entry x:Name="CodeEntry" Grid.Column="1" Placeholder="000000" Keyboard="Numeric" MaxLength="20" /></Grid>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="PasswordGroup" Margin="0,15,0,0" Spacing="6">
+                            <Label x:Name="PasswordLabel" Text="PASSWORD" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                <Grid ColumnDefinitions="24,*,52"><Label Text="●" FontSize="9" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
+                                    <Entry x:Name="PasswordEntry" Grid.Column="1" Placeholder="At least 8 characters" IsPassword="True" />
+                                    <Button x:Name="ShowPasswordButton" Grid.Column="2" Text="SHOW" Clicked="OnShowPasswordClicked"
+                                            Padding="0" BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="8" FontAttributes="Bold" /></Grid>
+                            </Border>
+                            <Label x:Name="PasswordHint" Text="○  Minimum 8 characters" FontSize="9" TextColor="#66716B" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="ResetMfaGroup" IsVisible="False" Margin="0,14,0,0" Spacing="6">
+                            <Label Text="AUTHENTICATOR CODE (IF ENABLED)" FontSize="8" CharacterSpacing="1.1" FontAttributes="Bold" TextColor="#66716B" />
+                            <Entry x:Name="ResetMfaEntry" Placeholder="Optional" MaxLength="20" />
+                            <Button x:Name="ResetRecoveryButton" Text="Use recovery code" Clicked="OnResetRecoveryClicked"
+                                    BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
+                        </VerticalStackLayout>
+
+                        <Border x:Name="RememberGroup" IsVisible="False" Margin="0,12,0,0" Padding="11" Stroke="#DDE5E0"
+                                StrokeShape="RoundRectangle 11" BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10"><CheckBox x:Name="RememberCheckBox" Color="#0F6B4F" />
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center"><Label Text="Trust this device for 30 days" FontSize="10" FontAttributes="Bold" />
+                                    <Label Text="Skip the authenticator code on this device until it expires." FontSize="8" TextColor="#66716B" /></VerticalStackLayout></Grid>
+                        </Border>
+                        <Button x:Name="RecoveryButton" IsVisible="False" Text="Use a recovery code" Clicked="OnRecoveryClicked"
+                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
+
+                        <Grid Margin="0,15,0,0" WidthRequest="260" HeightRequest="47" HorizontalOptions="Center">
+                            <Button x:Name="SubmitButton" Text="Log in     →" Clicked="OnSubmitClicked" Pressed="OnButtonPressed" Released="OnButtonReleased"
+                                    HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="#0F6B4F"
+                                    TextColor="White" FontSize="12" FontAttributes="Bold" CornerRadius="11" />
+                            <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" Color="White"
+                                               WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="True" />
+                        </Grid>
+                        <Button x:Name="ForgotButton" Text="Forgot password?" Clicked="OnForgotClicked"
+                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
+                        <Button x:Name="BackButton" IsVisible="False" Text="← Back to login" Clicked="OnBackClicked"
+                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
+
+                        <VerticalStackLayout x:Name="SocialGroup" Margin="0,10,0,10" Spacing="7">
+                            <Label Text="OR CONTINUE WITH" HorizontalTextAlignment="Center" FontSize="7" CharacterSpacing="0.6" FontAttributes="Bold" TextColor="#66716B" />
+                            <ImageButton x:Name="GoogleButton" Source="google_g.png" SemanticProperties.Description="Continue with Google"
+                                         Clicked="OnGoogleClicked" Pressed="OnButtonPressed" Released="OnButtonReleased"
+                                         WidthRequest="44" HeightRequest="44" Padding="10" HorizontalOptions="Center"
+                                         CornerRadius="22" BorderWidth="1" BorderColor="#DDE3DF"
+                                         BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}" />
+                        </VerticalStackLayout>
+
+                        <Border Margin="0,4,0,0" Padding="11,9" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                                BackgroundColor="{AppThemeBinding Light=#EEF6F1, Dark=#203B30}">
+                            <Grid ColumnDefinitions="24,*"><Border WidthRequest="20" HeightRequest="20" StrokeThickness="0" BackgroundColor="#D9F36A" StrokeShape="RoundRectangle 10">
+                                <Label Text="✓" FontSize="10" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                                <Label Grid.Column="1" Text="Personal email is accepted. School email is optional and account details stay private."
+                                       FontSize="9" LineHeight="1.3" TextColor="{AppThemeBinding Light=#50675C, Dark=#AAB6AF}" /></Grid>
+                        </Border>
+
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+                <Label Text="By continuing, you agree to the CampusGig community guidelines." Margin="22,8,22,0"
+                       FontSize="8" TextColor="#7C8580" HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

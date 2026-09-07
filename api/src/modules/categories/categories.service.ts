@@ -9,7 +9,18 @@ export class CategoriesService {
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
       include: {
-        _count: { select: { services: { where: { status: "PUBLISHED" } } } },
+        _count: {
+          select: {
+            services: {
+              where: {
+                status: "PUBLISHED",
+                provider: {
+                  studentProfile: { school: { status: "ACTIVE" } },
+                },
+              },
+            },
+          },
+        },
       },
     });
     return {

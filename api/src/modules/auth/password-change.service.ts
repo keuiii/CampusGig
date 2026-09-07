@@ -11,6 +11,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { ChangePasswordDto } from "./dto/change-password.dto";
 import { EmailService } from "./email.service";
+import { MfaService } from "./mfa.service";
 
 @Injectable()
 export class PasswordChangeService {
@@ -18,12 +19,13 @@ export class PasswordChangeService {
     private readonly prisma: PrismaService,
     private readonly email: EmailService,
     private readonly config: ConfigService,
+    private readonly mfa: MfaService,
   ) {}
 
   async request(userId: string, input: ChangePasswordDto, origin: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, passwordHash: true },
+      select: { email: true, passwordHash: true, mfaEnabledAt: true },
     });
     if (!user || !(await compare(input.currentPassword, user.passwordHash)))
       throw new UnauthorizedException("Current password is incorrect");
@@ -31,6 +33,47 @@ export class PasswordChangeService {
       throw new BadRequestException(
         "Choose a new password different from your current password",
       );
+    if (user.mfaEnabledAt && !input.mfaCode)
+      throw new UnauthorizedException(
+        "Enter your authenticator code or a recovery code",
+      );
+    const newPasswordHash = await hash(input.newPassword, 12);
+
+    if (user.mfaEnabledAt && input.mfaCode) {
+      await this.mfa.verifyCurrentFactor(
+        userId,
+        input.mfaCode,
+        input.recoveryCode,
+      );
+      const revokedTrustedDevices = await this.prisma.$transaction(
+        async (database) => {
+          await database.user.update({
+            where: { id: userId },
+            data: { passwordHash: newPasswordHash },
+          });
+          await database.passwordChangeRequest.updateMany({
+            where: { userId, status: "PENDING" },
+            data: { status: "CANCELLED", respondedAt: new Date() },
+          });
+          const revoked = await database.trustedDevice.updateMany({
+            where: { userId, revokedAt: null },
+            data: { revokedAt: new Date() },
+          });
+          return revoked.count;
+        },
+      );
+      void this.email.sendPasswordChanged(user.email).catch(() => undefined);
+      return {
+        status: "CONFIRMED" as const,
+        confirmationMethod: input.recoveryCode
+          ? ("RECOVERY_CODE" as const)
+          : ("AUTHENTICATOR" as const),
+        revokedTrustedDevices,
+        message:
+          "Password changed successfully. Remembered devices must verify again.",
+      };
+    }
+
     await this.expireOldRequests(userId);
     const existing = await this.prisma.passwordChangeRequest.findFirst({
       where: { userId, status: "PENDING", expiresAt: { gt: new Date() } },
@@ -45,7 +88,7 @@ export class PasswordChangeService {
     const request = await this.prisma.passwordChangeRequest.create({
       data: {
         userId,
-        newPasswordHash: await hash(input.newPassword, 12),
+        newPasswordHash,
         tokenHash: this.sha256(token),
         expiresAt,
       },

@@ -150,7 +150,7 @@ export function ProviderAccessGuide({
   return (
     <main className="provider-access-page">
       <section className="provider-access-hero">
-        <span className="provider-access-icon">✦</span>
+        <span className="provider-access-icon">↗</span>
         <span className="kicker">BECOME A PROVIDER</span>
         <h1>Turn your student skills into opportunities</h1>
         <p>

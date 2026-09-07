@@ -13,6 +13,9 @@ export class NotificationsController {
   @Get() list(@Req() request: AuthenticatedRequest) {
     return this.notifications.list(request.auth.sub);
   }
+  @Patch("read-all") markAllRead(@Req() request: AuthenticatedRequest) {
+    return this.notifications.markAllRead(request.auth.sub);
+  }
   @Patch(":id/read") markRead(
     @Req() request: AuthenticatedRequest,
     @Param("id") id: string,

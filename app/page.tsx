@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { defaultCategories } from "./catalog";
 import { Icon, Logo } from "./components/brand";
 import { UnifiedAccount } from "./features/account/UnifiedAccount";
@@ -12,6 +12,10 @@ import { ProviderAccessGuide } from "./features/provider/ProviderAccessGuide";
 import { AdminDashboard } from "./features/admin/AdminDashboard";
 import { SchoolAdminDashboard } from "./features/admin/SchoolAdminDashboard";
 import { api, backendConfigured } from "./lib/api";
+import {
+  applySchoolStatusUpdate,
+  retainActiveSchoolSelection,
+} from "./lib/school-state";
 import type {
   AppNotification,
   AuthUser,
@@ -52,6 +56,7 @@ export default function CampusGigApp() {
   >([]);
   const [headerUnreadCount, setHeaderUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [readingAllNotifications, setReadingAllNotifications] = useState(false);
   const [incomingNotification, setIncomingNotification] =
     useState<AppNotification | null>(null);
   const [nightMode, setNightMode] = useState(false);
@@ -130,21 +135,56 @@ export default function CampusGigApp() {
     document.documentElement.dataset.theme = enabled ? "dark" : "light";
   }
 
+  const refreshMarketplace = useCallback(async () => {
+    const [serviceResult, categoryResult, schoolResult] =
+      await Promise.allSettled([
+        api.services(),
+        api.categories(),
+        api.schools(),
+      ]);
+    if (serviceResult.status === "fulfilled") setServices(serviceResult.value);
+    if (
+      categoryResult.status === "fulfilled" &&
+      categoryResult.value.length > 0
+    )
+      setCategories(categoryResult.value);
+    if (schoolResult.status === "fulfilled") {
+      setSchools(schoolResult.value);
+      setSelectedSchoolId((selectedId) =>
+        retainActiveSchoolSelection(selectedId, schoolResult.value),
+      );
+    }
+  }, []);
+
   useEffect(() => {
     if (!backendConfigured) return;
-    Promise.allSettled([api.services(), api.categories(), api.schools()])
-      .then(([serviceResult, categoryResult, schoolResult]) => {
-        if (serviceResult.status === "fulfilled")
-          setServices(serviceResult.value);
-        if (
-          categoryResult.status === "fulfilled" &&
-          categoryResult.value.length > 0
-        )
-          setCategories(categoryResult.value);
-        if (schoolResult.status === "fulfilled") setSchools(schoolResult.value);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    void refreshMarketplace().finally(() => setLoading(false));
+  }, [refreshMarketplace]);
+
+  useEffect(() => {
+    if (!backendConfigured || view !== "home") return;
+    const refresh = () => void refreshMarketplace();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const timer = window.setInterval(refresh, 10000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refreshMarketplace, view]);
+
+  function handleSchoolStatusChanged(updated: School) {
+    setSchools((current) => applySchoolStatusUpdate(current, updated));
+    if (updated.status !== "ACTIVE")
+      setSelectedSchoolId((selectedId) =>
+        selectedId === updated.id ? "" : selectedId,
+      );
+    void refreshMarketplace();
+  }
 
   async function refreshClientOrders() {
     if (!webToken) {
@@ -296,6 +336,24 @@ export default function CampusGigApp() {
     }
   }
 
+  async function readAllNotifications() {
+    if (!webToken || headerUnreadCount === 0 || readingAllNotifications) return;
+    if (!window.confirm(`Mark all ${headerUnreadCount} unread notification${headerUnreadCount === 1 ? "" : "s"} as read?`)) return;
+    setReadingAllNotifications(true);
+    try {
+      const result = await api.markAllNotificationsRead(webToken);
+      const readAt = new Date().toISOString();
+      setHeaderNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? readAt })));
+      setHeaderUnreadCount(0);
+      setIncomingNotification(null);
+      notify(result.message);
+    } catch {
+      notify("Unable to mark notifications as read");
+    } finally {
+      setReadingAllNotifications(false);
+    }
+  }
+
   const filtered = useMemo(
     () =>
       services.filter((service) => {
@@ -389,7 +447,14 @@ export default function CampusGigApp() {
                       <span className="kicker">NOTIFICATIONS</span>
                       <b>Account activity</b>
                     </div>
-                    <small>{headerUnreadCount} unread</small>
+                    <div className="notification-dropdown-actions">
+                      <small>{headerUnreadCount} unread</small>
+                      {headerUnreadCount > 0 && (
+                        <button disabled={readingAllNotifications} onClick={() => void readAllNotifications()}>
+                          {readingAllNotifications ? "Marking..." : "Read all"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {headerNotifications.length ? (
                     headerNotifications.slice(0, 8).map((item) => (
@@ -507,6 +572,7 @@ export default function CampusGigApp() {
               token={webToken}
               user={webUser}
               notify={notify}
+              onSchoolStatusChanged={handleSchoolStatusChanged}
               onLogout={clearWebSession}
             />
           ) : (

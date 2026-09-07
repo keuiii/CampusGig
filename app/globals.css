@@ -765,7 +765,7 @@ button:disabled {
   padding-left: 17px;
 }
 .provider-playbook li:before {
-  content: "✦";
+  content: "•";
   position: absolute;
   left: 0;
   top: 1px;
@@ -3420,6 +3420,24 @@ footer {
   font-size: 9px;
   color: var(--muted);
 }
+.notification-dropdown-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 5px;
+}
+.notification-dropdown-actions button {
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 0;
+  cursor: pointer;
+}
+.notification-dropdown-actions button:hover { text-decoration: underline; }
+.notification-dropdown-actions button:disabled { opacity: 0.55; cursor: wait; }
 .notification-dropdown > button {
   width: 100%;
   border: 0;

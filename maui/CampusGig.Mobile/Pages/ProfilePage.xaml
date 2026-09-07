@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CampusGig.Mobile.Controls"
+             x:Class="CampusGig.Mobile.Pages.ProfilePage"
+             Title="Profile"
+             BackgroundColor="{AppThemeBinding Light=#F7FAF8, Dark=#111713}">
+    <RefreshView x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
+        <ScrollView>
+            <VerticalStackLayout x:Name="ProfileContent" Padding="20,18,20,48" Spacing="16"
+                                 MaximumWidthRequest="620" HorizontalOptions="Center">
+                <!-- Screen Header -->
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="YOUR CAMPUSGIG" FontSize="9" CharacterSpacing="1.6" FontAttributes="Bold" TextColor="#0F6B4F" />
+                    <Label x:Name="PageTitleLabel" Text="Profile" FontSize="34" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                </VerticalStackLayout>
+
+                <!-- Top Profile Card -->
+                <Border x:Name="ProfileCard" Padding="22,24,22,20" Stroke="{AppThemeBinding Light=#E5ECE7, Dark=#34423A}" StrokeShape="RoundRectangle 22"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}"
+                        Shadow="0,2,10,#0D000000">
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Fill">
+                        <!-- Centered Avatar with + button -->
+                        <Grid HorizontalOptions="Center" WidthRequest="84" HeightRequest="84">
+                            <Border WidthRequest="84" HeightRequest="84" StrokeThickness="0" StrokeShape="RoundRectangle 42"
+                                    BackgroundColor="{AppThemeBinding Light=#DCECE4, Dark=#243F32}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAvatarClicked" />
+                                </Border.GestureRecognizers>
+                                <Grid>
+                                    <Label x:Name="InitialsLabel" Text="D" FontSize="28" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#08543D, Dark=#D9F36A}"
+                                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    <Image x:Name="AvatarImage" Aspect="AspectFill" IsVisible="False" ZIndex="2" />
+                                </Grid>
+                            </Border>
+                            <!-- Plus Badge -->
+                            <Border WidthRequest="26" HeightRequest="26" HorizontalOptions="End" VerticalOptions="End"
+                                    StrokeThickness="0" StrokeShape="RoundRectangle 13" BackgroundColor="#08543D">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAvatarClicked" />
+                                </Border.GestureRecognizers>
+                                <Label Text="&#xFF0B;" FontSize="14" FontAttributes="Bold" TextColor="White"
+                                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            </Border>
+                        </Grid>
+
+                        <Label Text="Tap to change profile picture" FontSize="11" TextColor="#7E8B84" HorizontalTextAlignment="Center" />
+                        <Label x:Name="NameLabel" Text="CampusGig user" FontSize="20" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" HorizontalTextAlignment="Center" />
+                        <Label x:Name="EmailLabel" Text="" FontSize="13" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" HorizontalTextAlignment="Center" />
+
+                        <!-- Role Pill - shows roles or verification status -->
+                        <Border HorizontalOptions="Center" Padding="12,3" StrokeThickness="0" StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#243F32}" Margin="0,4,0,2">
+                            <Label x:Name="RolesLabel" Text="CLIENT &#xB7; STUDENT" FontSize="10" CharacterSpacing="1.2"
+                                   FontAttributes="Bold" TextColor="{AppThemeBinding Light=#08543D, Dark=#D9F36A}" />
+                        </Border>
+
+                        <!-- Profile Completion Progress Bar (student only) -->
+                        <VerticalStackLayout x:Name="ProgressSection" Spacing="6" Margin="0,10,0,0">
+                            <Border HeightRequest="6" BackgroundColor="{AppThemeBinding Light=#E5ECE7, Dark=#2A3831}"
+                                    StrokeThickness="0" StrokeShape="RoundRectangle 3" HorizontalOptions="Fill">
+                                <BoxView x:Name="ProgressBarFill" WidthRequest="60" HeightRequest="6" HorizontalOptions="Start"
+                                         Color="{AppThemeBinding Light=#08543D, Dark=#D9F36A}" CornerRadius="3" />
+                            </Border>
+                            <Label x:Name="CompletionLabel" Text="20% profile complete" FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}"
+                                   HorizontalTextAlignment="End" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Client Info Card (shown for client accounts) -->
+                <Border x:Name="ClientInfoCard" IsVisible="False" Padding="18" Stroke="#E5ECE7" StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="You're using CampusGig as a client" FontSize="18" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                        <Label Text="You can browse services, choose preferred schools, place orders, message providers, and leave reviews. This account does not claim student status, so student verification and provider tools are hidden."
+                               FontSize="12" TextColor="#66716B" LineHeight="1.45" />
+                    </VerticalStackLayout>
+                </Border>
+                    <!-- Appearance Section -->
+                    <Label Text="APPEARANCE" FontSize="9" CharacterSpacing="1.5" FontAttributes="Bold" TextColor="#66716B" Margin="2,6,0,0" />
+                    <Border Padding="17,14" Stroke="{AppThemeBinding Light=#E5ECE7, Dark=#34423A}" StrokeShape="RoundRectangle 16"
+                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{AppThemeBinding Light=#EAF3EE, Dark=#243F32}">
+                                <Label Text="&#x25D0;" FontSize="18" TextColor="#08543D" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                <Label Text="Night mode" FontSize="15" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                                <Label Text="Use a darker theme for comfortable viewing" FontSize="11" TextColor="#66716B" />
+                            </VerticalStackLayout>
+                            <!-- Custom Sun / Moon Switch -->
+                            <Border Grid.Column="2" x:Name="ThemeToggle" WidthRequest="64" HeightRequest="34" Padding="2"
+                                    StrokeThickness="0" StrokeShape="RoundRectangle 17"
+                                    BackgroundColor="{AppThemeBinding Light=#E5EAE7, Dark=#244035}" VerticalOptions="Center">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnThemeToggled" />
+                                </Border.GestureRecognizers>
+                                <Grid>
+                                    <Label Text="&#x2600;" FontSize="13" TextColor="#D4A017" HorizontalOptions="Start" Margin="8,0,0,0" VerticalTextAlignment="Center" />
+                                    <Label Text="&#x263E;" FontSize="13" TextColor="#66716B" HorizontalOptions="End" Margin="0,0,8,0" VerticalTextAlignment="Center" />
+                                    <Border x:Name="ThemeThumb" WidthRequest="28" HeightRequest="28" HorizontalOptions="Start"
+                                            StrokeThickness="0" StrokeShape="RoundRectangle 14"
+                                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#08543D}"
+                                            Shadow="0,2,6,#25000000" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Student Information Section -->
+                    <VerticalStackLayout x:Name="StudentSection" Spacing="14">
+                        <Label Text="STUDENT INFORMATION" FontSize="9" CharacterSpacing="1.5" FontAttributes="Bold" TextColor="#66716B" Margin="2,6,0,0" />
+                        <Border Padding="19" Stroke="{AppThemeBinding Light=#E5ECE7, Dark=#34423A}" StrokeShape="RoundRectangle 18"
+                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}">
+                            <VerticalStackLayout Spacing="12">
+                                <Label Text="Set up your campus identity" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                                <Label Text="This information connects you to the correct participating school." FontSize="12" TextColor="#66716B" Margin="0,-4,0,2" />
+
+                                <Label Text="PARTICIPATING SCHOOL" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,0,0,4">
+                                    <HorizontalStackLayout x:Name="SchoolChipsContainer" Spacing="8" />
+                                </ScrollView>
+
+                                <Label Text="PROGRAM / COURSE" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                    <Entry x:Name="ProgramEntry" Placeholder="e.g. BS Information Technology" FontSize="13"
+                                           TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" PlaceholderColor="#929A96" VerticalOptions="Center" />
+                                </Border>
+
+                                <Label Text="YEAR LEVEL" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                    <Entry x:Name="YearEntry" Placeholder="e.g. 3" Keyboard="Numeric" MaxLength="2" FontSize="13"
+                                           TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" PlaceholderColor="#929A96" VerticalOptions="Center" />
+                                </Border>
+
+                                <Label Text="SHORT BIO (OPTIONAL)" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,8" HeightRequest="85"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                    <Editor x:Name="BioEntry" Placeholder="Tell the campus community about yourself" MaxLength="500" FontSize="13"
+                                            TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" PlaceholderColor="#929A96" />
+                                </Border>
+
+                                <controls:BusyButton x:Name="SaveStudentButton" Text="Save student profile" BusyText="Saving profile" Clicked="OnSaveStudentClicked"
+                                        FillColor="#84B0A4" TextColor="White"
+                                        CornerRadius="14" HeightRequest="48" Margin="0,6,0,0" HorizontalOptions="Fill" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- School Verification Section -->
+                        <Label Text="SCHOOL VERIFICATION" FontSize="9" CharacterSpacing="1.5" FontAttributes="Bold" TextColor="#66716B" Margin="2,6,0,0" />
+                        <Border Padding="19" Stroke="{AppThemeBinding Light=#E5ECE7, Dark=#34423A}" StrokeShape="RoundRectangle 18"
+                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}">
+                            <VerticalStackLayout Spacing="12">
+                                <Label Text="Verify your student identity" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                                <Label Text="Upload a clear student ID. It stays private and is available only to authorized CampusGig administrators."
+                                       FontSize="12" TextColor="#66716B" Margin="0,-4,0,2" />
+
+                                <Border x:Name="VerificationStatusBadge" IsVisible="False" Padding="12,8" StrokeThickness="0" StrokeShape="RoundRectangle 10" BackgroundColor="#E2F1E8">
+                                    <Label x:Name="VerificationStatusLabel" FontSize="12" FontAttributes="Bold" TextColor="#08543D" />
+                                </Border>
+                                <Label x:Name="VerificationReasonLabel" IsVisible="False" TextColor="#B42318" FontSize="11" />
+
+                                <!-- ID Picker Box -->
+                                <Border x:Name="IdPickerBox" Stroke="#CCD9D1" StrokeShape="RoundRectangle 14"
+                                        BackgroundColor="{AppThemeBinding Light=#FBFDFB, Dark=#151D19}" Padding="14,12">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnVerificationClicked" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                                                BackgroundColor="{AppThemeBinding Light=#E5F2EB, Dark=#243F32}">
+                                            <Label Text="&#x25A4;" FontSize="20" TextColor="#08543D" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                            <Label x:Name="SelectedIdNameLabel" Text="Choose student ID" FontSize="13" FontAttributes="Bold"
+                                                   TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                                            <Label x:Name="SelectedIdSizeLabel" Text="JPG, PNG, or PDF &#xB7; maximum 5 MB" FontSize="11" TextColor="#66716B" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2" Text="Browse" FontSize="13" FontAttributes="Bold" TextColor="#08543D" VerticalTextAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <controls:BusyButton x:Name="VerificationButton" Text="Submit for verification" BusyText="Submitting ID" Clicked="OnSubmitVerificationClicked"
+                                        FillColor="#84B0A4" TextColor="White"
+                                        CornerRadius="14" HeightRequest="48" Margin="0,4,0,0" HorizontalOptions="Fill" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Next Steps Section -->
+                    <Label Text="NEXT STEPS" FontSize="9" CharacterSpacing="1.5" FontAttributes="Bold" TextColor="#66716B" Margin="2,6,0,0" />
+                    <Border Padding="0" Stroke="{AppThemeBinding Light=#E5ECE7, Dark=#34423A}" StrokeShape="RoundRectangle 18"
+                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}">
+                        <VerticalStackLayout Spacing="0">
+                            <!-- Provider Profile Row -->
+                            <Border Padding="16,14" StrokeThickness="0" BackgroundColor="Transparent">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnProviderProfileRowClicked" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#EAF3EE, Dark=#243F32}">
+                                        <Label Text="&#x2197;" FontSize="20" TextColor="#08543D" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                        <Label Text="Provider profile" FontSize="15" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                                        <Label x:Name="ProviderRowSubtitle" Text="Unlocks after student verification" FontSize="11" TextColor="#66716B" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="2" x:Name="ProviderChevron" Text="&#x203A;" FontSize="20" TextColor="#99A49E" VerticalTextAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Expandable Provider Panel -->
+                            <VerticalStackLayout x:Name="ProviderPanel" IsVisible="False" Padding="18,0,18,18" Spacing="12">
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#26332D}" Margin="0,0,0,8" />
+                                <Label Text="HEADLINE" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48">
+                                    <Entry x:Name="HeadlineEntry" Placeholder="e.g. Full-Stack Web &amp; Mobile Developer" MaxLength="100" FontSize="13" />
+                                </Border>
+                                <Label Text="BIO" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,8" HeightRequest="95">
+                                    <Editor x:Name="ProviderBioEntry" Placeholder="Describe your experience and services" MaxLength="1000" FontSize="13" />
+                                </Border>
+                                <Label Text="SKILLS (COMMA SEPARATED)" FontSize="10" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48">
+                                    <Entry x:Name="SkillsEntry" Placeholder="React, C#, Figma, UI/UX" FontSize="13" />
+                                </Border>
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                    <Label Text="Available for new work" FontSize="14" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                    <Switch Grid.Column="1" x:Name="AvailableSwitch" OnColor="#0F6B4F" />
+                                </Grid>
+                                <controls:BusyButton x:Name="SaveProviderButton" Text="Save provider profile" BusyText="Saving provider profile" Clicked="OnSaveProviderClicked"
+                                        FillColor="#0F6B4F" TextColor="White" CornerRadius="14" HeightRequest="48" Margin="0,4,0,0" HorizontalOptions="Fill" />
+                            </VerticalStackLayout>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#26332D}" />
+
+                            <!-- Account Settings Row -->
+                            <Border Padding="16,14" StrokeThickness="0" BackgroundColor="Transparent">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAccountSettingsRowClicked" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#EAF3EE, Dark=#243F32}">
+                                        <Label Text="&#x2699;" FontSize="20" TextColor="#08543D" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                        <Label Text="Account settings" FontSize="15" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+                                        <Label Text="Roles and password security" FontSize="11" TextColor="#66716B" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="2" x:Name="SettingsChevron" Text="&#x203A;" FontSize="20" TextColor="#99A49E" VerticalTextAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Expandable Account Settings Panel -->
+                            <VerticalStackLayout x:Name="SettingsPanel" IsVisible="False" Padding="18,0,18,18" Spacing="12">
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#26332D}" Margin="0,0,0,8" />
+                                <VerticalStackLayout x:Name="PasswordForm" Spacing="12">
+                                <Label Text="Change password" FontSize="16" FontAttributes="Bold" />
+                                <Border Stroke="{AppThemeBinding Light=#DDE4DF, Dark=#385046}" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Entry x:Name="CurrentPasswordEntry" Placeholder="Current password" IsPassword="True" FontSize="13" />
+                                        <Button Grid.Column="1" Text="Show" Clicked="OnPasswordVisibilityClicked" CommandParameter="current"
+                                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" FontAttributes="Bold" Padding="9,0" />
+                                    </Grid>
+                                </Border>
+                                <Border Stroke="{AppThemeBinding Light=#DDE4DF, Dark=#385046}" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Entry x:Name="NewPasswordEntry" Placeholder="New password (at least 8 chars)" IsPassword="True" FontSize="13" />
+                                        <Button Grid.Column="1" Text="Show" Clicked="OnPasswordVisibilityClicked" CommandParameter="new"
+                                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" FontAttributes="Bold" Padding="9,0" />
+                                    </Grid>
+                                </Border>
+                                <Border Stroke="{AppThemeBinding Light=#DDE4DF, Dark=#385046}" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Entry x:Name="ConfirmPasswordEntry" Placeholder="Confirm new password" IsPassword="True" FontSize="13" />
+                                        <Button Grid.Column="1" Text="Show" Clicked="OnPasswordVisibilityClicked" CommandParameter="confirm"
+                                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" FontAttributes="Bold" Padding="9,0" />
+                                    </Grid>
+                                </Border>
+                                <VerticalStackLayout x:Name="PasswordMfaPanel" IsVisible="False" Spacing="8">
+                                    <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48">
+                                        <Entry x:Name="PasswordMfaEntry" Placeholder="Authenticator or recovery code" FontSize="13" />
+                                    </Border>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="Use recovery code" FontSize="13" VerticalTextAlignment="Center" />
+                                        <Switch Grid.Column="1" x:Name="RecoveryCodeSwitch" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                                <controls:BusyButton x:Name="UpdatePasswordButton" Text="Update password" BusyText="Updating password" Clicked="OnChangePasswordClicked"
+                                        FillColor="#0F6B4F" TextColor="White" CornerRadius="14" HeightRequest="46" HorizontalOptions="Fill" />
+                                </VerticalStackLayout>
+
+                                <Border x:Name="PasswordPendingPanel" IsVisible="False" Padding="16" Stroke="{AppThemeBinding Light=#CFE0D7, Dark=#385046}"
+                                        BackgroundColor="{AppThemeBinding Light=#F4FAF7, Dark=#151D19}" StrokeShape="RoundRectangle 16">
+                                    <VerticalStackLayout Spacing="10">
+                                        <Border WidthRequest="44" HeightRequest="44" Padding="0" HorizontalOptions="Start" StrokeThickness="0"
+                                                BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1E493A}" StrokeShape="RoundRectangle 22">
+                                            <Label Text="&#x2709;" FontSize="21" TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}"
+                                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                        </Border>
+                                        <Label Text="Waiting for email confirmation" FontSize="16" FontAttributes="Bold" />
+                                        <Label x:Name="PasswordPendingBody" FontSize="12" LineHeight="1.35" TextColor="{AppThemeBinding Light=#66716B, Dark=#A8B6AF}" />
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="12"
+                                              BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}">
+                                            <ActivityIndicator IsRunning="True" WidthRequest="20" HeightRequest="20" Color="#0F8060" />
+                                            <Label Grid.Column="1" Text="Checking for your decision..." FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                        </Grid>
+                                        <Label x:Name="PasswordPendingExpiry" FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#A8B6AF}" />
+                                        <controls:BusyButton x:Name="CancelPasswordChangeButton" Text="Cancel password change" BusyText="Cancelling request"
+                                                Clicked="OnCancelPasswordChangeClicked" FillColor="#FFF0ED" TextColor="#B42318"
+                                                CornerRadius="12" HeightRequest="44" HorizontalOptions="Start" />
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#26332D}" Margin="0,8" />
+                                <!-- Two-Factor Authentication -->
+                                <Border Padding="16" Stroke="{AppThemeBinding Light=#DCE9E2, Dark=#315044}"
+                                        BackgroundColor="{AppThemeBinding Light=#F7FBF9, Dark=#14231D}" StrokeShape="RoundRectangle 18">
+                                    <VerticalStackLayout Spacing="14">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <Border WidthRequest="44" HeightRequest="44" StrokeThickness="0"
+                                                    BackgroundColor="{AppThemeBinding Light=#DDF2E8, Dark=#1C4A3A}" StrokeShape="RoundRectangle 14">
+                                                <Path Data="M 7,10 L 7,7 C 7,4 9,2 12,2 C 15,2 17,4 17,7 L 17,10 M 5,10 L 19,10 L 19,21 L 5,21 Z M 12,14 L 12,17"
+                                                      WidthRequest="22" HeightRequest="24" Aspect="Uniform"
+                                                      Stroke="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}"
+                                                      StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                                      Fill="Transparent" HorizontalOptions="Center" VerticalOptions="Center"
+                                                      SemanticProperties.Description="Two-factor authentication security" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                                <Label Text="Two-factor authentication" FontSize="15" FontAttributes="Bold" />
+                                                <Label Text="Extra protection for your account" FontSize="11"
+                                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#A8B6AF}" />
+                                            </VerticalStackLayout>
+                                            <Border x:Name="MfaBadgeContainer" Grid.Column="2" Padding="10,5" StrokeThickness="0"
+                                                    BackgroundColor="{AppThemeBinding Light=#E8EEEB, Dark=#28352F}" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                                <Label x:Name="MfaBadge" Text="OFF" FontSize="10" FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#B8C5BF}" />
+                                            </Border>
+                                        </Grid>
+
+                                        <Label x:Name="MfaDetailsLabel" FontSize="11" LineHeight="1.3"
+                                               TextColor="{AppThemeBinding Light=#66716B, Dark=#A8B6AF}" />
+
+                                        <VerticalStackLayout x:Name="MfaSetupPanel" IsVisible="False" Spacing="12">
+                                            <Border Padding="12" BackgroundColor="White" Stroke="#DDE4DF" StrokeShape="RoundRectangle 16" HorizontalOptions="Center">
+                                                <Image x:Name="MfaQrImage" WidthRequest="164" HeightRequest="164" />
+                                            </Border>
+                                            <Label Text="Scan this code, then enter the 6-digit code from your authenticator app."
+                                                   FontSize="11" HorizontalTextAlignment="Center" LineHeight="1.3"
+                                                   TextColor="{AppThemeBinding Light=#66716B, Dark=#A8B6AF}" />
+                                            <Border Padding="12,9" Stroke="{AppThemeBinding Light=#DDE4DF, Dark=#385046}"
+                                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#192B23}" StrokeShape="RoundRectangle 12">
+                                                <Label x:Name="MfaSecretLabel" FontFamily="monospace" FontAttributes="Bold" HorizontalTextAlignment="Center" FontSize="12"
+                                                       TextColor="{AppThemeBinding Light=#154E3D, Dark=#9CE4C7}" />
+                                            </Border>
+                                            <Border Stroke="{AppThemeBinding Light=#DDE4DF, Dark=#385046}" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
+                                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                                                <Entry x:Name="MfaSetupCodeEntry" Placeholder="Enter 6-digit code" Keyboard="Numeric" MaxLength="6" FontSize="13" HorizontalTextAlignment="Center" />
+                                            </Border>
+                                            <controls:BusyButton x:Name="ConfirmMfaButton" Text="Verify and enable" BusyText="Verifying code" Clicked="OnConfirmMfaClicked"
+                                                    FillColor="#0F8060" TextColor="White" CornerRadius="12" HeightRequest="46" />
+                                        </VerticalStackLayout>
+
+                                        <Border x:Name="RecoveryCodesPanel" IsVisible="False" Padding="14"
+                                                BackgroundColor="{AppThemeBinding Light=#FFFBEA, Dark=#302B18}"
+                                                Stroke="{AppThemeBinding Light=#E8D78A, Dark=#6D6129}" StrokeShape="RoundRectangle 14">
+                                            <VerticalStackLayout Spacing="7">
+                                                <Label Text="Save your recovery codes" FontAttributes="Bold" FontSize="12"
+                                                       TextColor="{AppThemeBinding Light=#66540A, Dark=#F4DE7B}" />
+                                                <Label Text="Store these somewhere safe. Each code can only be used once." FontSize="10" LineHeight="1.3"
+                                                       TextColor="{AppThemeBinding Light=#74662C, Dark=#D6C875}" />
+                                                <Label x:Name="RecoveryCodesLabel" FontFamily="monospace" FontSize="12" LineHeight="1.4"
+                                                       TextColor="{AppThemeBinding Light=#392F08, Dark=#FFF1A8}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <controls:BusyButton x:Name="SetupMfaButton" Text="Set up authenticator" BusyText="Preparing authenticator" Clicked="OnSetupMfaClicked"
+                                                FillColor="#0F8060" TextColor="White" CornerRadius="12" HeightRequest="46" HorizontalOptions="Fill" />
+
+                                        <VerticalStackLayout x:Name="EnabledMfaActions" IsVisible="False" Spacing="12">
+                                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                                <Button Text="&#x21BB;  New codes" Clicked="OnRegenerateCodesClicked"
+                                                        BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1D4537}"
+                                                        TextColor="{AppThemeBinding Light=#08543D, Dark=#91DABD}" CornerRadius="12" HeightRequest="44" FontSize="11" />
+                                                <Button Grid.Column="1" Text="&#x2715;  Revoke devices" Clicked="OnRevokeDevicesClicked"
+                                                        BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1D4537}"
+                                                        TextColor="{AppThemeBinding Light=#08543D, Dark=#91DABD}" CornerRadius="12" HeightRequest="44" FontSize="11" />
+                                            </Grid>
+                                            <Button Text="Disable two-factor authentication" Clicked="OnDisableMfaClicked"
+                                                    BackgroundColor="{AppThemeBinding Light=#FFF0ED, Dark=#3D201D}"
+                                                    TextColor="{AppThemeBinding Light=#B42318, Dark=#FF9D91}" BorderWidth="1"
+                                                    BorderColor="{AppThemeBinding Light=#F2CBC5, Dark=#70413B}" CornerRadius="12"
+                                                    HeightRequest="42" FontSize="11" HorizontalOptions="Center" Padding="18,0" />
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#26332D}" Margin="0,8" />
+                                <Label Text="Development API" FontSize="14" FontAttributes="Bold" />
+                                <Border Stroke="#DDE4DF" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="46">
+                                    <Entry x:Name="ApiUrlEntry" Keyboard="Url" FontSize="12" />
+                                </Border>
+                                <Button Text="Save API address" Clicked="OnSaveApiClicked" BackgroundColor="#E2F1E8" TextColor="#08543D" CornerRadius="12" HeightRequest="42" FontSize="12" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                <!-- Sign Out Button -->
+                <Button x:Name="SignOutButton" Text="Sign out" WidthRequest="140" HeightRequest="44"
+                        BorderWidth="1" BorderColor="#E5ECE7" CornerRadius="22"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1A231F}"
+                        TextColor="#C53B27" FontSize="14" FontAttributes="Bold"
+                        HorizontalOptions="Center" Margin="0,14,0,24" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

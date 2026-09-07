@@ -116,12 +116,24 @@ export class MessagesService {
       orderBy: { createdAt: "asc" },
       take: 200,
     });
-    await this.prisma.conversationParticipant.update({
-      where: {
-        conversationId_userId: { conversationId: conversation.id, userId },
-      },
-      data: { lastReadAt: new Date(), lastReadMessageId: messages.at(-1)?.id },
-    });
+    const readAt = new Date();
+    await Promise.all([
+      this.prisma.conversationParticipant.update({
+        where: {
+          conversationId_userId: { conversationId: conversation.id, userId },
+        },
+        data: { lastReadAt: readAt, lastReadMessageId: messages.at(-1)?.id },
+      }),
+      this.prisma.notification.updateMany({
+        where: {
+          recipientId: userId,
+          orderId,
+          type: "NEW_MESSAGE",
+          readAt: null,
+        },
+        data: { readAt },
+      }),
+    ]);
     return {
       data: messages.map((message) => this.toResponse(message, userId)),
     };

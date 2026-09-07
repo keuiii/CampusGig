@@ -143,7 +143,7 @@ export function Home({
           </div>
           <div className="hero-art">
             <div className="floating-card fc-one">
-              <span className="mini-icon purple">✦</span>
+              <span className="mini-icon purple">CG</span>
               <div>
                 <b>Student Services</b>
                 <small>Verified campus talent</small>
@@ -163,9 +163,9 @@ export function Home({
                 <small>Student-led services</small>
               </div>
             </div>
-            <div className="spark s1">✦</div>
-            <div className="spark s2">✧</div>
-            <div className="spark s3">✦</div>
+            <div className="spark s1">●</div>
+            <div className="spark s2">○</div>
+            <div className="spark s3">●</div>
           </div>
         </section>
 
@@ -348,7 +348,7 @@ export function Home({
               <article className="how-step featured">
                 <div className="step-top">
                   <span className="step-number">02</span>
-                  <span className="step-icon">✦</span>
+                  <span className="step-icon">↔</span>
                 </div>
                 <span className="step-label">COLLABORATE</span>
                 <b>Book with confidence</b>

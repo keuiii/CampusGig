@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CampusGig.Mobile.Models"
+             x:Class="CampusGig.Mobile.Pages.MessagesPage"
+             BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#111713}">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="22,22,22,8">
+        <Grid ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="CONVERSATIONS" FontSize="9" CharacterSpacing="1.6" FontAttributes="Bold" TextColor="#0F6B4F" />
+                <Label Text="Messages" FontSize="34" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                <Label Text="Keep every project conversation in one place." FontSize="13" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" Margin="0,3,0,0" />
+            </VerticalStackLayout>
+            <Border Grid.Column="1" WidthRequest="36" HeightRequest="36" StrokeThickness="0" BackgroundColor="#08543D" StrokeShape="RoundRectangle 18" VerticalOptions="Center">
+                <Label x:Name="UnreadCountLabel" Text="0" FontSize="13" FontAttributes="Bold" TextColor="White"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            </Border>
+        </Grid>
+        <Border Grid.Row="1" HeightRequest="48" Margin="0,16,0,14" Padding="14,0" Stroke="#E0E7E2"
+                StrokeShape="RoundRectangle 14" BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}">
+            <Grid ColumnDefinitions="26,*,32">
+                <Label Text="⌕" FontSize="20" TextColor="#08543D" VerticalTextAlignment="Center" />
+                <Entry x:Name="MessageSearch" Grid.Column="1" Placeholder="Search conversations" TextChanged="OnSearchChanged" FontSize="13" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" PlaceholderColor="#929A96" VerticalOptions="Center" />
+                <Button x:Name="ClearSearchButton" Grid.Column="2" Text="×" Clicked="OnClearSearchClicked" IsVisible="False"
+                        FontSize="20" Padding="0" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+            </Grid>
+        </Border>
+        <RefreshView Grid.Row="2" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
+            <CollectionView x:Name="ConversationList" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="20,110,20,20" Spacing="10" HorizontalOptions="Center">
+                        <Border WidthRequest="82" HeightRequest="82" StrokeThickness="0" StrokeShape="RoundRectangle 41" BackgroundColor="{AppThemeBinding Light=#E2F0E8, Dark=#203B30}" HorizontalOptions="Center">
+                            <Label Text="◌" FontSize="34" TextColor="#08543D" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Label Text="No conversations yet" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Label Text="Your conversations will appear here after a booking is created." FontSize="13" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ConversationItem">
+                        <Border Margin="0,0,0,11" Padding="14" Stroke="#E0E6E2" StrokeShape="RoundRectangle 17"
+                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnConversationTapped" CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="46,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="5">
+                                <Border Grid.RowSpan="3" WidthRequest="46" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 15" BackgroundColor="#DDECE4">
+                                    <Grid IsClippedToBounds="True">
+                                        <Label Text="{Binding Participant.Initial}" FontAttributes="Bold" TextColor="#0F6B4F"
+                                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                        <Image Source="{Binding Participant.AvatarUrl}" Aspect="AspectFill" IsVisible="{Binding Participant.HasAvatar}" />
+                                    </Grid>
+                                </Border>
+                                <Label Grid.Column="1" Text="{Binding Participant.DisplayName}" FontSize="12" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="2" Text="{Binding UpdatedLabel}" FontSize="8"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Order.OrderNumber}" FontSize="8" FontAttributes="Bold" TextColor="#0F6B4F" />
+                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding Preview}" MaxLines="1" FontSize="9"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" LineBreakMode="TailTruncation" />
+                                <Border Grid.Row="2" Grid.Column="2" IsVisible="{Binding HasUnread}" MinimumWidthRequest="20" HeightRequest="20"
+                                        Padding="5,0" StrokeThickness="0" BackgroundColor="#0F6B4F" StrokeShape="RoundRectangle 10">
+                                    <Label Text="{Binding UnreadLabel}" FontSize="8" FontAttributes="Bold" TextColor="White"
+                                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <VerticalStackLayout x:Name="LoadingConversations" Grid.Row="2" IsVisible="False" Margin="0,65,0,0"
+                             Spacing="10" VerticalOptions="Start" HorizontalOptions="Center">
+            <ActivityIndicator IsRunning="True" Color="#0F6B4F" />
+            <Label Text="Loading conversations…" FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

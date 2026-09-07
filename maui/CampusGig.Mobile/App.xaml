@@ -1,0 +1,23 @@
+﻿<?xml version = "1.0" encoding = "UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pages="clr-namespace:CampusGig.Mobile.Pages"
+             xmlns:local="clr-namespace:CampusGig.Mobile"
+             x:Class="CampusGig.Mobile.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <Style x:Key="SectionLabelStyle" TargetType="Label"><Setter Property="FontSize" Value="9"/><Setter Property="CharacterSpacing" Value="1.4"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="TextColor" Value="#0F6B4F"/></Style>
+            <Style x:Key="FieldLabelStyle" TargetType="Label"><Setter Property="FontSize" Value="8"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="TextColor" Value="#66716B"/></Style>
+            <Style x:Key="ProfileCardStyle" TargetType="Border"><Setter Property="Padding" Value="18"/><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"/><Setter Property="Stroke" Value="#D9E5DF"/><Setter Property="StrokeShape" Value="RoundRectangle 18"/></Style>
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button"><Setter Property="BackgroundColor" Value="#0F6B4F"/><Setter Property="TextColor" Value="White"/><Setter Property="CornerRadius" Value="11"/><Setter Property="HorizontalOptions" Value="Fill"/><Setter Property="Margin" Value="0,5,0,0"/></Style>
+            <Style x:Key="SoftButtonStyle" TargetType="Button"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#087A5A, Dark=#83D6B6}"/><Setter Property="CornerRadius" Value="11"/><Setter Property="HorizontalOptions" Value="Start"/><Setter Property="Padding" Value="18,10"/></Style>
+            <pages:MessageAlignmentConverter x:Key="MessageAlignmentConverter" />
+            <pages:MessageBubbleConverter x:Key="MessageBubbleConverter" />
+            <pages:MessageTextConverter x:Key="MessageTextConverter" />
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

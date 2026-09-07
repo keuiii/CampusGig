@@ -6,7 +6,7 @@ export const defaultCategories: Category[] = [
   {
     id: "graphic-design",
     name: "Graphic Design",
-    icon: "✦",
+    icon: "▧",
     serviceCount: 0,
     color: "coral",
   },

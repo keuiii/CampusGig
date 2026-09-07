@@ -9,7 +9,12 @@ export class ServicesService {
       where: {
         status: "PUBLISHED",
         ...(categoryId ? { categoryId } : {}),
-        ...(schoolId ? { provider: { studentProfile: { schoolId } } } : {}),
+        provider: {
+          studentProfile: {
+            ...(schoolId ? { schoolId } : {}),
+            school: { status: "ACTIVE" },
+          },
+        },
         ...(query
           ? {
               OR: [

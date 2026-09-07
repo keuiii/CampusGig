@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CampusGig.Mobile.Models"
+             x:Class="CampusGig.Mobile.Pages.OrdersPage"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#111713}">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+        <Border Margin="18,16,18,0" Padding="20" StrokeThickness="0" StrokeShape="RoundRectangle 24"
+                BackgroundColor="{AppThemeBinding Light=#F0F3EA, Dark=#1C2520}">
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="5" IsClippedToBounds="True">
+                <Ellipse Grid.RowSpan="3" Grid.Column="1" WidthRequest="112" HeightRequest="112" TranslationX="48" TranslationY="-43"
+                         Fill="{AppThemeBinding Light=#DDECB3, Dark=#244035}" />
+                <Label Text="MY PROJECTS" FontSize="9" CharacterSpacing="1.6" FontAttributes="Bold" TextColor="#0F6B4F" />
+                <Label Grid.Row="1" Text="Orders" FontSize="32" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                <Label Grid.Row="2" Text="Track every service request from confirmation to completion." FontSize="12" LineHeight="1.35"
+                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" MaximumWidthRequest="290" />
+            </Grid>
+        </Border>
+
+        <Border x:Name="ScopeTabs" Grid.Row="1" IsVisible="False" Padding="4" WidthRequest="260" HorizontalOptions="Center"
+                Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}"
+                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}" StrokeShape="RoundRectangle 15">
+            <Grid ColumnDefinitions="122,122" ColumnSpacing="4" HorizontalOptions="Center">
+                <Border x:Name="ScopeIndicator" Grid.Column="0" WidthRequest="122" HeightRequest="42" StrokeThickness="0"
+                        StrokeShape="RoundRectangle 11" BackgroundColor="{AppThemeBinding Light=#08543D, Dark=#2A5B47}"
+                        HorizontalOptions="Start" InputTransparent="True" />
+                <Button x:Name="ClientScopeButton" Text="My requests" CommandParameter="client" Clicked="OnScopeClicked" Pressed="OnScopePressed" Released="OnScopeReleased"
+                        HeightRequest="42" CornerRadius="11" BackgroundColor="Transparent" TextColor="White" FontAttributes="Bold" FontSize="11" />
+                <Button x:Name="ProviderScopeButton" Grid.Column="1" Text="Provider work" CommandParameter="provider" Clicked="OnScopeClicked" Pressed="OnScopePressed" Released="OnScopeReleased"
+                        HeightRequest="42" CornerRadius="11" BackgroundColor="Transparent" TextColor="#0F6B4F" FontAttributes="Bold" FontSize="11" />
+            </Grid>
+        </Border>
+
+        <RefreshView Grid.Row="2" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
+            <CollectionView x:Name="OrderList" SelectionMode="None" Margin="18,0" VerticalScrollBarVisibility="Never">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="20,65,20,20" Spacing="12" HorizontalOptions="Center">
+                        <Border WidthRequest="76" HeightRequest="76" StrokeThickness="0" StrokeShape="RoundRectangle 38"
+                                BackgroundColor="{AppThemeBinding Light=#E2F0E8, Dark=#203B30}" HorizontalOptions="Center">
+                            <Grid WidthRequest="30" HeightRequest="30" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Path Aspect="Uniform" Stroke="#08543D" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                      Data="M4,7 L20,7 L20,20 L4,20 Z M9,7 L9,4 L15,4 L15,7 M4,11 C8,13 16,13 20,11" />
+                                <Path Aspect="Uniform" Stroke="#08543D" StrokeThickness="1.8" StrokeLineCap="Round"
+                                      Data="M12,11 L12,14" />
+                            </Grid>
+                        </Border>
+                        <Label Text="No orders yet" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Label Text="Choose a published student service and send your first project request." FontSize="12" LineHeight="1.35"
+                               HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <Button Text="Browse services" Clicked="OnBrowseClicked" Margin="0,12,0,0" WidthRequest="180" HeightRequest="46"
+                                BackgroundColor="#08543D" TextColor="White" CornerRadius="13" FontAttributes="Bold" FontSize="13" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:OrderItem">
+                        <Border Margin="0,0,0,14" Padding="17" Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}"
+                                StrokeShape="RoundRectangle 20" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnOrderTapped" CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="42,*,Auto" RowSpacing="11" ColumnSpacing="11">
+                                <Border Grid.RowSpan="2" WidthRequest="42" HeightRequest="42" StrokeThickness="0" StrokeShape="RoundRectangle 13"
+                                        BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}" VerticalOptions="Start">
+                                    <Grid WidthRequest="21" HeightRequest="21" HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Path Aspect="Uniform" Stroke="#0F6B4F" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                              Data="M4,7 L20,7 L20,20 L4,20 Z M9,7 L9,4 L15,4 L15,7 M4,11 C8,13 16,13 20,11" />
+                                        <Path Aspect="Uniform" Stroke="#0F6B4F" StrokeThickness="1.8" StrokeLineCap="Round"
+                                              Data="M12,11 L12,14" />
+                                    </Grid>
+                                </Border>
+                                <Label Grid.Column="1" Text="{Binding OrderNumber}" FontSize="9" CharacterSpacing="0.5"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" VerticalTextAlignment="Center" />
+                                <Border Grid.Column="2" Padding="10,4" StrokeThickness="0"
+                                        BackgroundColor="{AppThemeBinding Light=#DDF1E7, Dark=#244035}" StrokeShape="RoundRectangle 11">
+                                    <Label Text="{Binding StatusLabel}" FontSize="8" CharacterSpacing="0.5" FontAttributes="Bold" TextColor="#0F6B4F" />
+                                </Border>
+                                <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Title}" FontAttributes="Bold" FontSize="18"
+                                       TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" LineBreakMode="TailTruncation" />
+                                <Label Grid.Row="2" Grid.ColumnSpan="3" Text="{Binding ProviderLabel}" FontSize="10"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Grid Grid.Row="3" Grid.ColumnSpan="3" ColumnDefinitions="*,*,*" ColumnSpacing="8" Padding="13,12"
+                                      BackgroundColor="{AppThemeBinding Light=#F5F8F6, Dark=#151D19}">
+                                    <VerticalStackLayout Spacing="4"><Label Text="PACKAGE" FontSize="8" CharacterSpacing="0.8" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#738078, Dark=#93A49B}"/><Label Text="{Binding Package.Name}" FontAttributes="Bold" FontSize="10" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" LineBreakMode="TailTruncation"/></VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4"><Label Text="TOTAL" FontSize="8" CharacterSpacing="0.8" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#738078, Dark=#93A49B}"/><Label Text="{Binding PriceLabel}" FontAttributes="Bold" FontSize="10" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="4"><Label Text="DUE" FontSize="8" CharacterSpacing="0.8" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#738078, Dark=#93A49B}"/><Label Text="{Binding DueLabel}" FontAttributes="Bold" FontSize="10" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></VerticalStackLayout>
+                                </Grid>
+                                <Grid Grid.Row="4" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto" Margin="0,1,0,0">
+                                    <Label Text="View details and project activity" FontSize="9" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" VerticalTextAlignment="Center" />
+                                    <Label Grid.Column="1" Text="Open workspace  →" FontSize="11" FontAttributes="Bold" TextColor="#0F6B4F" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <VerticalStackLayout x:Name="LoadingOrders" Grid.Row="2" IsVisible="False" Margin="0,70,0,0"
+                             Spacing="10" VerticalOptions="Start" HorizontalOptions="Center">
+            <ActivityIndicator IsRunning="True" Color="#0F6B4F" />
+            <Label Text="Loading orders…" FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

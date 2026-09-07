@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CampusGig.Mobile.Pages.SplashPage"
+             BackgroundColor="#F7F8F3">
+    <Grid Padding="28,52,28,46" RowDefinitions="*,Auto,*">
+        <VerticalStackLayout x:Name="BrandGroup" Grid.Row="0" VerticalOptions="End" Spacing="14" Opacity="0" TranslationY="18">
+            <Border WidthRequest="148" HeightRequest="148" HorizontalOptions="Center" StrokeThickness="0"
+                    StrokeShape="RoundRectangle 38" BackgroundColor="#087A5A" Shadow="0,9,22,#38052B21">
+                <Grid>
+                    <Label Text="C" FontSize="91" FontAttributes="Bold" TextColor="#D9F36A"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" TranslationY="12" />
+                    <Path WidthRequest="76" HeightRequest="48" HorizontalOptions="Center" VerticalOptions="Start"
+                          Margin="0,27,0,0" Aspect="Uniform" Fill="#FFFFFF"
+                          Data="M2,14 L38,1 L74,14 L38,28 Z M18,22 L18,36 C28,46 48,46 58,36 L58,22 L38,30 Z" />
+                    <Path WidthRequest="76" HeightRequest="48" HorizontalOptions="Center" VerticalOptions="Start"
+                          Margin="0,27,0,0" Aspect="Uniform" Stroke="#D9F36A" StrokeThickness="2.4" StrokeLineCap="Round"
+                          Data="M74,14 L74,37" />
+                    <Ellipse WidthRequest="8" HeightRequest="8" Fill="#D9F36A" HorizontalOptions="End" VerticalOptions="Start" Margin="0,63,29,0" />
+                </Grid>
+            </Border>
+
+            <Label HorizontalTextAlignment="Center" FontSize="41" FontAttributes="Bold">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Campus" TextColor="#12362C" />
+                        <Span Text="Gig" TextColor="#087A5A" />
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+            <Label Text="STUDENT SKILLS. REAL OPPORTUNITIES" HorizontalTextAlignment="Center"
+                   FontSize="10" CharacterSpacing="2.3" FontAttributes="Bold" TextColor="#087A5A" />
+        </VerticalStackLayout>
+
+        <VerticalStackLayout x:Name="PromiseGroup" Grid.Row="1" Margin="0,48,0,0" Spacing="2" Opacity="0">
+            <Label Text="Learn" FontSize="32" FontAttributes="Italic" TextColor="#087A5A" HorizontalTextAlignment="Center" />
+            <Label Text="Share" FontSize="32" FontAttributes="Italic" TextColor="#087A5A" HorizontalTextAlignment="Center" />
+            <Label Text="Grow" FontSize="32" FontAttributes="Italic" TextColor="#087A5A" HorizontalTextAlignment="Center" />
+            <BoxView WidthRequest="74" HeightRequest="5" CornerRadius="3" Color="#B9E64A" HorizontalOptions="Center" Margin="0,5,0,0" Rotation="-10" />
+        </VerticalStackLayout>
+
+        <VerticalStackLayout x:Name="LoadingGroup" Grid.Row="2" VerticalOptions="End" Spacing="14" Opacity="0">
+            <Grid x:Name="LoadingRing" WidthRequest="46" HeightRequest="46" HorizontalOptions="Center">
+                <Ellipse Stroke="#D5E4DC" StrokeThickness="5" />
+                <Path Aspect="Uniform" Stroke="#087A5A" StrokeThickness="5" StrokeLineCap="Round"
+                      Data="M23,2 A21,21 0 0 1 44,23" />
+            </Grid>
+            <Label Text="Building a brighter&#10;campus, together." HorizontalTextAlignment="Center"
+                   FontSize="15" LineHeight="1.25" FontAttributes="Bold" TextColor="#58645E" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

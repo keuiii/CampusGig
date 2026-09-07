@@ -4,11 +4,12 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
+import { createHelmetOptions } from "./security/helmet-options";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix("api/v1");
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(helmet(createHelmetOptions(process.env.NODE_ENV)));
   const configuredOrigins = (process.env.WEB_ORIGIN ?? "http://localhost:3000")
     .split(",")
     .map((origin) => origin.trim())

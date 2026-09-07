@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { RegistrationResponse } from "../types";
 import { darkStyles, green, styles } from "../theme";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { getGoogleSignInErrorMessage } from "../auth/google-sign-in-error";
 
 function GoogleSocialButton({
   mode,
@@ -51,10 +52,7 @@ function GoogleSocialButton({
       });
       if (response?.requiresTwoFactor) onMfaChallenge(response.challengeToken);
     } catch (error) {
-      Alert.alert(
-        "Google sign-in failed",
-        error instanceof Error ? error.message : "Please try again.",
-      );
+      Alert.alert("Google sign-in failed", getGoogleSignInErrorMessage(error));
     } finally {
       setBusy(false);
     }

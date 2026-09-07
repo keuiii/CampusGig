@@ -102,7 +102,12 @@ Google sign-in is implemented but remains disabled until you create OAuth client
 
 1. Create a Google Cloud project and configure its OAuth consent screen.
 2. Create a **Web application** OAuth client. Add `http://localhost:3000` as an authorized JavaScript origin.
-3. Create an **Android** OAuth client for package `com.campusgig.app`, using the SHA-1 certificate fingerprint of the development or release build.
+3. Create an **Android** OAuth client in the same Google Cloud project as the web client. For this laptop's checked-in development keystore, use:
+
+   - Package name: `com.campusgig.app`
+   - SHA-1: `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`
+
+   A `DEVELOPER_ERROR` or error code `10` means this package/SHA-1 pair does not match an Android OAuth client in Google Cloud. The value passed to `GoogleSignin.configure({ webClientId })` must remain the **Web application** client ID, not the Android client ID.
 4. Add the client IDs to the local environment files:
 
 ```env
@@ -120,6 +125,12 @@ EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id.apps.googleuserconte
 
 Restart the API, web, and Expo terminals after editing environment files. The web button works with the web client ID. Native Google authentication should be tested using an Expo development build because provider redirects and native identity configuration are not production-equivalent in Expo Go.
 
+If the debug keystore is replaced later, print its new fingerprint and update the Android OAuth client before testing:
+
+```powershell
+keytool -list -v -keystore mobile\android\app\debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
 The API accepts only Google-signed ID tokens whose audience matches one of the configured client IDs. Google accounts are stored in `SocialAccount`, so returning users keep the same CampusGig roles, profiles, orders, and provider workspace.
 
 ## Repository structure
@@ -136,19 +147,26 @@ CampusGig/
 
 ## Requirements
 
-- Node.js with npm
-- PostgreSQL 17, or Docker Desktop for the provided database container
-- Android Studio emulator or Expo Go for mobile testing
+- Node.js 24 LTS
+- pnpm 11 or newer
+- Docker Desktop with WSL 2 for the provided PostgreSQL 17 container
+- Android Studio with an Android SDK/emulator and JDK 17 for native mobile testing
+
+Run the commands below from the repository root. On the configured Windows
+laptop, that directory is:
+
+```powershell
+cd C:\Users\Kevin\CampusGig
+```
 
 ## First-time setup
 
 Install dependencies in each application if they are not already installed:
 
 ```powershell
-cd D:\CampusGig
-npm install
-npm --prefix api install
-npm --prefix mobile install
+pnpm install
+pnpm --dir api install
+pnpm --dir mobile install
 ```
 
 Create environment files:
@@ -169,27 +187,55 @@ For Expo Go on a physical phone, use the computer's LAN IP and keep both devices
 
 ## Database setup
 
-Start the provided PostgreSQL container:
+### Normal database startup
+
+Open Docker Desktop and wait for its engine to finish starting. Then start the
+provided PostgreSQL container:
 
 ```powershell
 docker compose up -d postgres
 ```
 
-Then generate the Prisma client, apply migrations, and seed the approved category taxonomy:
+Confirm that `campusgig-postgres` reports `Up (healthy)`:
 
 ```powershell
-npm run db:generate
-npm run db:migrate
-npm run db:seed
+docker compose ps
+```
+
+The database is available on `localhost:5432`. The configured development
+database name, username, and password are defined in `docker-compose.yml` and
+`api/.env`.
+
+> **Restored-database safety:** The configured laptop already contains the
+> restored private CampusGig backup and all 13 migrations. Do not run
+> `db:seed`, `prisma migrate reset`, `docker compose down -v`, or delete the
+> `campusgig_postgres_data` volume. Normal startup requires only
+> `docker compose up -d postgres`.
+
+### New empty database only
+
+Use the following commands only when intentionally creating a brand-new empty
+development database, never on top of a restored backup:
+
+```powershell
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
 ```
 
 To inspect the local database in a browser while Docker Desktop is running:
 
 ```powershell
-npm run db:studio
+pnpm db:studio
 ```
 
 Prisma Studio is available at `http://localhost:5555` until its terminal is stopped with `Ctrl + C`.
+
+Stop the database without deleting its data volume:
+
+```powershell
+docker compose stop postgres
+```
 
 The seed operation preserves Graphic Design, Tutoring, Programming, Photography, Video Editing, and Writing. It does **not** create users, schools, profiles, services, orders, messages, reviews, or fabricated statistics.
 
@@ -197,45 +243,98 @@ Participating schools must be added as real system data and set to `ACTIVE` befo
 
 ## Running the project
 
-Use separate PowerShell windows for each application.
+For normal development, use four PowerShell windows. Docker Desktop must be
+running first. These commands do not migrate, reset, or seed the database.
 
-### Backend API
+## .NET MAUI mobile client
+
+The mobile client is being migrated to .NET MAUI while the NestJS API,
+PostgreSQL database, and Next.js web application remain unchanged. Open
+`CampusGig.sln` in Visual Studio Community and select `CampusGig.Mobile` as the
+startup project. The project targets .NET 10 and uses the installed Android,
+iOS, Mac Catalyst, and MAUI Windows workloads.
+
+The Android emulator connects to the API through
+`http://10.0.2.2:4000/api/v1`. The Windows target uses
+`http://localhost:4000/api/v1`. A different URL can be saved from the MAUI
+Profile screen when testing on a physical phone.
+
+To compile the Android target from a terminal:
 
 ```powershell
-cd D:\CampusGig
-npm run api:dev
+dotnet build maui\CampusGig.Mobile\CampusGig.Mobile.csproj -f net10.0-android -c Debug
+```
+
+The MAUI debug build uses the existing CampusGig Android debug keystore and
+package `com.campusgig.app`, preserving the Google Cloud package/SHA-1 identity.
+Native MAUI Google login uses Android Credential Manager and sends its Google ID
+token to the existing `POST /api/v1/auth/social` endpoint. The configured web
+OAuth client ID is the token audience; the Google Cloud Android credential must
+continue to use package `com.campusgig.app` and the debug-keystore SHA-1 listed
+in the Google sign-in setup above. Use an emulator system image with Google Play
+and add a Google account to the emulator before testing. The MAUI Android target
+requires Android 6.0 (API 23) or newer.
+
+The previous Expo project under `mobile/` is retained as a read-only migration
+reference. Day-to-day mobile development and testing now use the MAUI project
+under `maui/CampusGig.Mobile`.
+
+### Terminal 1: PostgreSQL
+
+```powershell
+cd C:\Users\Kevin\CampusGig
+docker compose up -d postgres
+```
+
+### Terminal 2: Backend API
+
+```powershell
+cd C:\Users\Kevin\CampusGig
+pnpm api:dev
 ```
 
 - API: `http://localhost:4000/api/v1`
 - Swagger: `http://localhost:4000/docs`
 - Health: `http://localhost:4000/api/v1/health`
 
-### Web application
+### Terminal 3: Web application
 
 ```powershell
-cd D:\CampusGig
-npm run dev
+cd C:\Users\Kevin\CampusGig
+pnpm dev
 ```
 
 Open `http://localhost:3000`.
 
-### Mobile application
+### Mobile application: Visual Studio
 
-```powershell
-cd D:\CampusGig
-npm run mobile:start
-```
+No fourth VS Code terminal, Expo server, Metro port, or `adb reverse` command is
+needed for the migrated app. In Visual Studio:
 
-Press `a` in the Expo terminal to launch the connected Android emulator.
+1. Open `CampusGig.sln`.
+2. Right-click `CampusGig.Mobile` and choose **Set as Startup Project**.
+3. Select the existing Pixel Android emulator in the target selector.
+4. Press the green Run button or `F5`.
 
-Google sign-in uses native Android code and therefore requires the CampusGig development build instead of Expo Go. With the emulator running, create and install it using:
+Keep only PostgreSQL, the API, and optionally the web application running in VS
+Code terminals. The emulator reaches the local API through
+`http://10.0.2.2:4000/api/v1`. For a physical Android phone, save the laptop's
+LAN API address from Profile, for example `http://192.168.1.25:4000/api/v1`.
 
-```powershell
-cd D:\CampusGig\mobile
-.\node_modules\.bin\expo.cmd run:android
-```
+The MAUI client includes login, signup, email verification, password reset,
+Google login, trusted-device MFA, live marketplace filtering and notifications,
+service booking, order delivery review/revisions/reviews, conversations and
+attachments, avatar/student-profile editing, student-ID verification, provider
+profile editing, password changes, authenticator setup/recovery codes, and
+remembered-device management.
 
-After the first native build, normal JavaScript-only changes can be loaded with `npm run mobile:start -- --dev-client`. Rebuild with `expo.cmd run:android` whenever native dependencies or `mobile/app.json` change.
+### Development URLs
+
+- Web: `http://localhost:3000`
+- API: `http://localhost:4000/api/v1`
+- API health: `http://localhost:4000/api/v1/health`
+- Swagger: `http://localhost:4000/docs`
+- Prisma Studio, when started: `http://localhost:5555`
 
 ## Current API status
 
@@ -315,9 +414,17 @@ Registration creates a local account with a hashed password and the default `CLI
 ## Build validation
 
 ```powershell
-npm run api:build
-npm run build
-.\mobile\node_modules\.bin\tsc.CMD --noEmit -p mobile\tsconfig.json
+pnpm check
+pnpm build
+```
+
+`pnpm check` runs the web and mobile TypeScript checks and builds the NestJS
+API. `pnpm build` then verifies the production Next.js web build. Validate MAUI
+changes with:
+
+```powershell
+dotnet test maui\CampusGig.Mobile.Tests\CampusGig.Mobile.Tests.csproj -c Debug
+dotnet build maui\CampusGig.Mobile\CampusGig.Mobile.csproj -f net10.0-android -c Debug
 ```
 
 ## Recommended next milestone

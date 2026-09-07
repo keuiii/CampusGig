@@ -16,11 +16,13 @@ export function AdminDashboard({
   token,
   user,
   notify,
+  onSchoolStatusChanged,
   onLogout,
 }: {
   token: string;
   user: AuthUser;
   notify: (s: string) => void;
+  onSchoolStatusChanged: (school: School) => void;
   onLogout: () => void;
 }) {
   const [queue, setQueue] = useState<Verification[]>([]);
@@ -172,6 +174,7 @@ export function AdminDashboard({
       setSchools((items) =>
         items.map((item) => (item.id === school.id ? updated : item)),
       );
+      onSchoolStatusChanged(updated);
       notify(`${school.shortName} is now ${status.toLowerCase()}`);
     } catch {
       notify("Unable to update school status");

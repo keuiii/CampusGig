@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CampusGig.Mobile.Models"
+             xmlns:controls="clr-namespace:CampusGig.Mobile.Controls"
+             x:Class="CampusGig.Mobile.Pages.ConversationPage"
+             BackgroundColor="{AppThemeBinding Light=#F7FAF8, Dark=#111713}">
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Grid x:Name="HeaderBar" Padding="14,11" ColumnDefinitions="38,44,*" ColumnSpacing="10"
+              BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+            <Button Text="‹" Clicked="OnCloseClicked" BackgroundColor="Transparent" TextColor="#0F6B4F"
+                    FontSize="29" Padding="0" WidthRequest="38" HeightRequest="42" />
+            <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" StrokeThickness="0" StrokeShape="RoundRectangle 14"
+                    BackgroundColor="{AppThemeBinding Light=#DDECE4, Dark=#244035}">
+                <Grid IsClippedToBounds="True">
+                    <Label x:Name="ParticipantInitialLabel" FontAttributes="Bold" TextColor="#0F6B4F"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    <Image x:Name="ParticipantImage" Aspect="AspectFill" IsVisible="False" />
+                </Grid>
+            </Border>
+            <VerticalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="2">
+                <Label x:Name="ParticipantLabel" FontAttributes="Bold" FontSize="15"
+                       TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                <Label x:Name="OrderLabel" FontSize="9" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" LineBreakMode="TailTruncation" />
+                <Label Text="●  Private project conversation" FontSize="8" TextColor="#0F6B4F" />
+            </VerticalStackLayout>
+        </Grid>
+        <RefreshView Grid.Row="1" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
+            <CollectionView x:Name="MessageList" ItemsUpdatingScrollMode="KeepLastItemInView" SelectionMode="None" VerticalScrollBarVisibility="Never">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Margin="35,100" Spacing="8" HorizontalOptions="Center">
+                        <Border WidthRequest="58" HeightRequest="58" StrokeThickness="0" StrokeShape="RoundRectangle 29"
+                                BackgroundColor="{AppThemeBinding Light=#E2F0E8, Dark=#203B30}">
+                            <Label Text="…" FontSize="25" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Label Text="Start the conversation" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Label Text="Messages and shared files stay connected to this order." FontSize="10" HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ConversationMessage">
+                        <VerticalStackLayout Padding="14,5" HorizontalOptions="Fill">
+                            <Border Padding="14,11" MinimumWidthRequest="88" MaximumWidthRequest="300"
+                                    HorizontalOptions="{Binding IsMine, Converter={StaticResource MessageAlignmentConverter}}"
+                                    StrokeThickness="0" BackgroundColor="{Binding IsMine, Converter={StaticResource MessageBubbleConverter}}" StrokeShape="RoundRectangle 18">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMessageTapped" CommandParameter="{Binding .}" /></Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding Body}" FontSize="12" LineHeight="1.25" TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}"/>
+                                    <Label Text="{Binding AttachmentSummary}" FontSize="9" FontAttributes="Bold" TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}"/>
+                                    <Label Text="{Binding CreatedAt, StringFormat='{0:h:mm tt}'}" FontSize="8" HorizontalOptions="End"
+                                           TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" Opacity="0.68" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <VerticalStackLayout x:Name="ComposerBar" Grid.Row="2" Padding="12,9,12,14" Spacing="7"
+                             BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+            <Label x:Name="SelectedFilesLabel" IsVisible="False" Padding="10,6" FontSize="9" FontAttributes="Bold"
+                   TextColor="#0F6B4F" BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}" LineBreakMode="TailTruncation" />
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Button Text="＋" Clicked="OnAttachClicked" WidthRequest="46" HeightRequest="46" CornerRadius="14"
+                        BackgroundColor="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}" TextColor="#0F6B4F" FontSize="20" Padding="0" />
+                <Editor x:Name="DraftEntry" Grid.Column="1" Placeholder="Write a message…" TextChanged="OnDraftChanged" AutoSize="TextChanges" MaxLength="3000" MaximumHeightRequest="100"
+                        MinimumHeightRequest="46" BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#151D19}"
+                        TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" PlaceholderColor="#929A96" />
+                <controls:BusyButton x:Name="SendButton" Grid.Column="2" Text="➤" BusyText="" Clicked="OnSendClicked" WidthRequest="48" HeightRequest="48"
+                                     FillColor="#0F6B4F" TextColor="White" CornerRadius="24" />
+            </Grid>
+        </VerticalStackLayout>
+        <VerticalStackLayout x:Name="LoadingMessages" Grid.Row="1" IsVisible="False" Spacing="9"
+                             VerticalOptions="Center" HorizontalOptions="Center">
+            <ActivityIndicator IsRunning="True" Color="#0F6B4F" />
+            <Label Text="Loading conversation…" FontSize="10" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>
