@@ -13,7 +13,8 @@
             <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" StrokeThickness="0" StrokeShape="RoundRectangle 14"
                     BackgroundColor="{AppThemeBinding Light=#DDECE4, Dark=#244035}">
                 <Grid IsClippedToBounds="True">
-                    <Label x:Name="ParticipantInitialLabel" FontAttributes="Bold" TextColor="#0F6B4F"
+                    <Label x:Name="ParticipantInitialLabel" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}"
                            HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                     <Image x:Name="ParticipantImage" Aspect="AspectFill" IsVisible="False" />
                 </Grid>
@@ -22,16 +23,20 @@
                 <Label x:Name="ParticipantLabel" FontAttributes="Bold" FontSize="15"
                        TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
                 <Label x:Name="OrderLabel" FontSize="9" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" LineBreakMode="TailTruncation" />
-                <Label Text="●  Private project conversation" FontSize="8" TextColor="#0F6B4F" />
+                <Label Text="Private project conversation" FontSize="8"
+                       TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" />
             </VerticalStackLayout>
         </Grid>
-        <RefreshView Grid.Row="1" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
-            <CollectionView x:Name="MessageList" ItemsUpdatingScrollMode="KeepLastItemInView" SelectionMode="None" VerticalScrollBarVisibility="Never">
+
+        <RefreshView Grid.Row="1" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F8060">
+            <CollectionView x:Name="MessageList" ItemsUpdatingScrollMode="KeepLastItemInView" SelectionMode="None"
+                            VerticalScrollBarVisibility="Never">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Margin="35,100" Spacing="8" HorizontalOptions="Center">
                         <Border WidthRequest="58" HeightRequest="58" StrokeThickness="0" StrokeShape="RoundRectangle 29"
                                 BackgroundColor="{AppThemeBinding Light=#E2F0E8, Dark=#203B30}">
-                            <Label Text="…" FontSize="25" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            <Label Text="•••" FontSize="18" TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                         </Border>
                         <Label Text="Start the conversation" FontSize="15" FontAttributes="Bold" HorizontalTextAlignment="Center"
                                TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
@@ -44,11 +49,16 @@
                         <VerticalStackLayout Padding="14,5" HorizontalOptions="Fill">
                             <Border Padding="14,11" MinimumWidthRequest="88" MaximumWidthRequest="300"
                                     HorizontalOptions="{Binding IsMine, Converter={StaticResource MessageAlignmentConverter}}"
-                                    StrokeThickness="0" BackgroundColor="{Binding IsMine, Converter={StaticResource MessageBubbleConverter}}" StrokeShape="RoundRectangle 18">
-                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMessageTapped" CommandParameter="{Binding .}" /></Border.GestureRecognizers>
+                                    StrokeThickness="0" BackgroundColor="{Binding IsMine, Converter={StaticResource MessageBubbleConverter}}"
+                                    StrokeShape="RoundRectangle 18">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMessageTapped" CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
                                 <VerticalStackLayout Spacing="6">
-                                    <Label Text="{Binding Body}" FontSize="12" LineHeight="1.25" TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}"/>
-                                    <Label Text="{Binding AttachmentSummary}" FontSize="9" FontAttributes="Bold" TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}"/>
+                                    <Label Text="{Binding Body}" FontSize="12" LineHeight="1.25"
+                                           TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" />
+                                    <Label Text="{Binding AttachmentSummary}" FontSize="9" FontAttributes="Bold"
+                                           TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" />
                                     <Label Text="{Binding CreatedAt, StringFormat='{0:h:mm tt}'}" FontSize="8" HorizontalOptions="End"
                                            TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" Opacity="0.68" />
                                 </VerticalStackLayout>
@@ -58,24 +68,38 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </RefreshView>
+
         <VerticalStackLayout x:Name="ComposerBar" Grid.Row="2" Padding="12,9,12,14" Spacing="7"
                              BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
-            <Label x:Name="SelectedFilesLabel" IsVisible="False" Padding="10,6" FontSize="9" FontAttributes="Bold"
-                   TextColor="#0F6B4F" BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}" LineBreakMode="TailTruncation" />
+            <Border x:Name="SelectedFilesPanel" IsVisible="False" Padding="10,4" StrokeShape="RoundRectangle 11"
+                    Stroke="{AppThemeBinding Light=#CFE2D8, Dark=#385B4D}"
+                    BackgroundColor="{AppThemeBinding Light=#E7F1EC, Dark=#244035}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label x:Name="SelectedFilesLabel" FontSize="9" FontAttributes="Bold" VerticalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}" LineBreakMode="TailTruncation" />
+                    <Button Grid.Column="1" Text="Clear" Clicked="OnClearAttachmentsClicked" BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}" FontSize="10" FontAttributes="Bold"
+                            WidthRequest="58" HeightRequest="36" Padding="6,0" />
+                </Grid>
+            </Border>
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                <Button Text="＋" Clicked="OnAttachClicked" WidthRequest="46" HeightRequest="46" CornerRadius="14"
-                        BackgroundColor="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}" TextColor="#0F6B4F" FontSize="20" Padding="0" />
-                <Editor x:Name="DraftEntry" Grid.Column="1" Placeholder="Write a message…" TextChanged="OnDraftChanged" AutoSize="TextChanges" MaxLength="3000" MaximumHeightRequest="100"
-                        MinimumHeightRequest="46" BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#151D19}"
+                <Button Text="+" Clicked="OnAttachClicked" WidthRequest="46" HeightRequest="46" CornerRadius="14"
+                        BackgroundColor="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}"
+                        TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}" FontSize="20" Padding="0" />
+                <Editor x:Name="DraftEntry" Grid.Column="1" Placeholder="Write a message…" TextChanged="OnDraftChanged"
+                        AutoSize="TextChanges" MaxLength="2000" MaximumHeightRequest="100" MinimumHeightRequest="46"
+                        BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#151D19}"
                         TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" PlaceholderColor="#929A96" />
-                <controls:BusyButton x:Name="SendButton" Grid.Column="2" Text="➤" BusyText="" Clicked="OnSendClicked" WidthRequest="48" HeightRequest="48"
-                                     FillColor="#0F6B4F" TextColor="White" CornerRadius="24" />
+                <controls:BusyButton x:Name="SendButton" Grid.Column="2" Text="→" BusyText="" Clicked="OnSendClicked"
+                                     WidthRequest="48" HeightRequest="48" FillColor="#0F8060" TextColor="White" CornerRadius="24" />
             </Grid>
         </VerticalStackLayout>
+
         <VerticalStackLayout x:Name="LoadingMessages" Grid.Row="1" IsVisible="False" Spacing="9"
                              VerticalOptions="Center" HorizontalOptions="Center">
-            <ActivityIndicator IsRunning="True" Color="#0F6B4F" />
-            <Label Text="Loading conversation…" FontSize="10" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+            <ActivityIndicator IsRunning="True" Color="#0F8060" />
+            <Label Text="Loading conversation…" FontSize="10"
+                   TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

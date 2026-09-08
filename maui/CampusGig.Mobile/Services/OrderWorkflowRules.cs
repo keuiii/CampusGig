@@ -4,10 +4,12 @@ namespace CampusGig.Mobile.Services;
 
 public static class OrderWorkflowRules
 {
+    public static bool CanDecline(string? reason) => (reason?.Trim().Length ?? 0) >= 3;
     public static bool IsProvider(OrderDetail? order, string? userId) =>
         order is not null && !string.IsNullOrWhiteSpace(userId) && order.Provider.Id == userId;
 
     public static bool CanDecide(string status, bool isProvider) => isProvider && status == "REQUESTED";
+    public static bool CanCancel(string status, bool isProvider) => !isProvider && status == "REQUESTED";
     public static bool CanStart(string status, bool isProvider) => isProvider && status == "ACCEPTED";
     public static bool CanDeliver(string status, bool isProvider) =>
         isProvider && status is "IN_PROGRESS" or "REVISION_REQUESTED";

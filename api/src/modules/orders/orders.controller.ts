@@ -23,6 +23,7 @@ import { RejectOrderDto } from "./dto/reject-order.dto";
 import { CreateReviewDto } from "./dto/create-review.dto";
 import { RequestRevisionDto } from "./dto/request-revision.dto";
 import { SubmitDeliveryDto } from "./dto/submit-delivery.dto";
+import { CancelOrderDto } from "./dto/cancel-order.dto";
 import {
   orderFileStorageRoot,
   orderFileUploadOptions,
@@ -66,6 +67,13 @@ export class OrdersController {
     @Body() input: RejectOrderDto,
   ) {
     return this.orders.reject(request.auth.sub, id, input.reason);
+  }
+  @Post(":id/cancel") cancel(
+    @Req() request: AuthenticatedRequest,
+    @Param("id") id: string,
+    @Body() input: CancelOrderDto,
+  ) {
+    return this.orders.cancel(request.auth.sub, id, input.reason);
   }
   @Post(":id/start") start(
     @Req() request: AuthenticatedRequest,

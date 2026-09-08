@@ -178,6 +178,15 @@ public sealed class ServiceBookingPage : ContentPage
     private async void SubmitAsync(object? sender, EventArgs e)
     {
         if (!ServiceBookingRules.CanStartSubmission(submit.IsBusy, selectedPackage, requirements.Text)) return;
+
+        var confirmed = await AppDialog.ConfirmAsync(
+            this,
+            "Send service request?",
+            $"Send the {selectedPackage!.Name} request to {service.Provider} for ₱{selectedPackage.PriceCentavos / 100m:N0}?",
+            "Send request",
+            "Review details");
+        if (!confirmed) return;
+
         submit.IsBusy = true;
         ApiResult<OrderItem>? result = null;
         Exception? failure = null;

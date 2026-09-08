@@ -10,6 +10,8 @@ public partial class MessagesPage : ContentPage, ITabLifecycle
     private CancellationTokenSource? refreshCancellation;
     private bool isLoading;
     private bool hasLoaded;
+    private bool isOpeningConversation;
+    private bool isDeletingConversation;
 
     public event Action<int>? UnreadCountChanged;
 
@@ -128,13 +130,55 @@ public partial class MessagesPage : ContentPage, ITabLifecycle
 
     private async void OnConversationTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is not ConversationItem conversation) return;
-        if (sender is TapGestureRecognizer { Parent: VisualElement card })
-            await PlayTapAsync(card);
-        await Navigation.PushModalAsync(new NavigationPage(new ConversationPage(api, conversation, RefreshAfterConversationAsync)));
+        if (isOpeningConversation || e.Parameter is not ConversationItem conversation) return;
+        isOpeningConversation = true;
+        try
+        {
+            if (sender is TapGestureRecognizer { Parent: VisualElement card })
+                await PlayTapAsync(card);
+            await Navigation.PushModalAsync(new NavigationPage(new ConversationPage(api, conversation, RefreshAfterConversationAsync)));
+        }
+        finally { isOpeningConversation = false; }
     }
 
     private async Task RefreshAfterConversationAsync() => await LoadAsync(false);
+
+    private async void OnDeleteConversationInvoked(object? sender, EventArgs e)
+    {
+        if (isDeletingConversation || sender is not SwipeItem { CommandParameter: ConversationItem conversation }) return;
+
+        var confirmed = await AppDialog.ConfirmAsync(
+            this,
+            "Delete conversation?",
+            $"Remove your conversation with {conversation.Participant.DisplayName} from Messages? The order and the other person's copy will not be deleted.",
+            "Delete",
+            "Keep");
+        if (!confirmed) return;
+
+        isDeletingConversation = true;
+        try
+        {
+            await api.DeleteAsync<ApiMessage>($"conversations/{conversation.Id}");
+            conversations.RemoveAll(item => item.Id == conversation.Id);
+            ApplyFilter();
+            UpdateUnreadCount();
+        }
+        catch (Exception exception)
+        {
+            await AppDialog.AlertAsync(this, "Conversation not deleted", exception.Message, "Try again");
+        }
+        finally
+        {
+            isDeletingConversation = false;
+        }
+    }
+
+    private void UpdateUnreadCount()
+    {
+        var unreadCount = conversations.Sum(item => item.UnreadCount);
+        UnreadCountLabel.Text = unreadCount.ToString();
+        UnreadCountChanged?.Invoke(unreadCount);
+    }
 
     private static async Task PlayTapAsync(VisualElement element)
     {

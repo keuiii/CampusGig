@@ -23,6 +23,9 @@ public sealed class BusyButton : ContentView
     public static readonly BindableProperty IsBusyProperty = BindableProperty.Create(
         nameof(IsBusy), typeof(bool), typeof(BusyButton), false, propertyChanged: OnVisualPropertyChanged);
 
+    public static readonly BindableProperty SemanticDescriptionProperty = BindableProperty.Create(
+        nameof(SemanticDescription), typeof(string), typeof(BusyButton), string.Empty, propertyChanged: OnVisualPropertyChanged);
+
     private readonly Border surface;
     private readonly Label label;
     private readonly ActivityIndicator indicator;
@@ -82,6 +85,7 @@ public sealed class BusyButton : ContentView
     public Color TextColor { get => (Color)GetValue(TextColorProperty); set => SetValue(TextColorProperty, value); }
     public double CornerRadius { get => (double)GetValue(CornerRadiusProperty); set => SetValue(CornerRadiusProperty, value); }
     public bool IsBusy { get => (bool)GetValue(IsBusyProperty); set => SetValue(IsBusyProperty, value); }
+    public string SemanticDescription { get => (string)GetValue(SemanticDescriptionProperty); set => SetValue(SemanticDescriptionProperty, value); }
 
     protected override void OnPropertyChanged(string? propertyName = null)
     {
@@ -109,6 +113,7 @@ public sealed class BusyButton : ContentView
         indicator.IsVisible = IsBusy;
         indicator.IsRunning = IsBusy;
         input.IsEnabled = UiInteractionRules.CanInvoke(IsEnabled, IsBusy);
-        SemanticProperties.SetDescription(input, IsBusy ? BusyText : Text);
+        SemanticProperties.SetDescription(input,
+            IsBusy ? BusyText : string.IsNullOrWhiteSpace(SemanticDescription) ? Text : SemanticDescription);
     }
 }

@@ -90,14 +90,54 @@
 
                 <Border x:Name="ProviderDecisionPanel" IsVisible="False" Padding="18" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
                         Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}" StrokeShape="RoundRectangle 20">
-                    <VerticalStackLayout Spacing="11">
+                    <VerticalStackLayout Spacing="13">
                         <Label Text="NEW SERVICE REQUEST" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
                         <Label Text="Review this project" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
                         <Label Text="Accept the request to reserve the project, or provide a short reason when declining." FontSize="11" LineHeight="1.3" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
-                        <controls:BusyButton Text="Accept request" BusyText="Accepting request" Clicked="OnAcceptClicked" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
-                        <Editor x:Name="RejectReasonEntry" Placeholder="Reason for declining (at least 3 characters)" MaxLength="500" HeightRequest="82"
-                                BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}" />
-                        <controls:BusyButton Text="Decline request" BusyText="Declining request" Clicked="OnRejectClicked" FillColor="#FFF0ED" TextColor="#B42318" HeightRequest="46" />
+                        <Border Padding="12,5" Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#385046}"
+                                BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}"
+                                StrokeShape="RoundRectangle 13">
+                            <Editor x:Name="RejectReasonEntry" Placeholder="Reason for declining (at least 3 characters)"
+                                    TextChanged="OnRejectReasonChanged" MaxLength="500" HeightRequest="76"
+                                    BackgroundColor="Transparent" />
+                        </Border>
+                        <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="18" HorizontalOptions="Center">
+                            <controls:BusyButton Grid.Column="0" Text="×" BusyText="Declining request"
+                                                 x:Name="RejectRequestButton" Clicked="OnRejectClicked"
+                                                 SemanticDescription="Decline request"
+                                                 IsEnabled="False"
+                                                 FillColor="{AppThemeBinding Light=#FFF0ED, Dark=#43231F}"
+                                                 TextColor="{AppThemeBinding Light=#B42318, Dark=#FF9D91}"
+                                                 WidthRequest="54" HeightRequest="54" CornerRadius="27" />
+                            <controls:BusyButton Grid.Column="1" Text="✓" BusyText="Accepting request"
+                                                 SemanticDescription="Accept request"
+                                                 Clicked="OnAcceptClicked" FillColor="#0F6B4F" TextColor="White"
+                                                 WidthRequest="54" HeightRequest="54" CornerRadius="27" />
+                        </Grid>
+                        <Label Text="Decline   •   Accept" FontSize="9" FontAttributes="Bold" CharacterSpacing="0.5"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light=#7A8580, Dark=#91A099}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="ClientCancelPanel" IsVisible="False" Padding="18"
+                        BackgroundColor="{AppThemeBinding Light=#FFF9F7, Dark=#291C1A}"
+                        Stroke="{AppThemeBinding Light=#F0D8D2, Dark=#604039}" StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="PENDING REQUEST" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#A33A2D, Dark=#FF9D91}" />
+                        <Label Text="Need to cancel?" FontSize="17" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                        <Label Text="You can cancel while the provider has not accepted the request."
+                               FontSize="10" LineHeight="1.3" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                        <Border Padding="11,4" Stroke="{AppThemeBinding Light=#E3C9C3, Dark=#66433D}" StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
+                            <Editor x:Name="CancelReasonEntry" Placeholder="Reason for cancelling (at least 3 characters)"
+                                    MaxLength="500" HeightRequest="74" BackgroundColor="Transparent" />
+                        </Border>
+                        <controls:BusyButton Text="Cancel request" BusyText="Cancelling request" Clicked="OnCancelClicked"
+                                             FillColor="#FFF0ED" TextColor="#B42318" WidthRequest="190" HeightRequest="46"
+                                             CornerRadius="12" HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -106,7 +146,9 @@
                     <VerticalStackLayout Spacing="10">
                         <Label Text="READY TO BEGIN" FontSize="9" CharacterSpacing="1.4" FontAttributes="Bold" TextColor="#0F6B4F" />
                         <Label Text="The client has been notified that you accepted this project." FontSize="11" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
-                        <controls:BusyButton Text="Start working" BusyText="Starting order" Clicked="OnStartClicked" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                        <controls:BusyButton Text="Start working" BusyText="Starting order" Clicked="OnStartClicked"
+                                             FillColor="#0F6B4F" TextColor="White" WidthRequest="190" HeightRequest="50"
+                                             CornerRadius="14" HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -122,7 +164,8 @@
                         <Editor x:Name="DeliveryNoteEntry" Placeholder="Add a delivery note (at least 3 characters)" MaxLength="1000" HeightRequest="96"
                                 TextChanged="OnDeliveryNoteChanged" BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}" />
                         <controls:BusyButton x:Name="DeliveryButton" Text="Submit delivery" BusyText="Uploading delivery" Clicked="OnDeliverClicked"
-                                IsEnabled="False" FillColor="#0F6B4F" TextColor="White" HeightRequest="48" />
+                                IsEnabled="False" FillColor="#0F6B4F" TextColor="White" WidthRequest="190" HeightRequest="50"
+                                CornerRadius="14" HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
 

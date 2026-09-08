@@ -11,7 +11,7 @@ export class MessagesService {
 
   async inbox(userId: string) {
     const conversations = await this.prisma.conversation.findMany({
-      where: { participants: { some: { userId } } },
+      where: { participants: { some: { userId, hiddenAt: null } } },
       include: {
         participants: { where: { userId }, select: { lastReadAt: true } },
         order: {
@@ -122,7 +122,7 @@ export class MessagesService {
         where: {
           conversationId_userId: { conversationId: conversation.id, userId },
         },
-        data: { lastReadAt: readAt, lastReadMessageId: messages.at(-1)?.id },
+        data: { lastReadAt: readAt, lastReadMessageId: messages.at(-1)?.id, hiddenAt: null },
       }),
       this.prisma.notification.updateMany({
         where: {
@@ -156,6 +156,10 @@ export class MessagesService {
           conversationId_userId: { conversationId: conversation.id, userId },
         },
         data: { lastReadAt: new Date(), lastReadMessageId: created.id },
+      });
+      await database.conversationParticipant.updateMany({
+        where: { conversationId: conversation.id, userId: recipientId },
+        data: { hiddenAt: null },
       });
       await database.notification.create({
         data: {
@@ -219,6 +223,10 @@ export class MessagesService {
         },
         data: { lastReadAt: new Date(), lastReadMessageId: created.id },
       });
+      await database.conversationParticipant.updateMany({
+        where: { conversationId: conversation.id, userId: recipientId },
+        data: { hiddenAt: null },
+      });
       await database.notification.create({
         data: {
           orderId,
@@ -231,6 +239,20 @@ export class MessagesService {
       return created;
     });
     return { data: this.toResponse(message, userId) };
+  }
+
+  async hideConversation(userId: string, conversationId: string) {
+    const participant = await this.prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+      select: { conversationId: true },
+    });
+    if (!participant) throw new NotFoundException("Conversation not found");
+
+    await this.prisma.conversationParticipant.update({
+      where: { conversationId_userId: { conversationId, userId } },
+      data: { hiddenAt: new Date() },
+    });
+    return { message: "Conversation removed from Messages" };
   }
 
   private async requireParticipant(userId: string, orderId: string) {

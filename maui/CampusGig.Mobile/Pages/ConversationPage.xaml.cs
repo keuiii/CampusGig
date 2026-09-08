@@ -16,6 +16,7 @@ public partial class ConversationPage : ContentPage
     private readonly SemaphoreSlim loadGate = new(1, 1);
     private IDispatcherTimer? timer;
     private bool hasLoaded;
+    private bool isClosing;
 
     public ConversationPage(CampusGigApi api, ConversationItem conversation, Func<Task>? onClosed = null)
     {
@@ -26,8 +27,10 @@ public partial class ConversationPage : ContentPage
         this.onClosed = onClosed;
         MessageList.ItemsSource = messages;
         ParticipantLabel.Text = conversation.Participant.DisplayName;
+        OrderLabel.Text = $"{conversation.Order.OrderNumber}  •  {conversation.Order.Title}";
         OrderLabel.Text = $"{conversation.Order.OrderNumber} · {conversation.Order.Title}";
         ParticipantInitialLabel.Text = conversation.Participant.Initial;
+        OrderLabel.Text = $"{conversation.Order.OrderNumber}  •  {conversation.Order.Title}";
         ParticipantImage.IsVisible = conversation.Participant.HasAvatar;
         ParticipantInitialLabel.IsVisible = !conversation.Participant.HasAvatar;
         ParticipantImage.Source = conversation.Participant.HasAvatar
@@ -67,6 +70,7 @@ public partial class ConversationPage : ContentPage
         if (!await loadGate.WaitAsync(0)) return;
         LoadingMessages.IsVisible = !hasLoaded;
         MessageList.IsVisible = hasLoaded;
+        Exception? loadError = null;
         try
         {
             var response = await api.GetAsync<ApiList<ConversationMessage>>($"orders/{conversation.Order.Id}/messages");
@@ -82,42 +86,77 @@ public partial class ConversationPage : ContentPage
             MessageList.IsVisible = true;
         }
         catch (Exception exception) when (!showError) { System.Diagnostics.Debug.WriteLine(exception); }
-        catch (Exception exception) { await DisplayAlertAsync("Unable to load conversation", exception.Message, "OK"); }
+        catch (Exception exception) { loadError = exception; }
         finally
         {
             LoadingMessages.IsVisible = false;
             Refresh.IsRefreshing = false;
             loadGate.Release();
         }
+
+        if (loadError is not null)
+            await AppDialog.AlertAsync(this, "Unable to load conversation", loadError.Message);
     }
 
     private async void OnAttachClicked(object? sender, EventArgs e)
     {
-        var selected = (await FilePicker.Default.PickMultipleAsync(new PickOptions { PickerTitle = "Attach up to three files" }))
-            .Where(file => file is not null)
-            .Cast<FileResult>()
-            .Take(MobileFileRules.MaximumMessageAttachments)
-            .ToList();
+        IReadOnlyList<FileResult> selected;
+        try
+        {
+            selected = (await FilePicker.Default.PickMultipleAsync(new PickOptions { PickerTitle = "Attach up to three files" }))
+                .Where(file => file is not null)
+                .Cast<FileResult>()
+                .ToList();
+        }
+        catch (Exception exception)
+        {
+            await AppDialog.AlertAsync(this, "Unable to choose files", exception.Message);
+            return;
+        }
+        if (selected.Count > MobileFileRules.MaximumMessageAttachments)
+        {
+            await AppDialog.AlertAsync(this, "Too many files", $"Choose up to {MobileFileRules.MaximumMessageAttachments} attachments.");
+            return;
+        }
+        if (selected.Any(file => !MobileFileRules.IsSupportedMessageAttachment(file.FileName)))
+        {
+            await AppDialog.AlertAsync(this, "Unsupported file",
+                "Attachments must be JPG, PNG, WebP, PDF, ZIP, DOCX, or XLSX files.");
+            return;
+        }
         foreach (var file in selected)
         {
             if (await ExceedsAttachmentLimitAsync(file))
             {
-                await DisplayAlertAsync("File is too large", $"{file.FileName} exceeds the 15 MB attachment limit.", "OK");
+                await AppDialog.AlertAsync(this, "File is too large", $"{file.FileName} exceeds the 15 MB attachment limit.");
                 return;
             }
         }
         files.Clear();
         files.AddRange(selected);
+        SelectedFilesLabel.Text = string.Join("  •  ", files.Select(file => file.FileName));
         SelectedFilesLabel.Text = string.Join(" · ", files.Select(file => file.FileName));
-        SelectedFilesLabel.IsVisible = files.Count > 0;
+        SelectedFilesLabel.Text = string.Join(" | ", files.Select(file => file.FileName));
+        SelectedFilesLabel.IsVisible = true;
+        SelectedFilesPanel.IsVisible = files.Count > 0;
         UpdateComposerState();
+    }
+
+    private void OnClearAttachmentsClicked(object? sender, EventArgs e)
+    {
+        files.Clear();
+        SelectedFilesLabel.Text = "";
+        SelectedFilesPanel.IsVisible = false;
+        UpdateComposerState();
+        DraftEntry.Focus();
     }
 
     private async void OnSendClicked(object? sender, EventArgs e)
     {
         var body = DraftEntry.Text?.Trim() ?? "";
-        if (!MobileFileRules.CanSendMessage(body, files.Count)) return;
+        if (SendButton.IsBusy || !MobileFileRules.CanSendMessage(body, files.Count)) return;
         SendButton.IsBusy = true;
+        Exception? failure = null;
         try
         {
             if (files.Count > 0)
@@ -129,12 +168,18 @@ public partial class ConversationPage : ContentPage
                 await api.PostAsync<ApiResult<ConversationMessage>>($"orders/{conversation.Order.Id}/messages", new { body });
             DraftEntry.Text = "";
             files.Clear();
-            SelectedFilesLabel.IsVisible = false;
+            SelectedFilesPanel.IsVisible = false;
             UpdateComposerState();
             await LoadAsync();
         }
-        catch (Exception exception) { await DisplayAlertAsync("Message not sent", exception.Message, "OK"); }
-        finally { SendButton.IsBusy = false; UpdateComposerState(); }
+        catch (Exception exception) { failure = exception; }
+        finally
+        {
+            SendButton.IsBusy = false;
+            UpdateComposerState();
+        }
+        if (failure is not null)
+            await AppDialog.AlertAsync(this, "Message not sent", failure.Message, "Try again");
     }
 
     private void OnDraftChanged(object? sender, TextChangedEventArgs e) => UpdateComposerState();
@@ -174,7 +219,7 @@ public partial class ConversationPage : ContentPage
         var file = message.Attachments.FirstOrDefault(item => item.OriginalName == selected);
         if (file is null) return;
         try { var path = await api.DownloadAsync($"orders/{conversation.Order.Id}/files/{file.Id}", file.OriginalName); await Launcher.Default.OpenAsync(new OpenFileRequest("Open attachment", new ReadOnlyFile(path))); }
-        catch (Exception exception) { await DisplayAlertAsync("Download failed", exception.Message, "OK"); }
+        catch (Exception exception) { await AppDialog.AlertAsync(this, "Download failed", exception.Message); }
     }
     private async void OnCloseClicked(object? sender, EventArgs e) => await CloseAsync();
 
@@ -186,6 +231,8 @@ public partial class ConversationPage : ContentPage
 
     private async Task CloseAsync()
     {
+        if (isClosing) return;
+        isClosing = true;
         if (Navigation.NavigationStack.Count > 1)
             await Navigation.PopAsync();
         else

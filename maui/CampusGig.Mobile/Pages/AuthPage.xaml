@@ -78,7 +78,7 @@
 
                         <VerticalStackLayout x:Name="NameGroup" IsVisible="False" Margin="0,15,0,0" Spacing="6">
                             <Label Text="FULL NAME" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
-                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                            <Border HeightRequest="49" Padding="12,0" Stroke="{AppThemeBinding Light=#DDE3DF, Dark=#385046}" StrokeShape="RoundRectangle 11"
                                     BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
                                 <Grid ColumnDefinitions="24,*"><Label Text="◎" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
                                     <Entry x:Name="NameEntry" Grid.Column="1" Placeholder="Your full name" /></Grid>
@@ -124,6 +124,32 @@
                                             Padding="0" BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="8" FontAttributes="Bold" /></Grid>
                             </Border>
                             <Label x:Name="PasswordHint" Text="○  Minimum 8 characters" FontSize="9" TextColor="#66716B" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="PasswordStrengthPanel" IsVisible="False" Margin="0,8,0,0" Spacing="5">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="PASSWORD STRENGTH" FontSize="8" CharacterSpacing="1.1" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Label x:Name="PasswordStrengthLabel" Grid.Column="1" FontSize="9" FontAttributes="Bold" />
+                            </Grid>
+                            <ProgressBar x:Name="PasswordStrengthBar" Progress="0" HeightRequest="5"
+                                         BackgroundColor="{AppThemeBinding Light=#E3E9E5, Dark=#2C3933}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="ConfirmPasswordGroup" IsVisible="False" Margin="0,13,0,0" Spacing="6">
+                            <Label Text="CONFIRM PASSWORD" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
+                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                <Grid ColumnDefinitions="24,*,52">
+                                    <Label Text="=" FontSize="11" TextColor="#0F6B4F" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                    <Entry x:Name="ConfirmPasswordEntry" Grid.Column="1" Placeholder="Enter password again" IsPassword="True" />
+                                    <Button x:Name="ShowConfirmPasswordButton" Grid.Column="2" Text="SHOW" Clicked="OnShowConfirmPasswordClicked"
+                                            WidthRequest="48" Padding="0" BackgroundColor="Transparent"
+                                            TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" FontSize="8" FontAttributes="Bold" />
+                                </Grid>
+                            </Border>
+                            <Label x:Name="ConfirmPasswordHint" Text="Passwords must match" FontSize="9"
+                                   TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout x:Name="ResetMfaGroup" IsVisible="False" Margin="0,14,0,0" Spacing="6">

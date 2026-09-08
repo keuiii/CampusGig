@@ -464,6 +464,7 @@ model ConversationParticipant {
   userId            String       @db.Uuid
   lastReadMessageId String?      @db.Uuid
   lastReadAt        DateTime?
+  hiddenAt          DateTime?
   conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -16,6 +16,7 @@ public partial class OrderWorkspacePage : ContentPage
     private readonly List<FileResult> deliveryFiles = [];
     private bool entrancePlayed;
     private bool buttonMotionAttached;
+    private bool isClosing;
     private string previousStatus = "";
 
     public OrderWorkspacePage(CampusGigApi api, SessionService session, string orderId)
@@ -82,6 +83,7 @@ public partial class OrderWorkspacePage : ContentPage
             StatusGuidanceLabel.Text = StatusGuidance(detail.Status, isProvider);
             var canRequestRevision = detail.RevisionsUsed < detail.RevisionLimit;
             ProviderDecisionPanel.IsVisible = OrderWorkflowRules.CanDecide(detail.Status, isProvider);
+            ClientCancelPanel.IsVisible = OrderWorkflowRules.CanCancel(detail.Status, isProvider);
             ProviderStartPanel.IsVisible = OrderWorkflowRules.CanStart(detail.Status, isProvider);
             ProviderDeliveryPanel.IsVisible = OrderWorkflowRules.CanDeliver(detail.Status, isProvider);
             DeliveryTitleLabel.Text = detail.Status == "REVISION_REQUESTED" ? "Submit revised work" : "Submit deliverables";
@@ -180,40 +182,83 @@ public partial class OrderWorkspacePage : ContentPage
     {
         var instructions = RevisionEntry.Text?.Trim() ?? "";
         if (instructions.Length < 10) { await DisplayAlertAsync("Add instructions", "Use at least 10 characters.", "OK"); return; }
+        if (!await ConfirmTransitionAsync("Request a revision?", "The provider will be asked to submit updated deliverables.", "Request revision")) return;
         await ActAsync(sender as BusyButton, "revision", new { instructions }, "Revision requested");
     }
 
-    private async void OnCompleteClicked(object? sender, EventArgs e) => await ActAsync(sender as BusyButton, "complete", null, "Delivery accepted");
+    private async void OnCompleteClicked(object? sender, EventArgs e)
+    {
+        if (!await ConfirmTransitionAsync("Accept this delivery?", "This completes the order. Review the submitted files before continuing.", "Accept delivery")) return;
+        await ActAsync(sender as BusyButton, "complete", null, "Delivery accepted");
+    }
 
     private async void OnReviewClicked(object? sender, EventArgs e)
     {
         var rating = 5 - Math.Max(0, RatingPicker.SelectedIndex);
+        if (!await ConfirmTransitionAsync("Submit this review?", $"You are giving the provider {rating} out of 5 stars.", "Submit review")) return;
         await ActAsync(sender as BusyButton, "review", new { overallRating = rating, qualityRating = rating, communicationRating = rating, timelinessRating = rating, comment = ReviewEntry.Text?.Trim() }, "Review submitted");
     }
 
-    private async void OnAcceptClicked(object? sender, EventArgs e) =>
+    private async void OnAcceptClicked(object? sender, EventArgs e)
+    {
+        if (!await ConfirmTransitionAsync("Accept this request?", "The client will be notified and the project will be reserved for you.", "Accept request")) return;
         await ActAsync(sender as BusyButton, "accept", null, "Request accepted");
+    }
+
+    private void OnRejectReasonChanged(object? sender, TextChangedEventArgs e) =>
+        RejectRequestButton.IsEnabled = OrderWorkflowRules.CanDecline(e.NewTextValue);
 
     private async void OnRejectClicked(object? sender, EventArgs e)
     {
         var reason = RejectReasonEntry.Text?.Trim() ?? "";
-        if (reason.Length < 3)
+        if (!OrderWorkflowRules.CanDecline(reason))
         {
             await DisplayAlertAsync("Add a reason", "Tell the client why you cannot accept this request.", "OK");
             return;
         }
+        if (!await ConfirmTransitionAsync("Decline this request?", "The client will be notified and this action cannot be undone.", "Decline request")) return;
         await ActAsync(sender as BusyButton, "reject", new { reason }, "Request declined");
     }
 
-    private async void OnStartClicked(object? sender, EventArgs e) =>
+    private async void OnStartClicked(object? sender, EventArgs e)
+    {
+        if (!await ConfirmTransitionAsync("Start this order?", "The client will be notified that work is now in progress.", "Start working")) return;
         await ActAsync(sender as BusyButton, "start", null, "Work started");
+    }
+
+    private async void OnCancelClicked(object? sender, EventArgs e)
+    {
+        var reason = CancelReasonEntry.Text?.Trim() ?? "";
+        if (reason.Length < 3)
+        {
+            await AppDialog.AlertAsync(this, "Add a reason", "Tell the provider why you are cancelling this request.");
+            return;
+        }
+        if (!await ConfirmTransitionAsync("Cancel this request?", "The provider will be notified and this action cannot be undone.", "Cancel request")) return;
+        await ActAsync(sender as BusyButton, "cancel", new { reason }, "Request cancelled");
+    }
 
     private async void OnChooseDeliveryFilesClicked(object? sender, EventArgs e)
     {
-        var picked = await FilePicker.Default.PickMultipleAsync(new PickOptions { PickerTitle = "Choose up to five deliverables" });
+        IEnumerable<FileResult?>? picked;
+        try
+        {
+            picked = await FilePicker.Default.PickMultipleAsync(new PickOptions { PickerTitle = "Choose up to five deliverables" });
+        }
+        catch (Exception exception)
+        {
+            await AppDialog.AlertAsync(this, "Unable to choose files", exception.Message);
+            return;
+        }
         if (picked is null) return;
+        var selected = picked.OfType<FileResult>().ToList();
+        if (selected.Count > MobileFileRules.MaximumDeliverableFiles)
+        {
+            await AppDialog.AlertAsync(this, "Too many files", $"Choose up to {MobileFileRules.MaximumDeliverableFiles} deliverables.");
+            return;
+        }
         deliveryFiles.Clear();
-        deliveryFiles.AddRange(picked.Where(file => file is not null).Select(file => file!).Take(MobileFileRules.MaximumDeliverableFiles));
+        deliveryFiles.AddRange(selected);
         var unsupported = deliveryFiles.Where(file => !MobileFileRules.IsSupportedDeliverable(file.FileName)).Select(file => file.FileName).ToList();
         if (unsupported.Count > 0)
         {
@@ -304,6 +349,14 @@ public partial class OrderWorkspacePage : ContentPage
             failure?.Message ?? successMessage, "OK");
     }
 
+    private async Task<bool> ConfirmTransitionAsync(string title, string message, string accept)
+    {
+        if (isActing) return false;
+        isActing = true;
+        try { return await AppDialog.ConfirmAsync(this, title, message, accept, "Not now"); }
+        finally { isActing = false; }
+    }
+
     private async void OnFileTapped(object? sender, TappedEventArgs e)
     {
         if (e.Parameter is not OrderFileItem file) return;
@@ -335,8 +388,15 @@ public partial class OrderWorkspacePage : ContentPage
     }
 
     private Task CloseAsync() => Navigation.NavigationStack.Count > 1
-        ? Navigation.PopAsync()
-        : Navigation.PopModalAsync();
+        ? CloseOnceAsync(Navigation.PopAsync)
+        : CloseOnceAsync(Navigation.PopModalAsync);
+
+    private async Task CloseOnceAsync(Func<Task> close)
+    {
+        if (isClosing) return;
+        isClosing = true;
+        await close();
+    }
 
     private static async Task PlayTapAsync(VisualElement element)
     {
@@ -369,6 +429,7 @@ public partial class OrderWorkspacePage : ContentPage
         ("REVISION_REQUESTED", false) => "Your revision request was sent to the provider.",
         ("COMPLETED", _) => "This project is complete. Its files and timeline remain available.",
         ("REJECTED", _) => "This request was declined. Review the timeline for the reason.",
+        ("CANCELLED", _) => "This request was cancelled. Review the timeline for the reason.",
         _ => "Follow the latest project activity below.",
     };
 

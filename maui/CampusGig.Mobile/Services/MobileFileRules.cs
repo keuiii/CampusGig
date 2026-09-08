@@ -5,6 +5,7 @@ public static class MobileFileRules
     public const long MaximumProfileUploadBytes = 5 * 1024 * 1024;
     public const long MaximumMessageAttachmentBytes = 15 * 1024 * 1024;
     public const int MaximumMessageAttachments = 3;
+    public const int MaximumMessageLength = 2000;
     public const long MaximumDeliverableBytes = 15 * 1024 * 1024;
     public const int MaximumDeliverableFiles = 5;
 
@@ -20,6 +21,8 @@ public static class MobileFileRules
     public static bool IsSupportedDeliverable(string? fileName) =>
         Path.GetExtension(fileName ?? "").ToLowerInvariant() is
             ".jpg" or ".jpeg" or ".png" or ".webp" or ".pdf" or ".zip" or ".docx" or ".xlsx";
+
+    public static bool IsSupportedMessageAttachment(string? fileName) => IsSupportedDeliverable(fileName);
 
     public static string DeliverableContentType(string fileName, string? reportedContentType) =>
         !string.IsNullOrWhiteSpace(reportedContentType) && reportedContentType != "application/octet-stream"
@@ -37,7 +40,9 @@ public static class MobileFileRules
             };
 
     public static bool CanSendMessage(string? body, int attachmentCount) =>
-        !string.IsNullOrWhiteSpace(body) || attachmentCount > 0;
+        attachmentCount is >= 0 and <= MaximumMessageAttachments &&
+        (body?.Trim().Length ?? 0) <= MaximumMessageLength &&
+        (!string.IsNullOrWhiteSpace(body) || attachmentCount > 0);
 
     public static string DescribeSelection(long? sizeBytes) => sizeBytes is null
         ? "Document selected"

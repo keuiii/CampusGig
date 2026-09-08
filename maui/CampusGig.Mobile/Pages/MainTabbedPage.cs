@@ -1,6 +1,7 @@
 using CampusGig.Mobile.Models;
 using CampusGig.Mobile.Services;
 using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Layouts;
 
 namespace CampusGig.Mobile.Pages;
 
@@ -15,10 +16,13 @@ public sealed class MainTabbedPage : ContentPage
     private readonly Dictionary<string, ContentPage> pages = new(StringComparer.Ordinal);
     private readonly Grid contentArea;
     private readonly MessagesPage messagesPage;
+    private readonly Border tabHighlight;
     private Border? messagesBadge;
     private Label? messagesBadgeLabel;
     private IDispatcherTimer? unreadTimer;
     private string activeRoute = "discover";
+    private string highlightedRoute = "discover";
+    private bool isTabAnimating;
 
     public MainTabbedPage(
         HomePage home,
@@ -62,6 +66,30 @@ public sealed class MainTabbedPage : ContentPage
                 new(GridLength.Star),
             }
         };
+        var navHost = new AbsoluteLayout();
+        AbsoluteLayout.SetLayoutBounds(navGrid, new Rect(0, 0, 1, 1));
+        AbsoluteLayout.SetLayoutFlags(navGrid, AbsoluteLayoutFlags.All);
+
+        tabHighlight = new Border
+        {
+            WidthRequest = 20,
+            HeightRequest = 3,
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 1.5 },
+            HorizontalOptions = LayoutOptions.Start,
+            VerticalOptions = LayoutOptions.End,
+            InputTransparent = true,
+            ZIndex = 0,
+            BackgroundColor = Color.FromArgb("#D9F36A"),
+        };
+        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, 20, 3));
+        AbsoluteLayout.SetLayoutFlags(tabHighlight, AbsoluteLayoutFlags.YProportional);
+        navHost.Children.Add(tabHighlight);
+        navHost.Children.Add(navGrid);
+        navHost.SizeChanged += (_, _) =>
+        {
+            if (!isTabAnimating) PositionTabHighlight(highlightedRoute);
+        };
 
         var bottomNavBorder = new Border
         {
@@ -70,7 +98,7 @@ public sealed class MainTabbedPage : ContentPage
             Padding = new Thickness(7, 4, 7, 5),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.End,
-            Content = navGrid
+            Content = navHost
         };
         bottomNavBorder.SetAppThemeColor(Border.BackgroundColorProperty, Color.FromArgb("#FFFFFF"), Color.FromArgb("#151D19"));
         bottomNavBorder.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#E4E8E5"), Color.FromArgb("#24312A"));
@@ -121,10 +149,10 @@ public sealed class MainTabbedPage : ContentPage
 
             itemLayout.Children.Add(iconLabel);
             itemLayout.Children.Add(titleLabel);
-            itemLayout.Children.Add(pip);
 
             var route = def.Route;
             var itemContainer = new Grid();
+            itemContainer.ZIndex = 1;
             itemContainer.Children.Add(itemLayout);
             if (route == "messages")
             {
@@ -217,39 +245,78 @@ public sealed class MainTabbedPage : ContentPage
 
     public async Task SelectTabAsync(string route)
     {
-        if (activeRoute == route || !tabViews.ContainsKey(route)) return;
+        if (!InteractionMotion.CanStartTabTransition(activeRoute == route, tabViews.ContainsKey(route), isTabAnimating)) return;
+        isTabAnimating = true;
 
-        if (pages.TryGetValue(activeRoute, out var previousPage) && previousPage is ITabLifecycle prevLifecycle)
+        var previousRoute = activeRoute;
+        var movingForward = InteractionMotion.IsForwardTabTransition(TabIndex(previousRoute), TabIndex(route));
+
+        if (pages.TryGetValue(previousRoute, out var previousPage) && previousPage is ITabLifecycle prevLifecycle)
         {
             try { await prevLifecycle.OnTabDisappearingAsync(); } catch { }
         }
 
-        if (tabViews.TryGetValue(activeRoute, out var currentView))
-            currentView.IsVisible = false;
-
         activeRoute = route;
-
-        if (tabViews.TryGetValue(route, out var nextView))
+        try
         {
+            var currentView = tabViews[previousRoute];
+            var nextView = tabViews[route];
+            currentView.ZIndex = 1;
+            nextView.ZIndex = 2;
             nextView.IsVisible = true;
-            nextView.Opacity = 0.55;
-            nextView.TranslationY = 8;
+            nextView.Opacity = 0;
+            nextView.TranslationX = InteractionMotion.TabEntryOffset(movingForward);
             UpdateNavVisuals();
 
             await Task.WhenAll(
-                nextView.FadeToAsync(1, 140, Easing.CubicOut),
-                nextView.TranslateToAsync(0, 0, 160, Easing.CubicOut)
+                currentView.FadeToAsync(0, 170, Easing.CubicInOut),
+                currentView.TranslateToAsync(InteractionMotion.TabExitOffset(movingForward), 0, 190, Easing.CubicInOut),
+                nextView.FadeToAsync(1, 190, Easing.CubicOut),
+                nextView.TranslateToAsync(0, 0, 210, Easing.CubicOut),
+                MoveTabHighlightAsync(route)
             );
+
+            currentView.IsVisible = false;
+            currentView.Opacity = 1;
+            currentView.TranslationX = 0;
+            currentView.ZIndex = 0;
+            nextView.ZIndex = 0;
 
             if (pages.TryGetValue(route, out var page) && page is ITabLifecycle nextLifecycle)
             {
                 try { await nextLifecycle.OnTabAppearingAsync(); } catch { }
             }
         }
-        else
+        finally
         {
-            UpdateNavVisuals();
+            highlightedRoute = activeRoute;
+            PositionTabHighlight(highlightedRoute);
+            isTabAnimating = false;
         }
+    }
+
+    private static int TabIndex(string route) =>
+        MobileNavigation.Tabs.Select((tab, index) => (tab.Route, index))
+            .FirstOrDefault(item => item.Route == route).index;
+
+    private Task MoveTabHighlightAsync(string route)
+    {
+        if (tabHighlight.Parent is not AbsoluteLayout navHost || navHost.Width <= 0)
+            return Task.CompletedTask;
+
+        const double width = 20;
+        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, width, 3));
+        var offset = InteractionMotion.TabUnderlineOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, width);
+        return tabHighlight.TranslateToAsync(offset, 0, 220, Easing.CubicInOut);
+    }
+
+    private void PositionTabHighlight(string route)
+    {
+        if (tabHighlight.Parent is not AbsoluteLayout navHost || navHost.Width <= 0) return;
+        const double width = 20;
+        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, width, 3));
+        var offset = InteractionMotion.TabUnderlineOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, width);
+        tabHighlight.TranslationX = offset;
     }
 
     private async void OnUnreadTimerTick(object? sender, EventArgs e)
@@ -282,7 +349,7 @@ public sealed class MainTabbedPage : ContentPage
             var isSelected = route == activeRoute;
             icon.TextColor = isSelected ? activeColor : inactiveColor;
             label.TextColor = isSelected ? activeColor : inactiveColor;
-            pip.IsVisible = isSelected;
+            pip.IsVisible = false;
         }
     }
 }

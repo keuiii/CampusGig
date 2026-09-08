@@ -34,6 +34,7 @@
     <Compile Include="..\CampusGig.Mobile\Services\ProfileImageRules.cs" Link="Services\ProfileImageRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\RefreshRequestRules.cs" Link="Services\RefreshRequestRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordVisibilityRules.cs" Link="Services\PasswordVisibilityRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PasswordStrengthRules.cs" Link="Services\PasswordStrengthRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordChangeFlowRules.cs" Link="Services\PasswordChangeFlowRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ServiceBookingRules.cs" Link="Services\ServiceBookingRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\SessionService.cs" Link="Services\SessionService.cs" />

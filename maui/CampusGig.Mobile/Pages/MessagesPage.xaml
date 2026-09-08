@@ -38,7 +38,14 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:ConversationItem">
-                        <Border Margin="0,0,0,11" Padding="14" Stroke="#E0E6E2" StrokeShape="RoundRectangle 17"
+                        <SwipeView Margin="0,0,0,11" Threshold="72">
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal" SwipeBehaviorOnInvoked="Close">
+                                    <SwipeItem Text="Delete" BackgroundColor="#C53D32"
+                                               CommandParameter="{Binding .}" Invoked="OnDeleteConversationInvoked" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                        <Border Padding="14" Stroke="{AppThemeBinding Light=#E0E6E2, Dark=#385046}" StrokeShape="RoundRectangle 17"
                                 BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnConversationTapped" CommandParameter="{Binding .}" />
@@ -65,6 +72,7 @@
                                 </Border>
                             </Grid>
                         </Border>
+                        </SwipeView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

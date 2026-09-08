@@ -281,6 +281,15 @@
                                                 BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" FontAttributes="Bold" Padding="9,0" />
                                     </Grid>
                                 </Border>
+                                <VerticalStackLayout x:Name="NewPasswordStrengthPanel" Margin="0,-4,0,0" Spacing="5">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <Label Text="PASSWORD STRENGTH" FontSize="8" CharacterSpacing="1.1" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#66716B, Dark=#A8B6AF}" />
+                                        <Label x:Name="NewPasswordStrengthLabel" Grid.Column="1" FontSize="9" FontAttributes="Bold" />
+                                    </Grid>
+                                    <ProgressBar x:Name="NewPasswordStrengthBar" Progress="0" HeightRequest="5"
+                                                 BackgroundColor="{AppThemeBinding Light=#E3E9E5, Dark=#2C3933}" />
+                                </VerticalStackLayout>
                                 <Border Stroke="{AppThemeBinding Light=#DDE4DF, Dark=#385046}" StrokeShape="RoundRectangle 12" Padding="14,0" HeightRequest="48"
                                         BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
                                     <Grid ColumnDefinitions="*,Auto">

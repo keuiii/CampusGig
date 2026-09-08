@@ -81,6 +81,24 @@ public sealed class ApiContractTests
         Assert.AreEqual(0, InteractionMotion.AuthTabOffset(true, 8, 4, 4));
         Assert.AreEqual(0, InteractionMotion.SegmentOffset(false, 122, 4));
         Assert.AreEqual(126, InteractionMotion.SegmentOffset(true, 122, 4));
+        Assert.AreEqual(-28, InteractionMotion.AuthFormExitOffset(true));
+        Assert.AreEqual(28, InteractionMotion.AuthFormEntryOffset(true));
+        Assert.AreEqual(28, InteractionMotion.AuthFormExitOffset(false));
+        Assert.AreEqual(-28, InteractionMotion.AuthFormEntryOffset(false));
+        Assert.IsTrue(InteractionMotion.CanStartAuthModeTransition(sameMode: false, animationRunning: false));
+        Assert.IsFalse(InteractionMotion.CanStartAuthModeTransition(sameMode: true, animationRunning: false));
+        Assert.IsFalse(InteractionMotion.CanStartAuthModeTransition(sameMode: false, animationRunning: true));
+        Assert.IsTrue(InteractionMotion.IsForwardTabTransition(0, 2));
+        Assert.IsFalse(InteractionMotion.IsForwardTabTransition(3, 1));
+        Assert.AreEqual(-24, InteractionMotion.TabExitOffset(true));
+        Assert.AreEqual(24, InteractionMotion.TabEntryOffset(true));
+        Assert.IsTrue(InteractionMotion.CanStartTabTransition(false, true, false));
+        Assert.IsFalse(InteractionMotion.CanStartTabTransition(false, true, true));
+        Assert.AreEqual(90, InteractionMotion.TabHighlightWidth(400, 4, 5));
+        Assert.AreEqual(205, InteractionMotion.TabHighlightOffset(2, 400, 4, 5));
+        Assert.AreEqual(0, InteractionMotion.TabHighlightOffset(-1, 400, 4, 5));
+        Assert.AreEqual(40, InteractionMotion.TabUnderlineOffset(0, 400, 4, 20));
+        Assert.AreEqual(340, InteractionMotion.TabUnderlineOffset(3, 400, 4, 20));
     }
 
     [TestMethod]
@@ -288,8 +306,14 @@ public sealed class ApiContractTests
         Assert.IsFalse(MobileFileRules.CanSendMessage("   ", 0));
         Assert.IsTrue(MobileFileRules.CanSendMessage("Hello", 0));
         Assert.IsTrue(MobileFileRules.CanSendMessage(null, 1));
+        Assert.IsFalse(MobileFileRules.CanSendMessage(null, 4));
+        Assert.IsTrue(MobileFileRules.CanSendMessage(new string('a', 2000), 0));
+        Assert.IsFalse(MobileFileRules.CanSendMessage(new string('a', 2001), 0));
         Assert.IsFalse(MobileFileRules.ExceedsMessageAttachmentLimit(15 * 1024 * 1024));
         Assert.IsTrue(MobileFileRules.ExceedsMessageAttachmentLimit(15 * 1024 * 1024 + 1));
+        Assert.IsTrue(MobileFileRules.IsSupportedMessageAttachment("brief.pdf"));
+        Assert.IsTrue(MobileFileRules.IsSupportedMessageAttachment("preview.PNG"));
+        Assert.IsFalse(MobileFileRules.IsSupportedMessageAttachment("script.exe"));
     }
 
     [TestMethod]
@@ -312,6 +336,18 @@ public sealed class ApiContractTests
         Assert.IsTrue(PasswordChangeFlowRules.IsTerminal(immediate));
         Assert.IsTrue(PasswordChangeFlowRules.WasSuccessful(immediate));
         Assert.IsFalse(PasswordChangeFlowRules.WasSuccessful(new PasswordChangeResult { Status = "REJECTED" }));
+    }
+
+    [TestMethod]
+    public void PasswordStrengthProgressesAndSignupConfirmationMustMatch()
+    {
+        Assert.AreEqual(0, PasswordStrengthRules.Evaluate("").Score);
+        Assert.AreEqual("Weak", PasswordStrengthRules.Evaluate("password").Label);
+        Assert.AreEqual("Fair", PasswordStrengthRules.Evaluate("Password").Label);
+        Assert.AreEqual("Good", PasswordStrengthRules.Evaluate("Password1").Label);
+        Assert.AreEqual("Strong", PasswordStrengthRules.Evaluate("Password1!").Label);
+        Assert.IsFalse(PasswordStrengthRules.ConfirmationMatches("Password1!", "Password1"));
+        Assert.IsTrue(PasswordStrengthRules.ConfirmationMatches("Password1!", "Password1!"));
     }
 
     [TestMethod]
@@ -376,6 +412,11 @@ public sealed class ApiContractTests
         var order = new OrderDetail { Provider = new OrderParty { Id = "provider-1" } };
         Assert.IsTrue(OrderWorkflowRules.IsProvider(order, "provider-1"));
         Assert.IsTrue(OrderWorkflowRules.CanDecide("REQUESTED", true));
+        Assert.IsFalse(OrderWorkflowRules.CanDecline("no"));
+        Assert.IsTrue(OrderWorkflowRules.CanDecline("Not available"));
+        Assert.IsTrue(OrderWorkflowRules.CanCancel("REQUESTED", false));
+        Assert.IsFalse(OrderWorkflowRules.CanCancel("ACCEPTED", false));
+        Assert.IsFalse(OrderWorkflowRules.CanCancel("REQUESTED", true));
         Assert.IsTrue(OrderWorkflowRules.CanStart("ACCEPTED", true));
         Assert.IsTrue(OrderWorkflowRules.CanDeliver("IN_PROGRESS", true));
         Assert.IsTrue(OrderWorkflowRules.CanDeliver("REVISION_REQUESTED", true));

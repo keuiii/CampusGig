@@ -46,7 +46,11 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         SkillsEntry.TextChanged += (_, _) => UpdateSaveButtons();
         AvailableSwitch.Toggled += (_, _) => UpdateSaveButtons();
         CurrentPasswordEntry.TextChanged += (_, _) => UpdateSecurityButtons();
-        NewPasswordEntry.TextChanged += (_, _) => UpdateSecurityButtons();
+        NewPasswordEntry.TextChanged += (_, _) =>
+        {
+            RenderNewPasswordStrength();
+            UpdateSecurityButtons();
+        };
         ConfirmPasswordEntry.TextChanged += (_, _) => UpdateSecurityButtons();
         PasswordMfaEntry.TextChanged += (_, _) => UpdateSecurityButtons();
         RecoveryCodeSwitch.Toggled += (_, _) => UpdateSecurityButtons();
@@ -400,6 +404,18 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         MainTabbedPage.Instance?.RefreshTheme();
         await ThemeThumb.TranslateToAsync(nextDark ? 30 : 0, 0, 160, Easing.CubicOut);
         UpdateSchoolChips();
+        RenderNewPasswordStrength();
+    }
+
+    private void RenderNewPasswordStrength()
+    {
+        var strength = PasswordStrengthRules.Evaluate(NewPasswordEntry.Text);
+        NewPasswordStrengthPanel.IsVisible = !string.IsNullOrEmpty(NewPasswordEntry.Text);
+        NewPasswordStrengthBar.Progress = strength.Progress;
+        var isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+        NewPasswordStrengthBar.ProgressColor = Color.FromArgb(isDark ? strength.DarkColor : strength.LightColor);
+        NewPasswordStrengthLabel.Text = strength.Label;
+        NewPasswordStrengthLabel.TextColor = NewPasswordStrengthBar.ProgressColor;
     }
 
     private async void OnSaveStudentClicked(object? sender, EventArgs e)

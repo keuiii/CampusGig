@@ -17,6 +17,7 @@ public partial class AuthPage : ContentPage
     private bool entrancePlayed;
     private bool themeAnimating;
     private bool submitting;
+    private bool modeAnimating;
     private bool normalizingCode;
     private string submitButtonText = "Log in     →";
 
@@ -34,6 +35,13 @@ public partial class AuthPage : ContentPage
             var ready = (PasswordEntry.Text?.Length ?? 0) >= 8;
             PasswordHint.Text = ready ? "✓  Minimum 8 characters" : "○  Minimum 8 characters";
             PasswordHint.TextColor = Color.FromArgb(ready ? "#0F6B4F" : "#66716B");
+            RenderPasswordStrength();
+            RenderPasswordConfirmation();
+            UpdateSubmitState();
+        };
+        ConfirmPasswordEntry.TextChanged += (_, _) =>
+        {
+            RenderPasswordConfirmation();
             UpdateSubmitState();
         };
         EmailEntry.TextChanged += (_, _) => UpdateSubmitState();
@@ -63,31 +71,70 @@ public partial class AuthPage : ContentPage
 
     private async Task SetModeAsync(AuthMode nextMode)
     {
-        if (mode == nextMode) return;
+        // Authenticated flows (MFA, email verification, and password reset) must
+        // be allowed to change mode while the submit operation owns the busy state.
+        if (!InteractionMotion.CanStartAuthModeTransition(mode == nextMode, modeAnimating)) return;
+        modeAnimating = true;
         var animateTab = (mode is AuthMode.Login or AuthMode.Register) &&
                          (nextMode is AuthMode.Login or AuthMode.Register);
-        await Task.WhenAll(
-            FieldsContent.FadeToAsync(0, 55, Easing.CubicIn),
-            FieldsContent.TranslateToAsync(0, 4, 55, Easing.CubicIn));
-        mode = nextMode;
-        StatusLabel.Text = "";
-        StatusPanel.IsVisible = false;
-        CodeEntry.Text = "";
-        if (nextMode is AuthMode.Login or AuthMode.Register) PasswordEntry.Text = "";
-        RenderMode();
-        var tabOffset = InteractionMotion.AuthTabOffset(
-            nextMode == AuthMode.Register,
-            AuthTabs.Width,
-            AuthTabs.Padding.Left,
-            AuthTabs.Padding.Right);
-        if (!animateTab) TabIndicator.TranslationX = tabOffset;
-        FieldsContent.TranslationY = -3;
-        await Task.WhenAll(
-            FieldsContent.FadeToAsync(1, 125, Easing.CubicOut),
-            FieldsContent.TranslateToAsync(0, 0, 150, Easing.CubicOut),
-            animateTab
-                ? TabIndicator.TranslateToAsync(tabOffset, 0, 180, Easing.CubicInOut)
-                : Task.CompletedTask);
+        AuthTabs.IsEnabled = false;
+        try
+        {
+            var movingToRegister = nextMode == AuthMode.Register;
+            var tabOffset = InteractionMotion.AuthTabOffset(
+                movingToRegister,
+                AuthTabs.Width,
+                AuthTabs.Padding.Left,
+                AuthTabs.Padding.Right);
+
+            if (animateTab)
+            {
+                var exitOffset = InteractionMotion.AuthFormExitOffset(movingToRegister);
+                await Task.WhenAll(
+                    FieldsContent.FadeToAsync(0, 90, Easing.CubicIn),
+                    FieldsContent.TranslateToAsync(exitOffset, 0, 115, Easing.CubicIn),
+                    PageTitle.FadeToAsync(0, 80, Easing.CubicIn),
+                    PageSubtitle.FadeToAsync(0, 80, Easing.CubicIn),
+                    TabIndicator.TranslateToAsync(tabOffset, 0, 220, Easing.CubicInOut));
+            }
+            else
+            {
+                await Task.WhenAll(
+                    FieldsContent.FadeToAsync(0, 70, Easing.CubicIn),
+                    FieldsContent.TranslateToAsync(0, 5, 70, Easing.CubicIn));
+                TabIndicator.TranslationX = tabOffset;
+            }
+
+            mode = nextMode;
+            StatusLabel.Text = "";
+            StatusPanel.IsVisible = false;
+            CodeEntry.Text = "";
+            if (nextMode is AuthMode.Login or AuthMode.Register)
+            {
+                PasswordEntry.Text = "";
+                ConfirmPasswordEntry.Text = "";
+            }
+            RenderMode();
+
+            FieldsContent.TranslationX = animateTab
+                ? InteractionMotion.AuthFormEntryOffset(movingToRegister)
+                : 0;
+            FieldsContent.TranslationY = animateTab ? 0 : -3;
+            FieldsContent.Opacity = 0;
+            PageTitle.Opacity = animateTab ? 0 : 1;
+            PageSubtitle.Opacity = animateTab ? 0 : 1;
+
+            await Task.WhenAll(
+                FieldsContent.FadeToAsync(1, 170, Easing.CubicOut),
+                FieldsContent.TranslateToAsync(0, 0, 210, Easing.CubicOut),
+                PageTitle.FadeToAsync(1, 145, Easing.CubicOut),
+                PageSubtitle.FadeToAsync(1, 165, Easing.CubicOut));
+        }
+        finally
+        {
+            modeAnimating = false;
+            AuthTabs.IsEnabled = !submitting;
+        }
     }
 
     private void RenderMode()
@@ -104,6 +151,8 @@ public partial class AuthPage : ContentPage
         StudentGroup.IsVisible = mode == AuthMode.Register;
         CodeGroup.IsVisible = mode is AuthMode.Verify or AuthMode.Reset or AuthMode.Mfa;
         PasswordGroup.IsVisible = mode is AuthMode.Login or AuthMode.Register or AuthMode.Reset;
+        PasswordStrengthPanel.IsVisible = mode == AuthMode.Register;
+        ConfirmPasswordGroup.IsVisible = mode == AuthMode.Register;
         ResetMfaGroup.IsVisible = mode == AuthMode.Reset;
         RememberGroup.IsVisible = mode == AuthMode.Mfa;
         RecoveryButton.IsVisible = mode == AuthMode.Mfa;
@@ -132,6 +181,8 @@ public partial class AuthPage : ContentPage
             submitButtonText = SubmitButton.Text;
             SubmitButton.Text = "";
         }
+        RenderPasswordStrength();
+        RenderPasswordConfirmation();
         UpdateSubmitState();
     }
 
@@ -152,6 +203,12 @@ public partial class AuthPage : ContentPage
     {
         PasswordEntry.IsPassword = !PasswordEntry.IsPassword;
         ShowPasswordButton.Text = PasswordEntry.IsPassword ? "SHOW" : "HIDE";
+    }
+
+    private void OnShowConfirmPasswordClicked(object? sender, EventArgs e)
+    {
+        ConfirmPasswordEntry.IsPassword = !ConfirmPasswordEntry.IsPassword;
+        ShowConfirmPasswordButton.Text = ConfirmPasswordEntry.IsPassword ? "SHOW" : "HIDE";
     }
 
     private async void OnRecoveryClicked(object? sender, EventArgs e)
@@ -231,6 +288,8 @@ public partial class AuthPage : ContentPage
                 break;
             case AuthMode.Register:
                 ValidatePassword(password);
+                if (!PasswordStrengthRules.ConfirmationMatches(password, ConfirmPasswordEntry.Text))
+                    throw new InvalidOperationException("Enter the same password again to confirm it.");
                 var displayName = NameEntry.Text?.Trim() ?? "";
                 if (displayName.Length < 2) throw new InvalidOperationException("Enter your full name.");
                 var registration = await api.PostAsync<RegistrationResponse>("auth/register", new
@@ -370,14 +429,42 @@ public partial class AuthPage : ContentPage
 
     private void UpdateSubmitState()
     {
-        SubmitButton.IsEnabled = !submitting && AuthFormRules.IsReady(
+        var ready = AuthFormRules.IsReady(
             (AuthFormMode)mode,
             EmailEntry.Text,
             PasswordEntry.Text,
             NameEntry.Text,
             CodeEntry.Text,
             recoveryCode);
+        if (mode == AuthMode.Register)
+            ready &= PasswordStrengthRules.ConfirmationMatches(PasswordEntry.Text, ConfirmPasswordEntry.Text);
+        SubmitButton.IsEnabled = !submitting && ready;
         SubmitButton.Opacity = SubmitButton.IsEnabled ? 1 : 0.45;
+    }
+
+    private void RenderPasswordStrength()
+    {
+        var strength = PasswordStrengthRules.Evaluate(PasswordEntry.Text);
+        PasswordStrengthBar.Progress = strength.Progress;
+        PasswordStrengthBar.ProgressColor = Color.FromArgb(IsDarkMode ? strength.DarkColor : strength.LightColor);
+        PasswordStrengthLabel.Text = strength.Label;
+        PasswordStrengthLabel.TextColor = PasswordStrengthBar.ProgressColor;
+    }
+
+    private void RenderPasswordConfirmation()
+    {
+        if (mode != AuthMode.Register || string.IsNullOrEmpty(ConfirmPasswordEntry.Text))
+        {
+            ConfirmPasswordHint.Text = "Passwords must match";
+            ConfirmPasswordHint.TextColor = AppThemeColor("#66716B", "#AAB6AF");
+            return;
+        }
+
+        var matches = PasswordStrengthRules.ConfirmationMatches(PasswordEntry.Text, ConfirmPasswordEntry.Text);
+        ConfirmPasswordHint.Text = matches ? "Passwords match" : "Passwords do not match";
+        ConfirmPasswordHint.TextColor = Color.FromArgb(matches
+            ? (IsDarkMode ? "#71D7B1" : "#0F8060")
+            : (IsDarkMode ? "#FF9B91" : "#C74335"));
     }
 
     private async void OnButtonPressed(object? sender, EventArgs e)

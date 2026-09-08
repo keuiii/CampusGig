@@ -207,6 +207,47 @@ export class OrdersService {
     };
   }
 
+  async cancel(clientId: string, orderId: string, reason: string) {
+    const order = await this.requireClientOrder(clientId, orderId);
+    if (order.status !== "REQUESTED")
+      throw new ConflictException("Only a pending request can be cancelled");
+    const note = reason.trim();
+    const updated = await this.prisma.$transaction(async (database) => {
+      const changed = await database.order.updateMany({
+        where: { id: order.id, clientId, status: "REQUESTED" },
+        data: { status: "CANCELLED" },
+      });
+      if (changed.count !== 1)
+        throw new ConflictException("This request has already been updated");
+      await database.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          fromStatus: "REQUESTED",
+          toStatus: "CANCELLED",
+          changedBy: clientId,
+          note,
+        },
+      });
+      await database.notification.create({
+        data: {
+          orderId: order.id,
+          recipientId: order.providerId,
+          type: "ORDER_CANCELLED",
+          title: "Service request cancelled",
+          body: `The client cancelled the request for ${order.titleSnapshot}. Reason: ${note}`,
+        },
+      });
+      return database.order.findUniqueOrThrow({
+        where: { id: order.id },
+        include: this.orderInclude,
+      });
+    });
+    return {
+      data: this.toResponse(updated),
+      message: "Request cancelled and the provider has been notified.",
+    };
+  }
+
   async start(providerId: string, orderId: string) {
     const order = await this.requireProviderOrder(providerId, orderId);
     if (order.status !== "ACCEPTED")
