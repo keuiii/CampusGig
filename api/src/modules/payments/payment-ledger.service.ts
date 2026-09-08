@@ -70,8 +70,8 @@ export class PaymentLedgerService {
     if (!order) throw new NotFoundException("Order not found");
     if (order.clientId !== userId)
       throw new ForbiddenException("Only the client can pay for this order");
-    if (!["REQUESTED", "ACCEPTED"].includes(order.status))
-      throw new ConflictException("This order is not awaiting payment");
+    if (order.status !== "ACCEPTED")
+      throw new ConflictException("Payment is available after the provider accepts the request");
 
     const existing = await this.prisma.payment.findFirst({
       where: { orderId, status: { in: ["PENDING", "REQUIRES_ACTION", "PAID"] } },
@@ -85,6 +85,7 @@ export class PaymentLedgerService {
     const payment = existing ?? await this.createPending(orderId, `checkout:${orderId}:${randomUUID()}`);
     const checkout = await this.paymongo.createCheckout({
       amountCentavos: payment.amountCentavos,
+      orderId: order.id,
       orderNumber: order.orderNumber,
       title: order.titleSnapshot,
       customerName: order.client.displayName,
@@ -139,6 +140,19 @@ export class PaymentLedgerService {
                 body: `Payment for ${order.titleSnapshot} was confirmed by PayMongo.`,
               })),
             });
+          await database.paymentWebhookEvent.update({
+            where: { id: recorded.event.id },
+            data: { processedAt: new Date(), processingError: null },
+          });
+        });
+      } else if (eventType === "checkout_session.payment.failed") {
+        const checkoutId = payload.data.attributes.data?.id;
+        if (!checkoutId) throw new Error("PayMongo checkout resource is missing");
+        await this.prisma.$transaction(async (database) => {
+          await database.payment.updateMany({
+            where: { providerCheckoutId: checkoutId, status: { in: ["PENDING", "REQUIRES_ACTION"] } },
+            data: { status: "FAILED", failureCode: "checkout_failed" },
+          });
           await database.paymentWebhookEvent.update({
             where: { id: recorded.event.id },
             data: { processedAt: new Date(), processingError: null },
@@ -208,6 +222,7 @@ export class PaymentLedgerService {
       where: { id: orderId },
       select: {
         id: true,
+        subtotalCentavos: true,
         totalCentavos: true,
         platformFeeCentavos: true,
         currency: true,
@@ -216,23 +231,32 @@ export class PaymentLedgerService {
     if (!order) throw new NotFoundException("Order not found");
     if (order.totalCentavos <= 0)
       throw new BadRequestException("Payment amount must be positive");
-    const providerNetCentavos =
-      order.totalCentavos - order.platformFeeCentavos;
-    if (providerNetCentavos < 0)
-      throw new BadRequestException("Platform fee exceeds the order total");
+    if (order.totalCentavos !== order.subtotalCentavos + order.platformFeeCentavos)
+      throw new BadRequestException("Order payment totals are inconsistent");
+    const providerNetCentavos = order.subtotalCentavos;
 
-    return this.prisma.payment.upsert({
-      where: { idempotencyKey },
-      create: {
-        orderId,
-        idempotencyKey,
-        amountCentavos: order.totalCentavos,
-        platformFeeCentavos: order.platformFeeCentavos,
-        providerNetCentavos,
-        currency: order.currency,
-      },
-      update: {},
-    });
+    try {
+      return await this.prisma.payment.upsert({
+        where: { idempotencyKey },
+        create: {
+          orderId,
+          idempotencyKey,
+          amountCentavos: order.totalCentavos,
+          platformFeeCentavos: order.platformFeeCentavos,
+          providerNetCentavos,
+          currency: order.currency,
+        },
+        update: {},
+      });
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code !== "P2002") throw error;
+      const active = await this.prisma.payment.findFirst({
+        where: { orderId, status: { in: ["PENDING", "REQUIRES_ACTION", "PAID"] } },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!active) throw error;
+      return active;
+    }
   }
 
   async recordWebhookOnce(

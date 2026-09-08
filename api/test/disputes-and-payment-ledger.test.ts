@@ -129,6 +129,7 @@ test("pending payment snapshots preserve the order total and fee", async () => {
     order: {
       findUnique: async () => ({
         id: "order-1",
+        subtotalCentavos: 9_000,
         totalCentavos: 10_000,
         platformFeeCentavos: 1_000,
         currency: "PHP",

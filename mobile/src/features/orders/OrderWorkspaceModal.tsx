@@ -612,7 +612,7 @@ export function OrderWorkspaceModal({
                   </Text>
                 </View>
               )}
-              {["REQUESTED", "ACCEPTED"].includes(status) && (
+              {status === "ACCEPTED" && (
                 <>
                   <Text style={styles.groupLabel}>SECURE PAYMENT</Text>
                   <View style={[styles.clientDecisionCard, nightMode && darkStyles.card]}>
@@ -623,6 +623,7 @@ export function OrderWorkspaceModal({
                       </View>
                       <Text style={[styles.workspaceFact, nightMode && darkStyles.primaryText]}>₱{((order?.totalCentavos ?? 0) / 100).toLocaleString()}</Text>
                     </View>
+                    <Text style={[styles.timelineNote, nightMode && darkStyles.mutedText]}>Service ₱{((order?.subtotalCentavos ?? 0) / 100).toLocaleString()} · Protection fee ₱{((order?.platformFeeCentavos ?? 0) / 100).toLocaleString()}</Text>
                     {payments[0]?.status !== "PAID" && <Pressable disabled={openingCheckout} onPress={() => void openCheckout()} style={[styles.acceptDeliveryButton, openingCheckout && styles.authButtonDisabled]}>{openingCheckout ? <ActivityIndicator color="#fff" /> : <Text style={styles.authButtonText}>{payments[0]?.status === "REQUIRES_ACTION" ? "Continue checkout" : "Proceed to payment"}</Text>}</Pressable>}
                     {payments[0] ? <Text style={styles.workspaceCardEyebrow}>{payments[0].status.replaceAll("_", " ")}</Text> : null}
                   </View>

@@ -58,3 +58,28 @@ test("client cannot cancel an order after the provider has accepted it", async (
     ConflictException,
   );
 });
+
+test("payment-enabled orders cannot start before a verified payment", async () => {
+  const order = requestedOrder("ACCEPTED");
+  const prisma = {
+    order: { findFirst: async () => order },
+    payment: { findFirst: async () => null },
+  };
+  const config = { get: (key: string) => key === "PAYMENTS_REQUIRED" ? "true" : undefined };
+  await assert.rejects(
+    () => new OrdersService(prisma as never, config as never).start("provider-1", "order-1"),
+    /Wait for the client payment/,
+  );
+});
+
+test("client protection fee is added to rather than deducted from provider price", () => {
+  const config = {
+    get: (key: string) => ({
+      PLATFORM_FEE_BASIS_POINTS: "700",
+      PLATFORM_FEE_MIN_CENTAVOS: "1500",
+    })[key],
+  };
+  const service = new OrdersService({} as never, config as never);
+  assert.equal((service as any).calculatePlatformFee(50000), 3500);
+  assert.equal((service as any).calculatePlatformFee(10000), 1500);
+});

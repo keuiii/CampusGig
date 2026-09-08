@@ -481,7 +481,7 @@ export function WebOrderWorkspace({
                 {active.review.comment && <p>{active.review.comment}</p>}
               </section>
             )}
-            {perspective === "client" && ["REQUESTED", "ACCEPTED"].includes(active.status) && (
+            {perspective === "client" && active.status === "ACCEPTED" && (
               <section className="workspace-payment">
                 <span className="kicker">SECURE PAYMENT</span>
                 <div className="payment-summary-card">
@@ -490,6 +490,7 @@ export function WebOrderWorkspace({
                     <p>{payments[0]?.status === "PAID" ? "Your payment has been verified by PayMongo." : "Complete checkout using an available test payment method. CampusGig verifies the result automatically."}</p>
                   </div>
                   <b>₱{(active.totalCentavos / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>
+                  <div className="payment-breakdown"><small>Service ₱{(active.subtotalCentavos / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</small><small>Protection fee ₱{(active.platformFeeCentavos / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</small></div>
                   {payments[0]?.status !== "PAID" && <button disabled={openingCheckout} onClick={() => void openCheckout()}>{openingCheckout ? "Opening…" : payments[0]?.status === "REQUIRES_ACTION" ? "Continue checkout" : "Proceed to payment"}</button>}
                   {payments[0] && <span className={`payment-status ${payments[0].status.toLowerCase()}`}>{payments[0].status.replaceAll("_", " ")}</span>}
                 </div>

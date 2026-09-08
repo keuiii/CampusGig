@@ -54,6 +54,7 @@ test("checkout creation keeps the secret server-side and sends integer PHP amoun
       WEB_ORIGIN: "http://localhost:3000",
     }).createCheckout({
       amountCentavos: 250000,
+      orderId: "order-1",
       orderNumber: "CG-2026-TEST",
       title: "Logo Design",
       customerName: "Campus Student",
@@ -62,11 +63,97 @@ test("checkout creation keeps the secret server-side and sends integer PHP amoun
     const body = JSON.parse(String(request?.body));
     assert.equal(body.data.attributes.line_items[0].amount, 250000);
     assert.equal(body.data.attributes.line_items[0].currency, "PHP");
+    assert.match(body.data.attributes.success_url, /orderId=order-1/);
     assert.match(String((request?.headers as Record<string, string>).Authorization), /^Basic /);
     assert.equal(result.id, "cs_test");
   } finally {
     globalThis.fetch = previousFetch;
   }
+});
+
+test("checkout is blocked until the provider accepts the request", async () => {
+  const prisma = {
+    order: {
+      findUnique: async () => ({
+        id: "order-1",
+        clientId: "client-1",
+        status: "REQUESTED",
+        orderNumber: "CG-TEST",
+        titleSnapshot: "Logo Design",
+        client: { displayName: "Client", email: "client@example.com" },
+      }),
+    },
+  };
+  const service = new PaymentLedgerService(prisma as never, {} as never);
+  await assert.rejects(
+    () => service.createCheckout("client-1", "order-1"),
+    /Payment is available after the provider accepts/,
+  );
+});
+
+test("concurrent checkout creation reuses the database-guarded active payment", async () => {
+  const active = { id: "payment-active", orderId: "order-1", status: "PENDING" };
+  const prisma = {
+    order: {
+      findUnique: async () => ({
+        id: "order-1",
+        subtotalCentavos: 50000,
+        platformFeeCentavos: 3500,
+        totalCentavos: 53500,
+        currency: "PHP",
+      }),
+    },
+    payment: {
+      upsert: async () => { throw { code: "P2002" }; },
+      findFirst: async () => active,
+    },
+  };
+  const result = await new PaymentLedgerService(prisma as never, {} as never)
+    .createPending("order-1", "checkout:race");
+  assert.equal(result.id, "payment-active");
+});
+
+test("refund webhooks reconcile the refund and payment state atomically", async () => {
+  let refundAmount = 0;
+  let paymentState = "PAID";
+  const database = {
+    paymentRefund: {
+      upsert: async ({ create }: { create: { amountCentavos: number } }) => { refundAmount = create.amountCentavos; },
+    },
+    payment: {
+      update: async ({ data }: { data: { status: string } }) => { paymentState = data.status; },
+    },
+    paymentWebhookEvent: { update: async () => undefined },
+  };
+  const prisma = {
+    paymentWebhookEvent: {
+      create: async () => ({ id: "event-refund", processedAt: null }),
+      update: async () => undefined,
+    },
+    payment: {
+      findUnique: async () => ({ id: "payment-1", orderId: "order-1", amountCentavos: 50000 }),
+    },
+    $transaction: async (operation: (client: typeof database) => unknown) => operation(database),
+  };
+  await new PaymentLedgerService(prisma as never, {} as never).processWebhook({
+    data: {
+      id: "evt_refund",
+      type: "event",
+      attributes: {
+        type: "payment.refunded",
+        livemode: false,
+        data: {
+          id: "pay_test",
+          type: "payment",
+          attributes: {
+            refunds: [{ id: "ref_test", attributes: { amount: 50000, status: "succeeded", reason: "requested_by_customer" } }],
+          },
+        },
+      },
+    },
+  });
+  assert.equal(refundAmount, 50000);
+  assert.equal(paymentState, "REFUNDED");
 });
 
 test("a paid checkout updates the ledger and notifications in one transaction", async () => {

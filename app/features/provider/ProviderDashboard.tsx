@@ -513,6 +513,10 @@ export function ProviderDashboard({
                     <small>DUE</small>
                     <b>{new Date(order.dueAt).toLocaleDateString()}</b>
                   </span>
+                  <span>
+                    <small>PAYMENT</small>
+                    <b>{order.paymentStatus?.replaceAll("_", " ") ?? "NOT PAID"}</b>
+                  </span>
                 </div>
               </div>
               {order.status === "REQUESTED" ? (

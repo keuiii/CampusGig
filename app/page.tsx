@@ -74,6 +74,20 @@ export default function CampusGigApp() {
   }, []);
 
   useEffect(() => {
+    if (!webToken || !orders.length) return;
+    const url = new URL(window.location.href);
+    const payment = url.searchParams.get("payment");
+    const orderId = url.searchParams.get("orderId");
+    if (!payment || !orderId || !orders.some((order) => order.id === orderId)) return;
+    setNotificationOrderId(orderId);
+    setView("orders");
+    notify(payment === "success" ? "Payment submitted. Waiting for PayMongo confirmation." : "Payment checkout was cancelled.");
+    url.searchParams.delete("payment");
+    url.searchParams.delete("orderId");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [orders, webToken]);
+
+  useEffect(() => {
     let frame = 0;
     const updateScroll = () => {
       cancelAnimationFrame(frame);

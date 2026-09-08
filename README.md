@@ -418,7 +418,9 @@ Registration creates a local account with a hashed password and the default `CLI
 
 ## PayMongo sandbox setup
 
-The API intentionally accepts only an `sk_test_` secret. Add `PAYMONGO_SECRET_KEY` and `PAYMONGO_WEBHOOK_SECRET` to `api/.env`, then create one PayMongo webhook pointing to the publicly reachable `/api/v1/payments/paymongo/webhook` route. Subscribe to `checkout_session.payment.paid` and `payment.refunded`. For local development, expose port 4000 through an HTTPS tunnel; PayMongo cannot call `localhost` on your computer. Optional return URLs and enabled checkout methods are documented in `api/.env.example`.
+The API intentionally accepts only an `sk_test_` secret. Add `PAYMONGO_SECRET_KEY` and `PAYMONGO_WEBHOOK_SECRET` to `api/.env`, then create one PayMongo webhook pointing to the publicly reachable `/api/v1/payments/paymongo/webhook` route. Subscribe to `checkout_session.payment.paid`, `checkout_session.payment.failed`, and `payment.refunded`. For local development, expose port 4000 through an HTTPS tunnel; PayMongo cannot call `localhost` on your computer. Optional return URLs and enabled checkout methods are documented in `api/.env.example`.
+
+Keep `PAYMENTS_REQUIRED=false` until the first signed sandbox payment succeeds end to end. When it is changed to `true`, providers cannot start accepted work until the payment ledger contains a webhook-confirmed `PAID` entry. Platform fees default to zero; configure `PLATFORM_FEE_BASIS_POINTS` and `PLATFORM_FEE_MIN_CENTAVOS` only after the fee policy is approved. The fee is added to the client total and the provider price remains intact.
 
 Never place PayMongo secret or webhook keys in `.env.local`, `NEXT_PUBLIC_*`, Expo configuration, web code, or mobile code. Payment success is recorded only after a valid signed webhook; returning to the success URL alone does not mark an order paid.
 

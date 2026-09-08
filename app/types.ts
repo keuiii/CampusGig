@@ -173,7 +173,10 @@ export type MarketplaceOrder = {
   title: string;
   status: string;
   requirements: string;
+  subtotalCentavos: number;
+  platformFeeCentavos: number;
   totalCentavos: number;
+  paymentStatus?: string | null;
   currency: string;
   dueAt: string;
   createdAt: string;

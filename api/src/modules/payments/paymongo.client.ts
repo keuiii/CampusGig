@@ -18,6 +18,7 @@ export class PaymongoClient {
 
   async createCheckout(input: {
     amountCentavos: number;
+    orderId: string;
     orderNumber: string;
     title: string;
     customerName: string;
@@ -41,8 +42,8 @@ export class PaymongoClient {
       body: JSON.stringify({
         data: { attributes: {
           billing: { name: input.customerName, email: input.customerEmail },
-          cancel_url: this.config.get<string>("PAYMONGO_CANCEL_URL") || `${webOrigin}?payment=cancelled`,
-          success_url: this.config.get<string>("PAYMONGO_SUCCESS_URL") || `${webOrigin}?payment=success`,
+          cancel_url: this.returnUrl("PAYMONGO_CANCEL_URL", webOrigin, "cancelled", input.orderId),
+          success_url: this.returnUrl("PAYMONGO_SUCCESS_URL", webOrigin, "success", input.orderId),
           description: `CampusGig order ${input.orderNumber}`,
           reference_number: input.orderNumber,
           send_email_receipt: true,
@@ -99,5 +100,15 @@ export class PaymongoClient {
     const value = this.config.get<string>(key)?.trim();
     if (!value) throw new ServiceUnavailableException(`${key} is not configured`);
     return value;
+  }
+
+  private returnUrl(key: string, origin: string, status: string, orderId: string) {
+    const configured = this.config.get<string>(key)?.trim();
+    if (configured)
+      return configured.replaceAll("{orderId}", encodeURIComponent(orderId));
+    const url = new URL(origin);
+    url.searchParams.set("payment", status);
+    url.searchParams.set("orderId", orderId);
+    return url.toString();
   }
 }

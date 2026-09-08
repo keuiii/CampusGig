@@ -5,13 +5,17 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { CreateOrderDto } from "./dto/create-order.dto";
 import type { CreateReviewDto } from "./dto/create-review.dto";
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async create(clientId: string, input: CreateOrderDto) {
     const service = await this.prisma.service.findFirst({
@@ -32,6 +36,7 @@ export class OrdersService {
       Date.now() + selectedPackage.deliveryDays * 24 * 60 * 60 * 1000,
     );
     const orderNumber = `CG-${new Date().getFullYear()}-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+    const platformFeeCentavos = this.calculatePlatformFee(selectedPackage.priceCentavos);
     const order = await this.prisma.$transaction(async (database) =>
       database.order.create({
         data: {
@@ -50,7 +55,8 @@ export class OrdersService {
             revisionLimit: selectedPackage.revisionLimit,
           },
           subtotalCentavos: selectedPackage.priceCentavos,
-          totalCentavos: selectedPackage.priceCentavos,
+          platformFeeCentavos,
+          totalCentavos: selectedPackage.priceCentavos + platformFeeCentavos,
           requirements,
           dueAt,
           revisionLimit: selectedPackage.revisionLimit,
@@ -252,6 +258,16 @@ export class OrdersService {
     const order = await this.requireProviderOrder(providerId, orderId);
     if (order.status !== "ACCEPTED")
       throw new ConflictException("Only an accepted order can be started");
+    if (this.config.get<string>("PAYMENTS_REQUIRED") === "true") {
+      const paid = await this.prisma.payment.findFirst({
+        where: { orderId: order.id, status: "PAID" },
+        select: { id: true },
+      });
+      if (!paid)
+        throw new ConflictException(
+          "Wait for the client payment to be confirmed before starting work",
+        );
+    }
     const updated = await this.prisma.$transaction(async (database) => {
       const changed = await database.order.updateMany({
         where: { id: order.id, providerId, status: "ACCEPTED" },
@@ -581,6 +597,11 @@ export class OrdersService {
         createdAt: true,
       },
     },
+    payments: {
+      orderBy: { createdAt: "desc" as const },
+      take: 1,
+      select: { status: true },
+    },
   } as const;
 
   private toResponse(order: any) {
@@ -601,9 +622,21 @@ export class OrdersService {
       files: order.files ?? [],
       revisions: order.revisions ?? [],
       review: order.review ?? null,
+      paymentStatus: order.payments?.[0]?.status ?? null,
       client: order.client,
       provider: order.provider,
       package: order.servicePackage,
     };
+  }
+
+  private calculatePlatformFee(subtotalCentavos: number) {
+    const basisPoints = Number(this.config.get<string>("PLATFORM_FEE_BASIS_POINTS") ?? "0");
+    const minimum = Number(this.config.get<string>("PLATFORM_FEE_MIN_CENTAVOS") ?? "0");
+    if (!Number.isInteger(basisPoints) || basisPoints < 0 || basisPoints > 3000)
+      throw new BadRequestException("Platform fee configuration is invalid");
+    if (!Number.isInteger(minimum) || minimum < 0)
+      throw new BadRequestException("Platform fee minimum is invalid");
+    if (basisPoints === 0) return 0;
+    return Math.max(minimum, Math.ceil((subtotalCentavos * basisPoints) / 10_000));
   }
 }

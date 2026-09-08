@@ -52,6 +52,9 @@ export type MobileOrder = {
   status: string;
   requirements: string;
   totalCentavos: number;
+  subtotalCentavos: number;
+  platformFeeCentavos: number;
+  paymentStatus?: string | null;
   currency: string;
   dueAt: string;
   createdAt: string;
