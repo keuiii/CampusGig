@@ -9,6 +9,8 @@ import type {
   MfaSetup,
   MfaStatus,
   ModerationService,
+  OrderDispute,
+  DisputeReason,
   OrderMessage,
   OrderWorkspace,
   ProviderProfile,
@@ -277,6 +279,28 @@ export const api = {
     ),
   order: (token: string, id: string) =>
     request<{ data: OrderWorkspace }>(`/orders/${id}`, undefined, token),
+  orderDispute: (token: string, id: string) =>
+    request<{ data: OrderDispute | null }>(`/orders/${id}/disputes`, undefined, token),
+  openOrderDispute: (token: string, id: string, reason: DisputeReason, details: string) =>
+    request<{ data: OrderDispute; message: string }>(
+      `/orders/${id}/disputes`,
+      { method: "POST", body: JSON.stringify({ reason, details }) },
+      token,
+    ),
+  adminDisputes: (token: string) =>
+    request<{ data: OrderDispute[] }>("/admin/disputes", undefined, token),
+  beginDisputeReview: (token: string, id: string) =>
+    request<{ data: OrderDispute }>(`/admin/disputes/${id}/review`, { method: "POST" }, token),
+  resolveDispute: (
+    token: string,
+    id: string,
+    status: "RESOLVED_CLIENT" | "RESOLVED_PROVIDER" | "CLOSED",
+    resolutionNote: string,
+  ) => request<{ data: OrderDispute; message: string }>(
+    `/admin/disputes/${id}/resolve`,
+    { method: "POST", body: JSON.stringify({ status, resolutionNote }) },
+    token,
+  ),
   messages: (token: string, orderId: string) =>
     request<{ data: OrderMessage[] }>(
       `/orders/${orderId}/messages`,

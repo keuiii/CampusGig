@@ -223,6 +223,27 @@ export type OrderMessage = {
 };
 export type OrderWorkspace = MarketplaceOrder & { history: OrderHistoryItem[] };
 
+export type DisputeReason =
+  | "SERVICE_NOT_DELIVERED"
+  | "QUALITY_ISSUE"
+  | "REQUIREMENTS_MISMATCH"
+  | "PAYMENT_ISSUE"
+  | "CONDUCT"
+  | "OTHER";
+export type OrderDispute = {
+  id: string;
+  orderId: string;
+  reason: DisputeReason;
+  details: string;
+  status: "OPEN" | "UNDER_REVIEW" | "RESOLVED_CLIENT" | "RESOLVED_PROVIDER" | "CLOSED";
+  resolutionNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  openedBy: { id: string; displayName: string };
+  resolvedBy?: { id: string; displayName: string } | null;
+  order?: MarketplaceOrder;
+};
+
 export type ProviderProfile = {
   userId: string;
   headline: string;

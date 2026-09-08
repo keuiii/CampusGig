@@ -7,6 +7,7 @@ import type {
   AuthUser,
   DashboardStats,
   ModerationService,
+  OrderDispute,
   School,
   SchoolAdministrator,
   Verification,
@@ -27,6 +28,7 @@ export function AdminDashboard({
 }) {
   const [queue, setQueue] = useState<Verification[]>([]);
   const [serviceQueue, setServiceQueue] = useState<ModerationService[]>([]);
+  const [disputes, setDisputes] = useState<OrderDispute[]>([]);
   const [schoolAdmins, setSchoolAdmins] = useState<SchoolAdministrator[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -56,22 +58,49 @@ export function AdminDashboard({
         nextSchools,
         nextSchoolAdmins,
         nextStats,
+        nextDisputes,
       ] = await Promise.all([
         api.verifications(token),
         api.moderationServices(token),
         api.adminSchools(token),
         api.schoolAdministrators(token),
         api.adminStats(token),
+        api.adminDisputes(token),
       ]);
       setQueue(nextQueue);
       setServiceQueue(nextServices);
       setSchools(nextSchools);
       setSchoolAdmins(nextSchoolAdmins);
       setStats(nextStats);
+      setDisputes(nextDisputes.data);
     } catch {
       notify("Unable to load administrator data");
     } finally {
       setLoading(false);
+    }
+  }
+  async function reviewDispute(item: OrderDispute) {
+    try {
+      const result = await api.beginDisputeReview(token, item.id);
+      setDisputes((items) => items.map((entry) => entry.id === item.id ? result.data : entry));
+      notify("Dispute moved to review");
+    } catch (caught) {
+      notify(caught instanceof Error ? caught.message : "Unable to review dispute");
+    }
+  }
+  async function resolveDispute(item: OrderDispute, status: "RESOLVED_CLIENT" | "RESOLVED_PROVIDER" | "CLOSED") {
+    const note = window.prompt("Enter the resolution details. Both participants will receive this message.")?.trim();
+    if (!note || note.length < 10) {
+      if (note) notify("Resolution details must contain at least 10 characters");
+      return;
+    }
+    if (!window.confirm(`Confirm ${status.replaceAll("_", " ").toLowerCase()}?`)) return;
+    try {
+      const result = await api.resolveDispute(token, item.id, status, note);
+      setDisputes((items) => items.map((entry) => entry.id === item.id ? result.data : entry));
+      notify(result.message);
+    } catch (caught) {
+      notify(caught instanceof Error ? caught.message : "Unable to resolve dispute");
     }
   }
   useEffect(() => {
@@ -266,6 +295,25 @@ export function AdminDashboard({
         <div className="admin-loading">Loading administrator workspace…</div>
       ) : (
         <>
+          <section className="panel admin-panel">
+            <div className="panel-title">
+              <div><span className="kicker">ORDER PROTECTION</span><h2>Dispute review queue</h2></div>
+              <span className="queue-count">{disputes.filter((item) => item.status === "OPEN" || item.status === "UNDER_REVIEW").length} active</span>
+            </div>
+            {disputes.length ? disputes.map((item) => (
+              <div className="dispute-admin-row" key={item.id}>
+                <div><b>{item.reason.replaceAll("_", " ")}</b><small>Order {item.orderId.slice(0, 8)} · Opened by {item.openedBy.displayName}</small><p>{item.details}</p></div>
+                <span className="school-status active">{item.status.replaceAll("_", " ")}</span>
+                {(item.status === "OPEN" || item.status === "UNDER_REVIEW") && <div className="verify-actions">
+                  {item.status === "OPEN" && <button onClick={() => void reviewDispute(item)}>Review</button>}
+                  <button className="approve" onClick={() => void resolveDispute(item, "RESOLVED_CLIENT")}>Client</button>
+                  <button onClick={() => void resolveDispute(item, "RESOLVED_PROVIDER")}>Provider</button>
+                  <button className="reject" onClick={() => void resolveDispute(item, "CLOSED")}>Close</button>
+                </div>}
+                {item.resolutionNote && <p className="moderation-note">Resolution: {item.resolutionNote}</p>}
+              </div>
+            )) : <div className="empty compact"><h3>No order disputes</h3><p>New participant reports will appear here.</p></div>}
+          </section>
           <section className="panel admin-panel">
             <div className="panel-title">
               <div>

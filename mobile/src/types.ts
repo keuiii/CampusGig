@@ -102,6 +102,23 @@ export type MobileOrderDetail = MobileOrder & {
   history: OrderHistoryItem[];
 };
 
+export type DisputeReason =
+  | "SERVICE_NOT_DELIVERED"
+  | "QUALITY_ISSUE"
+  | "REQUIREMENTS_MISMATCH"
+  | "PAYMENT_ISSUE"
+  | "CONDUCT"
+  | "OTHER";
+export type OrderDispute = {
+  id: string;
+  orderId: string;
+  reason: DisputeReason;
+  details: string;
+  status: "OPEN" | "UNDER_REVIEW" | "RESOLVED_CLIENT" | "RESOLVED_PROVIDER" | "CLOSED";
+  resolutionNote: string | null;
+  createdAt: string;
+};
+
 export type MessageAttachment = {
   id: string;
   originalName: string;

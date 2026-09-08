@@ -6,7 +6,9 @@ import { io } from "socket.io-client";
 import { api } from "../../lib/api";
 import { apiUrl } from "../../lib/http-client";
 import type {
+  DisputeReason,
   MarketplaceOrder,
+  OrderDispute,
   OrderMessage,
   OrderWorkspace,
 } from "../../types";
@@ -88,13 +90,20 @@ export function WebOrderWorkspace({
   const [acting, setActing] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [peerRead, setPeerRead] = useState(false);
+  const [dispute, setDispute] = useState<OrderDispute | null>(null);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [disputeReason, setDisputeReason] = useState<DisputeReason>("SERVICE_NOT_DELIVERED");
+  const [disputeDetails, setDisputeDetails] = useState("");
+  const [submittingDispute, setSubmittingDispute] = useState(false);
   async function refresh() {
-    const [orderResult, messageResult] = await Promise.all([
+    const [orderResult, messageResult, disputeResult] = await Promise.all([
       api.order(token, order.id),
       api.messages(token, order.id),
+      api.orderDispute(token, order.id),
     ]);
     setDetail(orderResult.data);
     setMessages(messageResult.data);
+    setDispute(disputeResult.data);
   }
   useEffect(() => {
     void refresh();
@@ -218,6 +227,28 @@ export function WebOrderWorkspace({
       );
     } finally {
       setActing(false);
+    }
+  }
+  async function submitDispute(event: FormEvent) {
+    event.preventDefault();
+    if (submittingDispute || disputeDetails.trim().length < 10) return;
+    if (!window.confirm("Submit this report to CampusGig administrators for review?")) return;
+    setSubmittingDispute(true);
+    try {
+      const result = await api.openOrderDispute(
+        token,
+        order.id,
+        disputeReason,
+        disputeDetails.trim(),
+      );
+      setDispute(result.data);
+      setShowDisputeForm(false);
+      setDisputeDetails("");
+      window.alert(result.message);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Unable to submit the report");
+    } finally {
+      setSubmittingDispute(false);
     }
   }
   const active = detail ?? order;
@@ -428,6 +459,49 @@ export function WebOrderWorkspace({
                 <strong>{"★".repeat(active.review.overallRating)}</strong>
                 <h3>Review submitted</h3>
                 {active.review.comment && <p>{active.review.comment}</p>}
+              </section>
+            )}
+            {["ACCEPTED", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "COMPLETED"].includes(active.status) && (
+              <section className="workspace-dispute">
+                <span className="kicker">SUPPORT & SAFETY</span>
+                {dispute ? (
+                  <div className="dispute-status-card">
+                    <div>
+                      <h3>Report {dispute.status.replaceAll("_", " ").toLowerCase()}</h3>
+                      <p>{dispute.reason.replaceAll("_", " ").toLowerCase()} · Submitted {new Date(dispute.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <span>{dispute.status.replaceAll("_", " ")}</span>
+                    <p>{dispute.details}</p>
+                    {dispute.resolutionNote && <p><b>Resolution:</b> {dispute.resolutionNote}</p>}
+                  </div>
+                ) : showDisputeForm ? (
+                  <form className="dispute-form" onSubmit={submitDispute}>
+                    <h3>Report an order problem</h3>
+                    <p>CampusGig administrators will review this report. Messages and order activity remain available as evidence.</p>
+                    <label>Reason
+                      <select value={disputeReason} onChange={(event) => setDisputeReason(event.target.value as DisputeReason)}>
+                        <option value="SERVICE_NOT_DELIVERED">Service not delivered</option>
+                        <option value="QUALITY_ISSUE">Quality issue</option>
+                        <option value="REQUIREMENTS_MISMATCH">Requirements mismatch</option>
+                        <option value="PAYMENT_ISSUE">Payment issue</option>
+                        <option value="CONDUCT">Conduct or safety concern</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                    </label>
+                    <label>What happened?
+                      <textarea value={disputeDetails} onChange={(event) => setDisputeDetails(event.target.value)} minLength={10} maxLength={2000} placeholder="Provide specific details for the review team…" required />
+                    </label>
+                    <div className="dispute-form-actions">
+                      <button type="button" className="reject" onClick={() => setShowDisputeForm(false)}>Cancel</button>
+                      <button disabled={submittingDispute || disputeDetails.trim().length < 10}>{submittingDispute ? "Submitting…" : "Submit report"}</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="dispute-entry">
+                    <div><h3>Need help with this order?</h3><p>Report delivery, quality, payment, or conduct problems for administrator review.</p></div>
+                    <button onClick={() => setShowDisputeForm(true)}>Report a problem</button>
+                  </div>
+                )}
               </section>
             )}
             <section>

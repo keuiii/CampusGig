@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
-    "test": "tsx --test test/helmet-options.test.ts test/password-change.service.test.ts test/school-live-update.test.ts test/icon-system.test.ts test/google-sign-in-error.test.ts test/message-notification-read.test.ts test/conversation-hide.test.ts test/realtime-gateway.test.ts test/notifications-read-all.test.ts test/order-cancellation.test.ts test/disputes-and-payment-ledger.test.ts",
+    "test": "tsx --test test/helmet-options.test.ts test/password-change.service.test.ts test/school-live-update.test.ts test/icon-system.test.ts test/google-sign-in-error.test.ts test/message-notification-read.test.ts test/conversation-hide.test.ts test/realtime-gateway.test.ts test/notifications-read-all.test.ts test/order-cancellation.test.ts test/disputes-and-payment-ledger.test.ts test/dispute-ui-contract.test.ts",
     "typecheck": "tsc --noEmit --noUnusedLocals",
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate",

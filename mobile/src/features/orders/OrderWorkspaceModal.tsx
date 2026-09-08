@@ -20,8 +20,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL, STORAGE_KEYS } from "../../config";
 import { darkStyles, green, styles } from "../../theme";
 import type {
+  DisputeReason,
   MobileOrder,
   MobileOrderDetail,
+  OrderDispute,
   OrderFile,
   OrderHistoryItem,
 } from "../../types";
@@ -45,6 +47,11 @@ export function OrderWorkspaceModal({
   const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [acting, setActing] = useState(false);
+  const [dispute, setDispute] = useState<OrderDispute | null>(null);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [disputeReason, setDisputeReason] = useState<DisputeReason>("SERVICE_NOT_DELIVERED");
+  const [disputeDetails, setDisputeDetails] = useState("");
+  const [submittingDispute, setSubmittingDispute] = useState(false);
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(
     null,
   );
@@ -64,6 +71,8 @@ export function OrderWorkspaceModal({
         setDetail(next);
         setHistory(next.history ?? []);
       }
+      const disputeResponse = await fetch(`${API_URL}/api/v1/orders/${order.id}/disputes`, { headers });
+      if (disputeResponse.ok) setDispute((await disputeResponse.json()).data as OrderDispute | null);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -74,6 +83,9 @@ export function OrderWorkspaceModal({
     setHistory([]);
     setRevisionInstructions("");
     setReviewComment("");
+    setDispute(null);
+    setShowDisputeForm(false);
+    setDisputeDetails("");
     setRating(5);
     void loadWorkspace(true);
     const timer = setInterval(() => void loadWorkspace(), 5000);
@@ -112,6 +124,39 @@ export function OrderWorkspaceModal({
       );
     } finally {
       setActing(false);
+    }
+  }
+  async function confirmDispute() {
+    if (!order || submittingDispute || disputeDetails.trim().length < 10) return;
+    Alert.alert(
+      "Submit order report?",
+      "CampusGig administrators will review your report and the order activity.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Submit", onPress: () => void submitDispute() },
+      ],
+    );
+  }
+  async function submitDispute() {
+    if (!order) return;
+    setSubmittingDispute(true);
+    try {
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      const response = await fetch(`${API_URL}/api/v1/orders/${order.id}/disputes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: disputeReason, details: disputeDetails.trim() }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(Array.isArray(payload?.message) ? payload.message.join(" ") : (payload?.message ?? "Unable to submit report"));
+      setDispute(payload.data as OrderDispute);
+      setShowDisputeForm(false);
+      setDisputeDetails("");
+      Alert.alert("Report submitted", payload.message);
+    } catch (error) {
+      Alert.alert("Unable to submit report", error instanceof Error ? error.message : "Please try again.");
+    } finally {
+      setSubmittingDispute(false);
     }
   }
   async function openDelivery(
@@ -540,6 +585,49 @@ export function OrderWorkspaceModal({
                     Your review has been submitted. {detail.review.comment}
                   </Text>
                 </View>
+              )}
+              {["ACCEPTED", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "COMPLETED"].includes(status) && (
+                <>
+                  <Text style={styles.groupLabel}>SUPPORT & SAFETY</Text>
+                  <View style={[styles.clientDecisionCard, nightMode && darkStyles.card]}>
+                    {dispute ? (
+                      <>
+                        <View style={styles.workspaceSectionHeading}>
+                          <Text style={[styles.workspaceSectionTitle, nightMode && darkStyles.primaryText]}>Report status</Text>
+                          <View style={styles.workspaceStatusPill}><Text style={styles.workspaceStatusPillText}>{dispute.status.replaceAll("_", " ")}</Text></View>
+                        </View>
+                        <Text style={styles.workspaceCardEyebrow}>{dispute.reason.replaceAll("_", " ")}</Text>
+                        <Text style={[styles.workspaceBody, nightMode && darkStyles.mutedText]}>{dispute.details}</Text>
+                        {dispute.resolutionNote ? <Text style={[styles.workspaceBody, nightMode && darkStyles.primaryText]}>Resolution: {dispute.resolutionNote}</Text> : null}
+                      </>
+                    ) : showDisputeForm ? (
+                      <>
+                        <Text style={[styles.workspaceSectionTitle, nightMode && darkStyles.primaryText]}>Report an order problem</Text>
+                        <Text style={[styles.workspaceBody, nightMode && darkStyles.mutedText]}>Choose the closest reason and provide specific details.</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                          {(["SERVICE_NOT_DELIVERED", "QUALITY_ISSUE", "REQUIREMENTS_MISMATCH", "PAYMENT_ISSUE", "CONDUCT", "OTHER"] as DisputeReason[]).map((reason) => (
+                            <Pressable key={reason} onPress={() => setDisputeReason(reason)} style={[styles.disputeReasonChip, disputeReason === reason && styles.disputeReasonChipActive]}>
+                              <Text style={[styles.disputeReasonChipText, disputeReason === reason && styles.authButtonText]}>{reason.replaceAll("_", " ")}</Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                        <TextInput value={disputeDetails} onChangeText={setDisputeDetails} multiline maxLength={2000} placeholder="Describe what happened…" placeholderTextColor="#929A96" style={[styles.revisionInput, nightMode && darkStyles.input, nightMode && darkStyles.primaryText]} />
+                        <View style={styles.disputeActions}>
+                          <Pressable onPress={() => setShowDisputeForm(false)} style={styles.revisionButton}><Text style={styles.revisionButtonText}>Cancel</Text></Pressable>
+                          <Pressable disabled={submittingDispute || disputeDetails.trim().length < 10} onPress={() => void confirmDispute()} style={[styles.acceptDeliveryButton, (submittingDispute || disputeDetails.trim().length < 10) && styles.authButtonDisabled]}>
+                            {submittingDispute ? <ActivityIndicator color="#fff" /> : <Text style={styles.authButtonText}>Submit report</Text>}
+                          </Pressable>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={[styles.workspaceSectionTitle, nightMode && darkStyles.primaryText]}>Need help with this order?</Text>
+                        <Text style={[styles.workspaceBody, nightMode && darkStyles.mutedText]}>Report delivery, quality, payment, or conduct problems for administrator review.</Text>
+                        <Pressable onPress={() => setShowDisputeForm(true)} style={styles.revisionButton}><Text style={styles.revisionButtonText}>Report a problem</Text></Pressable>
+                      </>
+                    )}
+                  </View>
+                </>
               )}
               <View style={styles.workspaceSectionHeading}>
                 <View>
