@@ -10,6 +10,7 @@ import type {
   MfaStatus,
   ModerationService,
   OrderDispute,
+  OrderPayment,
   DisputeReason,
   OrderMessage,
   OrderWorkspace,
@@ -286,6 +287,12 @@ export const api = {
       `/orders/${id}/disputes`,
       { method: "POST", body: JSON.stringify({ reason, details }) },
       token,
+    ),
+  orderPayments: (token: string, id: string) =>
+    request<{ data: OrderPayment[] }>(`/orders/${id}/payments`, undefined, token),
+  createPaymentCheckout: (token: string, id: string) =>
+    request<{ data: Pick<OrderPayment, "id" | "amountCentavos" | "currency" | "status" | "createdAt">; checkoutUrl: string }>(
+      `/orders/${id}/payments/checkout`, { method: "POST" }, token,
     ),
   adminDisputes: (token: string) =>
     request<{ data: OrderDispute[] }>("/admin/disputes", undefined, token),

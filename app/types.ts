@@ -243,6 +243,18 @@ export type OrderDispute = {
   resolvedBy?: { id: string; displayName: string } | null;
   order?: MarketplaceOrder;
 };
+export type OrderPayment = {
+  id: string;
+  provider: "PAYMONGO";
+  amountCentavos: number;
+  platformFeeCentavos: number;
+  providerNetCentavos: number;
+  refundedCentavos: number;
+  currency: string;
+  status: "PENDING" | "REQUIRES_ACTION" | "PAID" | "FAILED" | "REFUND_PENDING" | "PARTIALLY_REFUNDED" | "REFUNDED" | "CANCELLED";
+  paidAt: string | null;
+  createdAt: string;
+};
 
 export type ProviderProfile = {
   userId: string;

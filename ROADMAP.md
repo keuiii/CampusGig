@@ -6,11 +6,11 @@ Related documentation: [project setup and current API status](./README.md) and [
 
 ## Current status
 
-CampusGig is in the **integrated MVP development stage**. The web and Expo mobile apps use the NestJS API and PostgreSQL database for authentication, profiles, school verification, moderated service listings, marketplace discovery, full fixed-price order lifecycle actions, private order messaging, deliverables, revisions, notifications, and verified reviews. Disputes and payments are not yet operational.
+CampusGig is in the **integrated MVP development stage**. The web and Expo mobile apps use the NestJS API and PostgreSQL database for authentication, profiles, school verification, moderated service listings, marketplace discovery, full fixed-price order lifecycle actions, private order messaging, deliverables, revisions, notifications, verified reviews, participant disputes, and PayMongo sandbox checkout.
 
 Estimated progress:
 
-- **Phase 1 MVP:** approximately 84% complete
+- **Phase 1 MVP:** approximately 88% complete
 - **Full production platform:** approximately 30% complete
 
 These percentages measure working end-to-end functionality, not only screens or database tables.
@@ -81,7 +81,7 @@ Remaining: listing preview/pause/archive and production object storage. Provider
 - Profile setup interface
 - Mobile Orders, Messages, and Profile navigation
 
-Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, lifecycle-focused order workspaces, dedicated mobile conversations, delivery/revision/completion transitions, and reviews use authenticated database operations. Disputes and some secondary empty states remain prototypes.
+Administrator verification and school management, provider profiles/listings/moderation requests, order requests, notifications, lifecycle-focused order workspaces, dedicated mobile conversations, delivery/revision/completion transitions, reviews, dispute resolution, and PayMongo test checkout use authenticated database operations.
 
 ### Participating schools and verification — Backend and mobile flow complete
 
@@ -307,4 +307,4 @@ Messaging, uploads, reviews, disputes, automated tests, and deployment follow in
 
 ## Best next task
 
-The next development task is **basic dispute handling and payment-ledger foundations**, followed by PayMongo sandbox checkout only after dispute, refund, webhook-idempotency, and authorization tests pass.
+The next development task is **PayMongo sandbox end-to-end verification with real test credentials and a public HTTPS webhook**, followed by payment-gated provider acceptance, administrator refund controls, payout onboarding, and production hardening.

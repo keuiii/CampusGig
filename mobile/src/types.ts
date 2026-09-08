@@ -118,6 +118,14 @@ export type OrderDispute = {
   resolutionNote: string | null;
   createdAt: string;
 };
+export type OrderPayment = {
+  id: string;
+  amountCentavos: number;
+  currency: string;
+  status: "PENDING" | "REQUIRES_ACTION" | "PAID" | "FAILED" | "REFUND_PENDING" | "PARTIALLY_REFUNDED" | "REFUNDED" | "CANCELLED";
+  paidAt: string | null;
+  createdAt: string;
+};
 
 export type MessageAttachment = {
   id: string;

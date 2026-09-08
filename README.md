@@ -61,7 +61,7 @@ Not yet fully implemented:
 - Custom job postings and proposals
 - Production deployment and automated testing
 
-Authenticated Socket.IO realtime messaging, read states, unread counts, and private development file sharing now work across the web and MAUI mobile client, with bounded polling fallback. Dispute handling, payment processing, production email credential setup, malware scanning, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
+Authenticated Socket.IO realtime messaging, read states, unread counts, private development file sharing, participant dispute reporting, administrator resolution, and PayMongo sandbox checkout now work across the web and mobile client. Production PayMongo activation, payout onboarding, production email credentials, malware scanning, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
 
 ## Technology
 
@@ -380,6 +380,11 @@ Order and notification routes implemented:
 - `POST /api/v1/orders/:id/revision` (Order client only; revision limit enforced)
 - `POST /api/v1/orders/:id/complete` (Order client only; submitted work only)
 - `POST /api/v1/orders/:id/review` (Order client only; one review per completed order)
+- `GET|POST /api/v1/orders/:id/disputes` (Participants can view; one eligible-order report)
+- `GET /api/v1/admin/disputes` and review/resolve routes (Admin only)
+- `GET /api/v1/orders/:id/payments` (Order participants; safe ledger fields only)
+- `POST /api/v1/orders/:id/payments/checkout` (Order client only; PayMongo test mode)
+- `POST /api/v1/payments/paymongo/webhook` (Public endpoint secured by PayMongo signature)
 - `GET /api/v1/orders/:orderId/messages` (Order participants only)
 - `POST /api/v1/orders/:orderId/messages` (Order participants only)
 - `POST /api/v1/orders/:orderId/messages/attachments` (Order participants only; up to three private files)
@@ -410,6 +415,12 @@ Authentication routes implemented in the API:
 - `GET /api/v1/auth/me` (Bearer token required)
 
 Registration creates a local account with a hashed password and the default `CLIENT` role. Selecting “I’m currently a student” adds `STUDENT` while retaining Client access. New accounts must enter a six-digit email code before login. Registration, verification, password reset, JWT issuance, and role isolation have been tested end-to-end against the local PostgreSQL container. Temporary test accounts are removed after verification.
+
+## PayMongo sandbox setup
+
+The API intentionally accepts only an `sk_test_` secret. Add `PAYMONGO_SECRET_KEY` and `PAYMONGO_WEBHOOK_SECRET` to `api/.env`, then create one PayMongo webhook pointing to the publicly reachable `/api/v1/payments/paymongo/webhook` route. Subscribe to `checkout_session.payment.paid` and `payment.refunded`. For local development, expose port 4000 through an HTTPS tunnel; PayMongo cannot call `localhost` on your computer. Optional return URLs and enabled checkout methods are documented in `api/.env.example`.
+
+Never place PayMongo secret or webhook keys in `.env.local`, `NEXT_PUBLIC_*`, Expo configuration, web code, or mobile code. Payment success is recorded only after a valid signed webhook; returning to the success URL alone does not mark an order paid.
 
 ## Build validation
 

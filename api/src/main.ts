@@ -7,7 +7,7 @@ import { AppModule } from "./app.module";
 import { createHelmetOptions } from "./security/helmet-options";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix("api/v1");
   app.use(helmet(createHelmetOptions(process.env.NODE_ENV)));
   const configuredOrigins = (process.env.WEB_ORIGIN ?? "http://localhost:3000")

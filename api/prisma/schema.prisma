@@ -472,6 +472,7 @@ model Payment {
   provider            PaymentProvider @default(PAYMONGO)
   providerPaymentId   String?         @unique
   providerCheckoutId  String?         @unique
+  checkoutUrl         String?
   idempotencyKey      String          @unique
   amountCentavos      Int
   platformFeeCentavos Int

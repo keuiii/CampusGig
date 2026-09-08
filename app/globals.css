@@ -4741,6 +4741,12 @@ html[data-theme="dark"] .category-card:hover {
 .dispute-admin-row small { display: block; margin-top: 5px; color: var(--muted); }
 .dispute-admin-row p { margin: 8px 0 0; color: var(--muted); }
 .dispute-admin-row > .moderation-note { grid-column: 1 / -1; }
+.payment-summary-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; }
+.payment-summary-card h3 { margin: 6px 0; }
+.payment-summary-card p { margin: 0; color: var(--muted); }
+.payment-summary-card > b { font-size: 1.2rem; }
+.payment-summary-card > button { grid-column: 1 / -1; width: auto; justify-self: start; min-width: 170px; }
+.payment-status { border-radius: 999px; padding: 6px 10px; background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); font-size: .7rem; font-weight: 800; }
 @media (max-width: 820px) { .dispute-admin-row { grid-template-columns: 1fr; } }
 .client-order-actions > p,
 .submitted-review p {

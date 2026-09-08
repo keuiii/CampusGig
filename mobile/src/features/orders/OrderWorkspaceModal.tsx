@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -24,6 +25,7 @@ import type {
   MobileOrder,
   MobileOrderDetail,
   OrderDispute,
+  OrderPayment,
   OrderFile,
   OrderHistoryItem,
 } from "../../types";
@@ -52,6 +54,8 @@ export function OrderWorkspaceModal({
   const [disputeReason, setDisputeReason] = useState<DisputeReason>("SERVICE_NOT_DELIVERED");
   const [disputeDetails, setDisputeDetails] = useState("");
   const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [payments, setPayments] = useState<OrderPayment[]>([]);
+  const [openingCheckout, setOpeningCheckout] = useState(false);
   const [downloadingFileId, setDownloadingFileId] = useState<string | null>(
     null,
   );
@@ -62,17 +66,18 @@ export function OrderWorkspaceModal({
     try {
       const token = await AsyncStorage.getItem(TOKEN_KEY);
       const headers = { Authorization: `Bearer ${token}` };
-      const detailResponse = await fetch(
-        `${API_URL}/api/v1/orders/${order.id}`,
-        { headers },
-      );
+      const [detailResponse, disputeResponse, paymentResponse] = await Promise.all([
+        fetch(`${API_URL}/api/v1/orders/${order.id}`, { headers }),
+        fetch(`${API_URL}/api/v1/orders/${order.id}/disputes`, { headers }),
+        fetch(`${API_URL}/api/v1/orders/${order.id}/payments`, { headers }),
+      ]);
       if (detailResponse.ok) {
         const next = (await detailResponse.json()).data as MobileOrderDetail;
         setDetail(next);
         setHistory(next.history ?? []);
       }
-      const disputeResponse = await fetch(`${API_URL}/api/v1/orders/${order.id}/disputes`, { headers });
       if (disputeResponse.ok) setDispute((await disputeResponse.json()).data as OrderDispute | null);
+      if (paymentResponse.ok) setPayments((await paymentResponse.json()).data as OrderPayment[]);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -86,9 +91,10 @@ export function OrderWorkspaceModal({
     setDispute(null);
     setShowDisputeForm(false);
     setDisputeDetails("");
+    setPayments([]);
     setRating(5);
     void loadWorkspace(true);
-    const timer = setInterval(() => void loadWorkspace(), 5000);
+    const timer = setInterval(() => void loadWorkspace(), 10000);
     return () => clearInterval(timer);
   }, [order?.id]);
   async function orderAction(path: string, body?: object) {
@@ -157,6 +163,26 @@ export function OrderWorkspaceModal({
       Alert.alert("Unable to submit report", error instanceof Error ? error.message : "Please try again.");
     } finally {
       setSubmittingDispute(false);
+    }
+  }
+  async function openCheckout() {
+    if (!order || openingCheckout) return;
+    setOpeningCheckout(true);
+    try {
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      const response = await fetch(`${API_URL}/api/v1/orders/${order.id}/payments/checkout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.checkoutUrl)
+        throw new Error(Array.isArray(payload?.message) ? payload.message.join(" ") : (payload?.message ?? "Unable to create checkout"));
+      await Linking.openURL(payload.checkoutUrl);
+      await loadWorkspace();
+    } catch (error) {
+      Alert.alert("Unable to open payment", error instanceof Error ? error.message : "Please try again.");
+    } finally {
+      setOpeningCheckout(false);
     }
   }
   async function openDelivery(
@@ -585,6 +611,22 @@ export function OrderWorkspaceModal({
                     Your review has been submitted. {detail.review.comment}
                   </Text>
                 </View>
+              )}
+              {["REQUESTED", "ACCEPTED"].includes(status) && (
+                <>
+                  <Text style={styles.groupLabel}>SECURE PAYMENT</Text>
+                  <View style={[styles.clientDecisionCard, nightMode && darkStyles.card]}>
+                    <View style={styles.workspaceSectionHeading}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.workspaceSectionTitle, nightMode && darkStyles.primaryText]}>{payments[0]?.status === "PAID" ? "Payment confirmed" : "Pay with PayMongo"}</Text>
+                        <Text style={[styles.workspaceBody, nightMode && darkStyles.mutedText]}>{payments[0]?.status === "PAID" ? "Your payment was verified by PayMongo." : "Checkout opens securely in your browser. CampusGig confirms payment automatically."}</Text>
+                      </View>
+                      <Text style={[styles.workspaceFact, nightMode && darkStyles.primaryText]}>₱{((order?.totalCentavos ?? 0) / 100).toLocaleString()}</Text>
+                    </View>
+                    {payments[0]?.status !== "PAID" && <Pressable disabled={openingCheckout} onPress={() => void openCheckout()} style={[styles.acceptDeliveryButton, openingCheckout && styles.authButtonDisabled]}>{openingCheckout ? <ActivityIndicator color="#fff" /> : <Text style={styles.authButtonText}>{payments[0]?.status === "REQUIRES_ACTION" ? "Continue checkout" : "Proceed to payment"}</Text>}</Pressable>}
+                    {payments[0] ? <Text style={styles.workspaceCardEyebrow}>{payments[0].status.replaceAll("_", " ")}</Text> : null}
+                  </View>
+                </>
               )}
               {["ACCEPTED", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "COMPLETED"].includes(status) && (
                 <>

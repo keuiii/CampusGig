@@ -9,6 +9,7 @@ import type {
   DisputeReason,
   MarketplaceOrder,
   OrderDispute,
+  OrderPayment,
   OrderMessage,
   OrderWorkspace,
 } from "../../types";
@@ -95,15 +96,19 @@ export function WebOrderWorkspace({
   const [disputeReason, setDisputeReason] = useState<DisputeReason>("SERVICE_NOT_DELIVERED");
   const [disputeDetails, setDisputeDetails] = useState("");
   const [submittingDispute, setSubmittingDispute] = useState(false);
+  const [payments, setPayments] = useState<OrderPayment[]>([]);
+  const [openingCheckout, setOpeningCheckout] = useState(false);
   async function refresh() {
-    const [orderResult, messageResult, disputeResult] = await Promise.all([
+    const [orderResult, messageResult, disputeResult, paymentResult] = await Promise.all([
       api.order(token, order.id),
       api.messages(token, order.id),
       api.orderDispute(token, order.id),
+      api.orderPayments(token, order.id),
     ]);
     setDetail(orderResult.data);
     setMessages(messageResult.data);
     setDispute(disputeResult.data);
+    setPayments(paymentResult.data);
   }
   useEffect(() => {
     void refresh();
@@ -249,6 +254,21 @@ export function WebOrderWorkspace({
       window.alert(error instanceof Error ? error.message : "Unable to submit the report");
     } finally {
       setSubmittingDispute(false);
+    }
+  }
+  async function openCheckout() {
+    if (openingCheckout) return;
+    const popup = window.open("", "campusgig-paymongo");
+    setOpeningCheckout(true);
+    try {
+      const result = await api.createPaymentCheckout(token, order.id);
+      if (popup) popup.location.href = result.checkoutUrl;
+      else window.location.assign(result.checkoutUrl);
+    } catch (error) {
+      popup?.close();
+      window.alert(error instanceof Error ? error.message : "Unable to open PayMongo checkout");
+    } finally {
+      setOpeningCheckout(false);
     }
   }
   const active = detail ?? order;
@@ -459,6 +479,20 @@ export function WebOrderWorkspace({
                 <strong>{"★".repeat(active.review.overallRating)}</strong>
                 <h3>Review submitted</h3>
                 {active.review.comment && <p>{active.review.comment}</p>}
+              </section>
+            )}
+            {perspective === "client" && ["REQUESTED", "ACCEPTED"].includes(active.status) && (
+              <section className="workspace-payment">
+                <span className="kicker">SECURE PAYMENT</span>
+                <div className="payment-summary-card">
+                  <div>
+                    <h3>{payments[0]?.status === "PAID" ? "Payment confirmed" : "Pay securely with PayMongo"}</h3>
+                    <p>{payments[0]?.status === "PAID" ? "Your payment has been verified by PayMongo." : "Complete checkout using an available test payment method. CampusGig verifies the result automatically."}</p>
+                  </div>
+                  <b>₱{(active.totalCentavos / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>
+                  {payments[0]?.status !== "PAID" && <button disabled={openingCheckout} onClick={() => void openCheckout()}>{openingCheckout ? "Opening…" : payments[0]?.status === "REQUIRES_ACTION" ? "Continue checkout" : "Proceed to payment"}</button>}
+                  {payments[0] && <span className={`payment-status ${payments[0].status.toLowerCase()}`}>{payments[0].status.replaceAll("_", " ")}</span>}
+                </div>
               </section>
             )}
             {["ACCEPTED", "IN_PROGRESS", "SUBMITTED", "REVISION_REQUESTED", "COMPLETED"].includes(active.status) && (
