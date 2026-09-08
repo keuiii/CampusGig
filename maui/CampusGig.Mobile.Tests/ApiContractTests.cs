@@ -317,6 +317,15 @@ public sealed class ApiContractTests
     }
 
     [TestMethod]
+    public void OutgoingMessagesExposeSentAndReadPresentationStates()
+    {
+        var message = new ConversationMessage { IsMine = true };
+        Assert.AreEqual("Sent", message.DeliveryLabel);
+        message.IsRead = true;
+        Assert.AreEqual("Read", message.DeliveryLabel);
+    }
+
+    [TestMethod]
     public void NotificationsUsePurposeSpecificIcons()
     {
         Assert.AreEqual("✉", new NotificationItem { Type = "NEW_MESSAGE" }.IconGlyph);

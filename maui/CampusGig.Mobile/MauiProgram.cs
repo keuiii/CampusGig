@@ -19,6 +19,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<Services.ISessionStorage, Services.MauiSessionStorage>();
 		builder.Services.AddSingleton<Services.SessionService>();
 		builder.Services.AddSingleton<Services.CampusGigApi>();
+		builder.Services.AddSingleton<Services.RealtimeService>();
 #if ANDROID
 		builder.Services.AddSingleton<Services.IGoogleIdentityService, Platforms.Android.GoogleIdentityService>();
 #else

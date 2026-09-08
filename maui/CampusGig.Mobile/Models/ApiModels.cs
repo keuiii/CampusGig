@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using System.ComponentModel;
+using CampusGig.Mobile.Services;
 
 namespace CampusGig.Mobile.Models;
 
@@ -276,12 +278,27 @@ public sealed class ConversationParticipant
     }
 }
 
-public sealed class ConversationMessage
+public sealed class ConversationMessage : INotifyPropertyChanged
 {
+    private bool isRead;
     public string Id { get; set; } = "";
     public string? Body { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CampusCreatedAt => CampusTime.ToPhilippineTime(CreatedAt);
     public bool IsMine { get; set; }
+    public bool IsRead
+    {
+        get => isRead;
+        set
+        {
+            if (isRead == value) return;
+            isRead = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRead)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeliveryLabel)));
+        }
+    }
+    public string DeliveryLabel => IsRead ? "Read" : "Sent";
+    public event PropertyChangedEventHandler? PropertyChanged;
     public List<MessageAttachment> Attachments { get; set; } = [];
     public ConversationParticipant Sender { get; set; } = new();
     public string AttachmentSummary => Attachments.Count == 0

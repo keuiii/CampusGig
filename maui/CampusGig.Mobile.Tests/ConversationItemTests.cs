@@ -37,4 +37,14 @@ public sealed class ConversationItemTests
         Assert.AreEqual("9+", new ConversationItem { UnreadCount = 14 }.UnreadLabel);
         Assert.IsFalse(new ConversationItem().HasUnread);
     }
+
+    [TestMethod]
+    public void CampusCreatedAt_UsesPhilippineTime()
+    {
+        var createdAt = new DateTimeOffset(2026, 9, 8, 14, 16, 0, TimeSpan.Zero);
+
+        Assert.AreEqual(
+            new DateTime(2026, 9, 8, 22, 16, 0),
+            new ConversationMessage { CreatedAt = createdAt }.CampusCreatedAt);
+    }
 }

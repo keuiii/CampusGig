@@ -55,13 +55,13 @@ Not yet fully implemented:
 - Production object storage for profile, verification, and service media files
 - Listing preview, pause, archive, pagination, sorting, and advanced marketplace filters
 - Order detail/timeline screens and lifecycle actions after provider acceptance
-- Real-time messaging and private file sharing
+- Production signed file URLs and malware scanning for message and delivery attachments
 - Dispute reporting and administrator dispute resolution
 - Payments, commissions, Pro subscriptions, and featured listings
 - Custom job postings and proposals
 - Production deployment and automated testing
 
-Dispute handling, payment processing, production email credential setup, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
+Authenticated Socket.IO realtime messaging, read states, unread counts, and private development file sharing now work across the web and MAUI mobile client, with bounded polling fallback. Dispute handling, payment processing, production email credential setup, malware scanning, and production object storage remain future work. Mobile delivery files use authenticated temporary downloads and the device share/open sheet.
 
 ## Technology
 

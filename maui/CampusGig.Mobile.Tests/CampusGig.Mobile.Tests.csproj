@@ -22,6 +22,7 @@
     <Compile Include="..\CampusGig.Mobile\Services\GoogleIdentityOptions.cs" Link="Services\GoogleIdentityOptions.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\AuthFormRules.cs" Link="Services\AuthFormRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\AuthorizationFailureRules.cs" Link="Services\AuthorizationFailureRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\CampusTime.cs" Link="Services\CampusTime.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ApiPayloadRules.cs" Link="Services\ApiPayloadRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\DialogPresentationRules.cs" Link="Services\DialogPresentationRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\InteractionMotion.cs" Link="Services\InteractionMotion.cs" />
@@ -33,6 +34,7 @@
     <Compile Include="..\CampusGig.Mobile\Services\ProfileActionRules.cs" Link="Services\ProfileActionRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ProfileImageRules.cs" Link="Services\ProfileImageRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\RefreshRequestRules.cs" Link="Services\RefreshRequestRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\RealtimeConnectionPolicy.cs" Link="Services\RealtimeConnectionPolicy.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordVisibilityRules.cs" Link="Services\PasswordVisibilityRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordStrengthRules.cs" Link="Services\PasswordStrengthRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordChangeFlowRules.cs" Link="Services\PasswordChangeFlowRules.cs" />

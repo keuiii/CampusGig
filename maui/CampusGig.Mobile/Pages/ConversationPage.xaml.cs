@@ -9,20 +9,23 @@ namespace CampusGig.Mobile.Pages;
 public partial class ConversationPage : ContentPage
 {
     private readonly CampusGigApi api;
+    private readonly RealtimeService? realtime;
     private readonly ConversationItem conversation;
     private readonly Func<Task>? onClosed;
     private readonly List<FileResult> files = [];
-    private readonly ObservableCollection<ConversationMessage> messages = [];
+    private ObservableCollection<ConversationMessage> messages = [];
     private readonly SemaphoreSlim loadGate = new(1, 1);
     private IDispatcherTimer? timer;
+    private CancellationTokenSource? lifetimeCancellation;
     private bool hasLoaded;
     private bool isClosing;
 
-    public ConversationPage(CampusGigApi api, ConversationItem conversation, Func<Task>? onClosed = null)
+    public ConversationPage(CampusGigApi api, ConversationItem conversation, Func<Task>? onClosed = null, RealtimeService? realtime = null)
     {
         InitializeComponent();
         NavigationPage.SetHasNavigationBar(this, false);
         this.api = api;
+        this.realtime = realtime;
         this.conversation = conversation;
         this.onClosed = onClosed;
         MessageList.ItemsSource = messages;
@@ -39,30 +42,82 @@ public partial class ConversationPage : ContentPage
         UpdateComposerState();
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
-        HeaderBar.Opacity = 0;
-        HeaderBar.TranslationY = -8;
-        ComposerBar.Opacity = 0;
-        ComposerBar.TranslationY = 10;
-        await Task.WhenAll(
-            HeaderBar.FadeToAsync(1, 150, Easing.CubicOut),
-            HeaderBar.TranslateToAsync(0, 0, 180, Easing.CubicOut),
-            ComposerBar.FadeToAsync(1, 170, Easing.CubicOut),
-            ComposerBar.TranslateToAsync(0, 0, 210, Easing.CubicOut));
-        await LoadAsync();
+        HeaderBar.Opacity = 1;
+        HeaderBar.TranslationY = 0;
+        ComposerBar.Opacity = 1;
+        ComposerBar.TranslationY = 0;
+        if (realtime is not null)
+        {
+            realtime.MessageCreated += OnRealtimeMessageCreated;
+            realtime.ConversationRead += OnConversationRead;
+            realtime.ConnectionChanged += OnRealtimeConnectionChanged;
+            OnRealtimeConnectionChanged(realtime.IsConnected);
+        }
+        lifetimeCancellation?.Cancel();
+        lifetimeCancellation?.Dispose();
+        lifetimeCancellation = new CancellationTokenSource();
+        _ = InitializeAsync(lifetimeCancellation.Token);
         timer = Dispatcher.CreateTimer();
-        timer.Interval = TimeSpan.FromSeconds(5);
+        timer.Interval = TimeSpan.FromSeconds(20);
         timer.Tick += async (_, _) => await LoadAsync(false);
         timer.Start();
     }
 
     protected override void OnDisappearing()
     {
+        lifetimeCancellation?.Cancel();
+        lifetimeCancellation?.Dispose();
+        lifetimeCancellation = null;
         timer?.Stop();
         timer = null;
+        if (realtime is not null)
+        {
+            realtime.MessageCreated -= OnRealtimeMessageCreated;
+            realtime.ConversationRead -= OnConversationRead;
+            realtime.ConnectionChanged -= OnRealtimeConnectionChanged;
+        }
         base.OnDisappearing();
+    }
+
+    private async Task InitializeAsync(CancellationToken cancellationToken)
+    {
+        // Let Android present the page before starting network and collection work.
+        await Task.Delay(50, cancellationToken);
+        await LoadAsync();
+        if (realtime is null || cancellationToken.IsCancellationRequested) return;
+        try
+        {
+            await Task.Run(() => realtime.SubscribeAsync(conversation.Order.Id, cancellationToken), cancellationToken);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine(exception);
+            RealtimeStatusLabel.Text = "Refreshing automatically every 20 seconds";
+            RealtimeStatusLabel.Opacity = 0.7;
+        }
+    }
+
+    private void OnRealtimeMessageCreated(string orderId, ConversationMessage message)
+    {
+        if (orderId != conversation.Order.Id || messages.Any(item => item.Id == message.Id)) return;
+        messages.Add(message);
+        MessageList.ScrollTo(message, position: ScrollToPosition.End, animate: true);
+    }
+
+    private void OnConversationRead(string orderId, string userId)
+    {
+        if (orderId != conversation.Order.Id) return;
+        foreach (var message in messages.Where(item => item.IsMine)) message.IsRead = true;
+    }
+
+    private void OnRealtimeConnectionChanged(bool connected)
+    {
+        RealtimeStatusLabel.Text = connected ? "● Live private conversation" : "Reconnecting live updates…";
+        RealtimeStatusLabel.Opacity = connected ? 1 : 0.7;
     }
 
     private async Task LoadAsync(bool showError = true)
@@ -74,6 +129,16 @@ public partial class ConversationPage : ContentPage
         try
         {
             var response = await api.GetAsync<ApiList<ConversationMessage>>($"orders/{conversation.Order.Id}/messages");
+            if (!hasLoaded)
+            {
+                messages = new ObservableCollection<ConversationMessage>(response.Data);
+                MessageList.ItemsSource = messages;
+                if (messages.Count > 0)
+                    MessageList.ScrollTo(messages[^1], position: ScrollToPosition.End, animate: false);
+                hasLoaded = true;
+                MessageList.IsVisible = true;
+                return;
+            }
             var existingIds = messages.Select(m => m.Id).ToHashSet();
             var newMessages = response.Data.Where(m => !existingIds.Contains(m.Id)).ToList();
             if (newMessages.Count > 0)
@@ -82,7 +147,6 @@ public partial class ConversationPage : ContentPage
                     messages.Add(msg);
                 MessageList.ScrollTo(messages[^1], position: ScrollToPosition.End, animate: messages.Count > newMessages.Count);
             }
-            hasLoaded = true;
             MessageList.IsVisible = true;
         }
         catch (Exception exception) when (!showError) { System.Diagnostics.Debug.WriteLine(exception); }

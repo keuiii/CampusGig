@@ -4,10 +4,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { MessagesGateway } from "./messages.gateway";
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly realtime?: MessagesGateway) {}
 
   async inbox(userId: string) {
     const conversations = await this.prisma.conversation.findMany({
@@ -134,6 +135,7 @@ export class MessagesService {
         data: { readAt },
       }),
     ]);
+    this.realtime?.publishRead(orderId, userId);
     return {
       data: messages.map((message) => this.toResponse(message, userId)),
     };
@@ -172,7 +174,9 @@ export class MessagesService {
       });
       return created;
     });
-    return { data: this.toResponse(message, userId) };
+    const response = this.toResponse(message, userId);
+    this.realtime?.publishMessage(orderId, response, recipientId);
+    return { data: response };
   }
 
   async sendAttachments(
@@ -238,7 +242,9 @@ export class MessagesService {
       });
       return created;
     });
-    return { data: this.toResponse(message, userId) };
+    const response = this.toResponse(message, userId);
+    this.realtime?.publishMessage(orderId, response, recipientId);
+    return { data: response };
   }
 
   async hideConversation(userId: string, conversationId: string) {

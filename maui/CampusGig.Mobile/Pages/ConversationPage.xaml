@@ -23,13 +23,13 @@
                 <Label x:Name="ParticipantLabel" FontAttributes="Bold" FontSize="15"
                        TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
                 <Label x:Name="OrderLabel" FontSize="9" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" LineBreakMode="TailTruncation" />
-                <Label Text="Private project conversation" FontSize="8"
+                <Label x:Name="RealtimeStatusLabel" Text="Connecting live updates…" FontSize="8"
                        TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" />
             </VerticalStackLayout>
         </Grid>
 
         <RefreshView Grid.Row="1" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F8060">
-            <CollectionView x:Name="MessageList" ItemsUpdatingScrollMode="KeepLastItemInView" SelectionMode="None"
+            <CollectionView x:Name="MessageList" Margin="0,6,0,0" ItemsUpdatingScrollMode="KeepLastItemInView" SelectionMode="None"
                             VerticalScrollBarVisibility="Never">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Margin="35,100" Spacing="8" HorizontalOptions="Center">
@@ -47,6 +47,9 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:ConversationMessage">
                         <VerticalStackLayout Padding="14,5" HorizontalOptions="Fill">
+                            <Label Text="{Binding CampusCreatedAt, StringFormat='{0:h:mm tt}'}"
+                                   Margin="0,2,0,5" FontSize="8" HorizontalOptions="Center"
+                                   TextColor="{AppThemeBinding Light=#7B8781, Dark=#91A098}" />
                             <Border Padding="14,11" MinimumWidthRequest="88" MaximumWidthRequest="300"
                                     HorizontalOptions="{Binding IsMine, Converter={StaticResource MessageAlignmentConverter}}"
                                     StrokeThickness="0" BackgroundColor="{Binding IsMine, Converter={StaticResource MessageBubbleConverter}}"
@@ -59,7 +62,7 @@
                                            TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" />
                                     <Label Text="{Binding AttachmentSummary}" FontSize="9" FontAttributes="Bold"
                                            TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" />
-                                    <Label Text="{Binding CreatedAt, StringFormat='{0:h:mm tt}'}" FontSize="8" HorizontalOptions="End"
+                                    <Label Text="{Binding DeliveryLabel}" IsVisible="{Binding IsMine}" FontSize="8" HorizontalOptions="End"
                                            TextColor="{Binding IsMine, Converter={StaticResource MessageTextConverter}}" Opacity="0.68" />
                                 </VerticalStackLayout>
                             </Border>

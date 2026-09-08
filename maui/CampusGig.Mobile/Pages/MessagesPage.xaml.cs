@@ -6,28 +6,40 @@ namespace CampusGig.Mobile.Pages;
 public partial class MessagesPage : ContentPage, ITabLifecycle
 {
     private readonly CampusGigApi api;
+    private readonly RealtimeService realtime;
     private List<ConversationItem> conversations = [];
     private CancellationTokenSource? refreshCancellation;
     private bool isLoading;
     private bool hasLoaded;
     private bool isOpeningConversation;
     private bool isDeletingConversation;
+    private CancellationTokenSource? realtimeRefreshCancellation;
 
     public event Action<int>? UnreadCountChanged;
 
-    public MessagesPage(CampusGigApi api)
+    public MessagesPage(CampusGigApi api, RealtimeService realtime)
     {
         InitializeComponent();
         this.api = api;
+        this.realtime = realtime;
+        realtime.InboxChanged += OnRealtimeInboxChanged;
     }
 
     public async Task OnTabAppearingAsync()
     {
+        await Task.Yield();
         await LoadAsync();
+        _ = ConnectRealtimeSafelyAsync();
         refreshCancellation?.Cancel();
         refreshCancellation?.Dispose();
         refreshCancellation = new CancellationTokenSource();
         _ = RefreshInBackgroundAsync(refreshCancellation.Token);
+    }
+
+    private async Task ConnectRealtimeSafelyAsync()
+    {
+        try { await Task.Run(() => realtime.ConnectAsync()); }
+        catch (Exception exception) { System.Diagnostics.Debug.WriteLine(exception); }
     }
 
     public Task OnTabDisappearingAsync()
@@ -135,13 +147,33 @@ public partial class MessagesPage : ContentPage, ITabLifecycle
         try
         {
             if (sender is TapGestureRecognizer { Parent: VisualElement card })
-                await PlayTapAsync(card);
-            await Navigation.PushModalAsync(new NavigationPage(new ConversationPage(api, conversation, RefreshAfterConversationAsync)));
+                _ = PlayTapAsync(card);
+            await Navigation.PushModalAsync(
+                new ConversationPage(api, conversation, RefreshAfterConversationAsync, realtime),
+                animated: false);
         }
         finally { isOpeningConversation = false; }
     }
 
     private async Task RefreshAfterConversationAsync() => await LoadAsync(false);
+
+    private void OnRealtimeInboxChanged(string orderId)
+    {
+        realtimeRefreshCancellation?.Cancel();
+        realtimeRefreshCancellation?.Dispose();
+        realtimeRefreshCancellation = new CancellationTokenSource();
+        _ = RefreshAfterRealtimeEventAsync(realtimeRefreshCancellation.Token);
+    }
+
+    private async Task RefreshAfterRealtimeEventAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(250, cancellationToken);
+            await LoadAsync(false);
+        }
+        catch (OperationCanceledException) { }
+    }
 
     private async void OnDeleteConversationInvoked(object? sender, EventArgs e)
     {

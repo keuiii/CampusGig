@@ -23,6 +23,7 @@ public sealed class MainTabbedPage : ContentPage
     private string activeRoute = "discover";
     private string highlightedRoute = "discover";
     private bool isTabAnimating;
+    private readonly HashSet<string> warmedRoutes = ["discover", "messages"];
 
     public MainTabbedPage(
         HomePage home,
@@ -51,7 +52,12 @@ public sealed class MainTabbedPage : ContentPage
             // The custom tab host reparents each page's root view. Preserve the
             // page binding context explicitly so bindings do not inherit this host.
             view.BindingContext = page.BindingContext ?? page;
-            view.IsVisible = route == "discover";
+            var isDiscover = route == "discover";
+            var keepWarm = route == "messages";
+            view.IsVisible = isDiscover || keepWarm;
+            view.Opacity = isDiscover ? 1 : 0;
+            view.InputTransparent = !isDiscover;
+            view.ZIndex = isDiscover ? 1 : -1;
             contentArea.Children.Add(view);
             tabViews[route] = view;
         }
@@ -186,8 +192,7 @@ public sealed class MainTabbedPage : ContentPage
             var tap = new TapGestureRecognizer();
             tap.Tapped += async (_, _) =>
             {
-                await itemLayout.ScaleToAsync(0.92, 60, Easing.CubicOut);
-                await itemLayout.ScaleToAsync(1.0, 70, Easing.CubicIn);
+                _ = PlayTabTapAsync(itemLayout);
                 await SelectTabAsync(route);
             };
             itemContainer.GestureRecognizers.Add(tap);
@@ -249,43 +254,37 @@ public sealed class MainTabbedPage : ContentPage
         isTabAnimating = true;
 
         var previousRoute = activeRoute;
-        var movingForward = InteractionMotion.IsForwardTabTransition(TabIndex(previousRoute), TabIndex(route));
-
         if (pages.TryGetValue(previousRoute, out var previousPage) && previousPage is ITabLifecycle prevLifecycle)
-        {
-            try { await prevLifecycle.OnTabDisappearingAsync(); } catch { }
-        }
+            _ = RunLifecycleSafelyAsync(prevLifecycle.OnTabDisappearingAsync);
 
         activeRoute = route;
         try
         {
             var currentView = tabViews[previousRoute];
             var nextView = tabViews[route];
-            currentView.ZIndex = 1;
-            nextView.ZIndex = 2;
-            nextView.IsVisible = true;
-            nextView.Opacity = 0;
-            nextView.TranslationX = InteractionMotion.TabEntryOffset(movingForward);
-            UpdateNavVisuals();
-
-            await Task.WhenAll(
-                currentView.FadeToAsync(0, 170, Easing.CubicInOut),
-                currentView.TranslateToAsync(InteractionMotion.TabExitOffset(movingForward), 0, 190, Easing.CubicInOut),
-                nextView.FadeToAsync(1, 190, Easing.CubicOut),
-                nextView.TranslateToAsync(0, 0, 210, Easing.CubicOut),
-                MoveTabHighlightAsync(route)
-            );
-
-            currentView.IsVisible = false;
-            currentView.Opacity = 1;
-            currentView.TranslationX = 0;
-            currentView.ZIndex = 0;
-            nextView.ZIndex = 0;
-
-            if (pages.TryGetValue(route, out var page) && page is ITabLifecycle nextLifecycle)
+            if (previousRoute == "messages" && warmedRoutes.Contains("messages"))
             {
-                try { await nextLifecycle.OnTabAppearingAsync(); } catch { }
+                currentView.Opacity = 0;
+                currentView.InputTransparent = true;
+                currentView.ZIndex = -1;
             }
+            else
+            {
+                currentView.IsVisible = false;
+            }
+            nextView.IsVisible = true;
+            nextView.Opacity = 1;
+            nextView.InputTransparent = false;
+            nextView.ZIndex = 1;
+            nextView.TranslationX = 0;
+            warmedRoutes.Add(route);
+            UpdateNavVisuals();
+            if (pages.TryGetValue(route, out var page) && page is ITabLifecycle nextLifecycle)
+                _ = RunLifecycleSafelyAsync(nextLifecycle.OnTabAppearingAsync);
+            await MoveTabHighlightAsync(route);
+            highlightedRoute = activeRoute;
+            PositionTabHighlight(highlightedRoute);
+            isTabAnimating = false;
         }
         finally
         {
@@ -299,6 +298,18 @@ public sealed class MainTabbedPage : ContentPage
         MobileNavigation.Tabs.Select((tab, index) => (tab.Route, index))
             .FirstOrDefault(item => item.Route == route).index;
 
+    private static async Task PlayTabTapAsync(VisualElement item)
+    {
+        await item.ScaleToAsync(0.97, 25, Easing.CubicOut);
+        await item.ScaleToAsync(1, 35, Easing.CubicOut);
+    }
+
+    private static async Task RunLifecycleSafelyAsync(Func<Task> action)
+    {
+        try { await action(); }
+        catch (Exception exception) { System.Diagnostics.Debug.WriteLine(exception); }
+    }
+
     private Task MoveTabHighlightAsync(string route)
     {
         if (tabHighlight.Parent is not AbsoluteLayout navHost || navHost.Width <= 0)
@@ -307,7 +318,7 @@ public sealed class MainTabbedPage : ContentPage
         const double width = 20;
         AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, width, 3));
         var offset = InteractionMotion.TabUnderlineOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, width);
-        return tabHighlight.TranslateToAsync(offset, 0, 220, Easing.CubicInOut);
+        return tabHighlight.TranslateToAsync(offset, 0, 90, Easing.CubicOut);
     }
 
     private void PositionTabHighlight(string route)

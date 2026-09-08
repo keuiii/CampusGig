@@ -7,6 +7,7 @@ public partial class HomePage : ContentPage, ITabLifecycle
 {
     private readonly CampusGigApi api;
     private readonly SessionService session;
+    private readonly RealtimeService realtime;
     private List<ServiceItem> services = [];
     private List<SchoolItem> schools = [];
     private string selectedSchoolId = "";
@@ -20,11 +21,13 @@ public partial class HomePage : ContentPage, ITabLifecycle
 
     public List<ServiceItem> FilteredServices { get; private set; } = [];
 
-    public HomePage(CampusGigApi api, SessionService session)
+    public HomePage(CampusGigApi api, SessionService session, RealtimeService realtime)
     {
         InitializeComponent();
         this.api = api;
         this.session = session;
+        this.realtime = realtime;
+        realtime.NotificationsChanged += OnRealtimeNotificationsChanged;
         BindingContext = this;
         RenderProfileShortcut();
     }
@@ -261,6 +264,8 @@ public partial class HomePage : ContentPage, ITabLifecycle
         }
         catch (CampusGigApiException) { NotificationBadge.IsVisible = false; }
     }
+
+    private void OnRealtimeNotificationsChanged(string orderId) => _ = LoadNotificationsAsync();
 
     private async void OnNotificationsClicked(object? sender, TappedEventArgs e)
     {

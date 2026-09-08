@@ -1,6 +1,6 @@
 # CampusGig Development Roadmap
 
-Last updated: August 30, 2026
+Last updated: September 9, 2026
 
 Related documentation: [project setup and current API status](./README.md) and [mobile source-code guide](./mobile/SOURCE_CODE_GUIDE.md).
 
@@ -10,7 +10,7 @@ CampusGig is in the **integrated MVP development stage**. The web and Expo mobil
 
 Estimated progress:
 
-- **Phase 1 MVP:** approximately 78% complete
+- **Phase 1 MVP:** approximately 84% complete
 - **Full production platform:** approximately 30% complete
 
 These percentages measure working end-to-end functionality, not only screens or database tables.
@@ -70,7 +70,7 @@ Remaining: price/rating/delivery filters, pagination, sorting, favorites, and pr
 - Durable provider notifications and unread counts
 - Verified-provider authorization enforced by the API
 
-Remaining: listing preview/pause/archive and production object storage. Provider order workspaces, timelines, messaging, and delivery submission are connected.
+Remaining: listing preview/pause/archive and production object storage. Provider order workspaces, timelines, realtime messaging, read states, and delivery submission are connected.
 
 ### Dashboard interfaces — Partially connected
 
@@ -203,8 +203,8 @@ Goal: support safe collaboration tied to a real order.
 - Automatically create one conversation per order — complete
 - Send and retrieve participant-only persisted messages — complete on mobile client and provider web workspaces
 - Order detail workspace and persisted status timeline — complete on mobile client and provider web
-- Real-time updates using WebSockets or a managed realtime service
-- Read status and unread counts
+- Real-time updates using authenticated Socket.IO WebSockets — complete on web and MAUI mobile, with bounded polling fallback
+- Read status and unread counts — complete
 - Upload requirements, attachments, and deliverables — deliverables and message attachments complete
 - Private signed file URLs
 - File type, size, and malware-safety validation
@@ -307,4 +307,4 @@ Messaging, uploads, reviews, disputes, automated tests, and deployment follow in
 
 ## Best next task
 
-The next development task should be **basic dispute handling**, followed by automated order-state and permission tests.
+The next development task is **basic dispute handling and payment-ledger foundations**, followed by PayMongo sandbox checkout only after dispute, refund, webhook-idempotency, and authorization tests pass.

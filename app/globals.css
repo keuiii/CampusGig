@@ -4547,7 +4547,7 @@ html[data-theme="dark"] .category-card:hover {
   width: 100%;
   justify-content: center;
   align-items: center;
-  margin: 5px 0 9px;
+  margin: 3px 0 -2px;
 }
 .web-messages > div.web-message-date time {
   color: var(--muted);

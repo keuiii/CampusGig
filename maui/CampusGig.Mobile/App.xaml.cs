@@ -71,6 +71,13 @@ public partial class App : Application
 
 		MainTabbedPage.ClearInstance();
 		window.Page = services.GetRequiredService<MainTabbedPage>();
+		_ = ConnectRealtimeSafelyAsync();
+	}
+
+	private async Task ConnectRealtimeSafelyAsync()
+	{
+		try { await Task.Run(() => services.GetRequiredService<RealtimeService>().ConnectAsync()); }
+		catch (Exception exception) { System.Diagnostics.Debug.WriteLine(exception); }
 	}
 
 	public async Task ShowLoginAsync()
@@ -82,6 +89,7 @@ public partial class App : Application
 			var window = Windows.FirstOrDefault();
 			if (window is null) return;
 
+			await services.GetRequiredService<RealtimeService>().DisconnectAsync();
 			await services.GetRequiredService<SessionService>().ClearAccessSessionAsync();
 			MainTabbedPage.ClearInstance();
 

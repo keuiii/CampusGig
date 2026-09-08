@@ -2,38 +2,63 @@
 
 import { FormEvent, Fragment, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { io } from "socket.io-client";
 import { api } from "../../lib/api";
+import { apiUrl } from "../../lib/http-client";
 import type {
   MarketplaceOrder,
   OrderMessage,
   OrderWorkspace,
 } from "../../types";
 
+const campusTimeZone = "Asia/Manila";
+
+function campusDateKey(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: campusTimeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function messageTimeLabel(value: string) {
+  return new Date(value).toLocaleTimeString([], {
+    timeZone: campusTimeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function messageDateLabel(value: string) {
   const date = new Date(value);
   const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
+  const yesterday = new Date(today.getTime() - 86_400_000);
 
-  const day = date.toDateString();
+  const day = campusDateKey(date);
   const dayLabel =
-    day === today.toDateString()
+    day === campusDateKey(today)
       ? "Today"
-      : day === yesterday.toDateString()
+      : day === campusDateKey(yesterday)
         ? "Yesterday"
         : date.toLocaleDateString([], {
+            timeZone: campusTimeZone,
             month: "short",
             day: "numeric",
             year:
-              date.getFullYear() === today.getFullYear()
+              new Intl.DateTimeFormat("en", {
+                timeZone: campusTimeZone,
+                year: "numeric",
+              }).format(date) ===
+              new Intl.DateTimeFormat("en", {
+                timeZone: campusTimeZone,
+                year: "numeric",
+              }).format(today)
                 ? undefined
                 : "numeric",
           });
 
-  return `${dayLabel} at ${date.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  })}`;
+  return `${dayLabel} at ${messageTimeLabel(value)}`;
 }
 
 export function WebOrderWorkspace({
@@ -61,6 +86,8 @@ export function WebOrderWorkspace({
   const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [acting, setActing] = useState(false);
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [peerRead, setPeerRead] = useState(false);
   async function refresh() {
     const [orderResult, messageResult] = await Promise.all([
       api.order(token, order.id),
@@ -71,8 +98,31 @@ export function WebOrderWorkspace({
   }
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 5000);
-    return () => window.clearInterval(timer);
+    const endpoint = apiUrl();
+    const socket = endpoint
+      ? io(`${new URL(endpoint).origin}/realtime`, {
+          auth: { token },
+          transports: ["websocket", "polling"],
+          reconnection: true,
+        })
+      : null;
+    socket?.on("connect", () => {
+      setRealtimeConnected(true);
+      socket.emit("conversation:subscribe", { orderId: order.id });
+    });
+    socket?.on("disconnect", () => setRealtimeConnected(false));
+    socket?.on("message:created", (event: { orderId: string; message: OrderMessage }) => {
+      if (event.orderId !== order.id) return;
+      setMessages((items) => items.some((item) => item.id === event.message.id) ? items : [...items, event.message]);
+    });
+    socket?.on("conversation:read", (event: { orderId: string }) => {
+      if (event.orderId === order.id) setPeerRead(true);
+    });
+    const timer = window.setInterval(() => void refresh(), 20000);
+    return () => {
+      window.clearInterval(timer);
+      socket?.disconnect();
+    };
   }, [order.id, token]);
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -83,7 +133,8 @@ export function WebOrderWorkspace({
       const result = messageFiles.length
         ? await api.sendMessageAttachments(token, order.id, messageFiles, body)
         : await api.sendMessage(token, order.id, body);
-      setMessages((items) => [...items, result.data]);
+      setMessages((items) => items.some((item) => item.id === result.data.id) ? items : [...items, result.data]);
+      setPeerRead(false);
       setDraft("");
       setMessageFiles([]);
     } catch (error) {
@@ -404,6 +455,9 @@ export function WebOrderWorkspace({
                 <small>
                   <i /> Private conversation with {counterparty.displayName}
                 </small>
+                <small aria-live="polite">
+                  {realtimeConnected ? "Live updates connected" : "Reconnecting live updates…"}
+                </small>
               </div>
               <button onClick={() => void refresh()}>Refresh</button>
             </div>
@@ -413,16 +467,18 @@ export function WebOrderWorkspace({
                   const previousMessage = messages[index - 1];
                   const startsNewDay =
                     !previousMessage ||
-                    new Date(previousMessage.createdAt).toDateString() !==
-                      new Date(message.createdAt).toDateString();
+                    campusDateKey(new Date(previousMessage.createdAt)) !==
+                      campusDateKey(new Date(message.createdAt));
 
                   return (
                     <Fragment key={message.id}>
-                      {startsNewDay && (
-                        <div className="web-message-date">
-                          <time>{messageDateLabel(message.createdAt)}</time>
-                        </div>
-                      )}
+                      <div className="web-message-date">
+                        <time>
+                          {startsNewDay
+                            ? messageDateLabel(message.createdAt)
+                            : messageTimeLabel(message.createdAt)}
+                        </time>
+                      </div>
                       <div className={message.isMine ? "mine" : ""}>
                         <i className="chat-avatar">
                           {message.isMine
@@ -453,15 +509,9 @@ export function WebOrderWorkspace({
                               </small>
                             </button>
                           ))}
-                          <time>
-                            {new Date(message.createdAt).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}
-                          </time>
+                          {message.isMine && index === messages.length - 1 && (
+                            <small>{peerRead ? "Read" : "Sent"}</small>
+                          )}
                         </span>
                       </div>
                     </Fragment>
