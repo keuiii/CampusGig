@@ -12,6 +12,8 @@ import { SchoolsModule } from "./modules/schools/schools.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { MessagesModule } from "./modules/messages/messages.module";
+import { DisputesModule } from "./modules/disputes/disputes.module";
+import { PaymentsModule } from "./modules/payments/payments.module";
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { MessagesModule } from "./modules/messages/messages.module";
     ServicesModule,
     OrdersModule,
     MessagesModule,
+    DisputesModule,
+    PaymentsModule,
     NotificationsModule,
     ProfileModule,
     ProviderModule,
