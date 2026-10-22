@@ -47,4 +47,20 @@ public sealed class ConversationItemTests
             new DateTime(2026, 9, 8, 22, 16, 0),
             new ConversationMessage { CreatedAt = createdAt }.CampusCreatedAt);
     }
+
+    [TestMethod]
+    public void InquiryConversationUsesSafePreOrderPresentation()
+    {
+        var inquiry = new ConversationItem
+        {
+            Kind = "INQUIRY",
+            ContextLabel = "PRE-ORDER INQUIRY",
+            Subject = "Provider inquiry",
+        };
+
+        Assert.IsTrue(inquiry.IsInquiry);
+        Assert.IsFalse(inquiry.CanAttachFiles);
+        Assert.AreEqual("PRE-ORDER INQUIRY", inquiry.HeaderLabel);
+        Assert.AreEqual("Provider inquiry", inquiry.HeaderTitle);
+    }
 }

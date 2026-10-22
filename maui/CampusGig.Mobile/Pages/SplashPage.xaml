@@ -2,51 +2,77 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CampusGig.Mobile.Pages.SplashPage"
-             BackgroundColor="#F7F8F3">
-    <Grid Padding="28,52,28,46" RowDefinitions="*,Auto,*">
-        <VerticalStackLayout x:Name="BrandGroup" Grid.Row="0" VerticalOptions="End" Spacing="14" Opacity="0" TranslationY="18">
-            <Border WidthRequest="148" HeightRequest="148" HorizontalOptions="Center" StrokeThickness="0"
-                    StrokeShape="RoundRectangle 38" BackgroundColor="#087A5A" Shadow="0,9,22,#38052B21">
-                <Grid>
-                    <Label Text="C" FontSize="91" FontAttributes="Bold" TextColor="#D9F36A"
-                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" TranslationY="12" />
-                    <Path WidthRequest="76" HeightRequest="48" HorizontalOptions="Center" VerticalOptions="Start"
-                          Margin="0,27,0,0" Aspect="Uniform" Fill="#FFFFFF"
-                          Data="M2,14 L38,1 L74,14 L38,28 Z M18,22 L18,36 C28,46 48,46 58,36 L58,22 L38,30 Z" />
-                    <Path WidthRequest="76" HeightRequest="48" HorizontalOptions="Center" VerticalOptions="Start"
-                          Margin="0,27,0,0" Aspect="Uniform" Stroke="#D9F36A" StrokeThickness="2.4" StrokeLineCap="Round"
-                          Data="M74,14 L74,37" />
-                    <Ellipse WidthRequest="8" HeightRequest="8" Fill="#D9F36A" HorizontalOptions="End" VerticalOptions="Start" Margin="0,63,29,0" />
+             BackgroundColor="{AppThemeBinding Light=#F7F8F3, Dark=#111713}"
+             InputTransparent="True">
+    <Grid x:Name="SplashContent" Padding="26,48" IsClippedToBounds="True">
+        <Grid InputTransparent="True">
+            <Ellipse x:Name="TopOrb" WidthRequest="270" HeightRequest="270" HorizontalOptions="End" VerticalOptions="Start"
+                     TranslationX="128" TranslationY="-135" Scale="0.75" Opacity="0"
+                     Fill="{AppThemeBinding Light=#E4EFC8, Dark=#1B352A}" />
+            <Ellipse x:Name="BottomOrb" WidthRequest="315" HeightRequest="315" HorizontalOptions="Start" VerticalOptions="End"
+                     TranslationX="-165" TranslationY="155" Scale="0.8" Opacity="0"
+                     Fill="{AppThemeBinding Light=#DCECE4, Dark=#183126}" />
+        </Grid>
+
+        <Grid WidthRequest="350" HeightRequest="430" HorizontalOptions="Center" VerticalOptions="Center">
+            <Ellipse x:Name="ParticleOne" WidthRequest="9" HeightRequest="9" Fill="#D9F36A" HorizontalOptions="Center" VerticalOptions="Center" TranslationX="-104" TranslationY="-84" Opacity="0" Scale="0.2" />
+            <Ellipse x:Name="ParticleTwo" WidthRequest="7" HeightRequest="7" Fill="#71D7B1" HorizontalOptions="Center" VerticalOptions="Center" TranslationX="111" TranslationY="-62" Opacity="0" Scale="0.2" />
+            <Ellipse x:Name="ParticleThree" WidthRequest="6" HeightRequest="6" Fill="#0F6B4F" HorizontalOptions="Center" VerticalOptions="Center" TranslationX="-126" TranslationY="31" Opacity="0" Scale="0.2" />
+            <Ellipse x:Name="ParticleFour" WidthRequest="10" HeightRequest="10" Fill="#D9F36A" HorizontalOptions="Center" VerticalOptions="Center" TranslationX="128" TranslationY="44" Opacity="0" Scale="0.2" />
+            <Ellipse x:Name="ParticleFive" WidthRequest="5" HeightRequest="5" Fill="#71D7B1" HorizontalOptions="Center" VerticalOptions="Center" TranslationX="-74" TranslationY="101" Opacity="0" Scale="0.2" />
+            <Ellipse x:Name="ParticleSix" WidthRequest="7" HeightRequest="7" Fill="#0F6B4F" HorizontalOptions="Center" VerticalOptions="Center" TranslationX="82" TranslationY="105" Opacity="0" Scale="0.2" />
+
+            <VerticalStackLayout VerticalOptions="Center" Spacing="18">
+                <Grid x:Name="BrandMark" WidthRequest="190" HeightRequest="190" HorizontalOptions="Center"
+                      Opacity="0" Scale="0.55" TranslationY="28">
+                    <Image Source="campusgig_mark.svg" WidthRequest="190" HeightRequest="190"
+                           Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center"
+                           SemanticProperties.Description="CampusGig logo" />
                 </Grid>
-            </Border>
 
-            <Label HorizontalTextAlignment="Center" FontSize="41" FontAttributes="Bold">
-                <Label.FormattedText>
-                    <FormattedString>
-                        <Span Text="Campus" TextColor="#12362C" />
-                        <Span Text="Gig" TextColor="#087A5A" />
-                    </FormattedString>
-                </Label.FormattedText>
-            </Label>
-            <Label Text="STUDENT SKILLS. REAL OPPORTUNITIES" HorizontalTextAlignment="Center"
-                   FontSize="10" CharacterSpacing="2.3" FontAttributes="Bold" TextColor="#087A5A" />
-        </VerticalStackLayout>
+                <Grid HeightRequest="65" HorizontalOptions="Center">
+                    <HorizontalStackLayout x:Name="Wordmark" Spacing="0" Padding="8,0"
+                                           HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label x:Name="LetterC" Text="C" Style="{StaticResource SplashCampusLetter}" />
+                        <Label x:Name="LetterA" Text="a" Style="{StaticResource SplashCampusLetter}" />
+                        <Label x:Name="LetterM" Text="m" Style="{StaticResource SplashCampusLetter}" />
+                        <Label x:Name="LetterP" Text="p" Style="{StaticResource SplashCampusLetter}" />
+                        <Label x:Name="LetterU" Text="u" Style="{StaticResource SplashCampusLetter}" />
+                        <Label x:Name="LetterS" Text="s" Style="{StaticResource SplashCampusLetter}" Margin="0,0,3,0" />
+                        <Label x:Name="LetterG" Text="G" Style="{StaticResource SplashGigLetter}" />
+                        <Label x:Name="LetterI" Text="i" Style="{StaticResource SplashGigLetter}" />
+                        <Label x:Name="LetterG2" Text="g" Style="{StaticResource SplashGigLetter}" />
+                    </HorizontalStackLayout>
+                </Grid>
 
-        <VerticalStackLayout x:Name="PromiseGroup" Grid.Row="1" Margin="0,48,0,0" Spacing="2" Opacity="0">
-            <Label Text="Learn" FontSize="32" FontAttributes="Italic" TextColor="#087A5A" HorizontalTextAlignment="Center" />
-            <Label Text="Share" FontSize="32" FontAttributes="Italic" TextColor="#087A5A" HorizontalTextAlignment="Center" />
-            <Label Text="Grow" FontSize="32" FontAttributes="Italic" TextColor="#087A5A" HorizontalTextAlignment="Center" />
-            <BoxView WidthRequest="74" HeightRequest="5" CornerRadius="3" Color="#B9E64A" HorizontalOptions="Center" Margin="0,5,0,0" Rotation="-10" />
-        </VerticalStackLayout>
-
-        <VerticalStackLayout x:Name="LoadingGroup" Grid.Row="2" VerticalOptions="End" Spacing="14" Opacity="0">
-            <Grid x:Name="LoadingRing" WidthRequest="46" HeightRequest="46" HorizontalOptions="Center">
-                <Ellipse Stroke="#D5E4DC" StrokeThickness="5" />
-                <Path Aspect="Uniform" Stroke="#087A5A" StrokeThickness="5" StrokeLineCap="Round"
-                      Data="M23,2 A21,21 0 0 1 44,23" />
-            </Grid>
-            <Label Text="Building a brighter&#10;campus, together." HorizontalTextAlignment="Center"
-                   FontSize="15" LineHeight="1.25" FontAttributes="Bold" TextColor="#58645E" />
-        </VerticalStackLayout>
+                <VerticalStackLayout x:Name="MessageGroup" Spacing="7" Opacity="0" TranslationY="14">
+                    <Label Text="STUDENT SKILLS. REAL OPPORTUNITIES" HorizontalTextAlignment="Center"
+                           FontSize="9" CharacterSpacing="2" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#087A5A, Dark=#71D7B1}" />
+                    <Border x:Name="AccentLine" WidthRequest="128" HeightRequest="4"
+                            HorizontalOptions="Center" BackgroundColor="#B9E64A"
+                            StrokeThickness="0" StrokeShape="RoundRectangle 2"
+                            Opacity="0" TranslationY="4" />
+                    <Label Text="Learn  •  Share  •  Grow" HorizontalTextAlignment="Center" FontSize="14" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#58645E, Dark=#AAB6AF}" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </Grid>
     </Grid>
+
+    <ContentPage.Resources>
+        <Style x:Key="SplashCampusLetter" TargetType="Label">
+            <Setter Property="FontSize" Value="40" />
+            <Setter Property="FontFamily" Value="OpenSansSemibold" />
+            <Setter Property="CharacterSpacing" Value="-0.8" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#12362C, Dark=#F2F6F3}" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="TranslationY" Value="30" />
+            <Setter Property="Scale" Value="0.72" />
+        </Style>
+        <Style x:Key="SplashGigLetter" TargetType="Label" BasedOn="{StaticResource SplashCampusLetter}">
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#087A5A, Dark=#71D7B1}" />
+        </Style>
+    </ContentPage.Resources>
 </ContentPage>

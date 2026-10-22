@@ -15,10 +15,13 @@ public partial class ConversationPage : ContentPage
     private readonly List<FileResult> files = [];
     private ObservableCollection<ConversationMessage> messages = [];
     private readonly SemaphoreSlim loadGate = new(1, 1);
+    private readonly PageActivityGuard pageActivity = new();
     private IDispatcherTimer? timer;
     private CancellationTokenSource? lifetimeCancellation;
     private bool hasLoaded;
     private bool isClosing;
+    private bool isLoadingOlder;
+    private string? nextCursor;
 
     public ConversationPage(CampusGigApi api, ConversationItem conversation, Func<Task>? onClosed = null, RealtimeService? realtime = null)
     {
@@ -30,21 +33,21 @@ public partial class ConversationPage : ContentPage
         this.onClosed = onClosed;
         MessageList.ItemsSource = messages;
         ParticipantLabel.Text = conversation.Participant.DisplayName;
-        OrderLabel.Text = $"{conversation.Order.OrderNumber}  •  {conversation.Order.Title}";
-        OrderLabel.Text = $"{conversation.Order.OrderNumber} · {conversation.Order.Title}";
         ParticipantInitialLabel.Text = conversation.Participant.Initial;
-        OrderLabel.Text = $"{conversation.Order.OrderNumber}  •  {conversation.Order.Title}";
+        OrderLabel.Text = $"{conversation.HeaderLabel} · {conversation.HeaderTitle}";
         ParticipantImage.IsVisible = conversation.Participant.HasAvatar;
         ParticipantInitialLabel.IsVisible = !conversation.Participant.HasAvatar;
         ParticipantImage.Source = conversation.Participant.HasAvatar
             ? $"{api.BaseUrl}/profile/avatar/{conversation.Participant.Id}?v={conversation.Participant.AvatarVersion}"
             : null;
+        AttachButton.IsVisible = conversation.CanAttachFiles;
         UpdateComposerState();
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        pageActivity.Activate();
         HeaderBar.Opacity = 1;
         HeaderBar.TranslationY = 0;
         ComposerBar.Opacity = 1;
@@ -54,6 +57,7 @@ public partial class ConversationPage : ContentPage
             realtime.MessageCreated += OnRealtimeMessageCreated;
             realtime.ConversationRead += OnConversationRead;
             realtime.ConnectionChanged += OnRealtimeConnectionChanged;
+            realtime.ReconciliationRequired += OnRealtimeReconciliationRequired;
             OnRealtimeConnectionChanged(realtime.IsConnected);
         }
         lifetimeCancellation?.Cancel();
@@ -62,12 +66,17 @@ public partial class ConversationPage : ContentPage
         _ = InitializeAsync(lifetimeCancellation.Token);
         timer = Dispatcher.CreateTimer();
         timer.Interval = TimeSpan.FromSeconds(20);
-        timer.Tick += async (_, _) => await LoadAsync(false);
+        timer.Tick += async (_, _) =>
+        {
+            if (realtime?.IsConnected != true)
+                await LoadAsync(false);
+        };
         timer.Start();
     }
 
     protected override void OnDisappearing()
     {
+        pageActivity.Deactivate();
         lifetimeCancellation?.Cancel();
         lifetimeCancellation?.Dispose();
         lifetimeCancellation = null;
@@ -78,6 +87,7 @@ public partial class ConversationPage : ContentPage
             realtime.MessageCreated -= OnRealtimeMessageCreated;
             realtime.ConversationRead -= OnConversationRead;
             realtime.ConnectionChanged -= OnRealtimeConnectionChanged;
+            realtime.ReconciliationRequired -= OnRealtimeReconciliationRequired;
         }
         base.OnDisappearing();
     }
@@ -90,7 +100,7 @@ public partial class ConversationPage : ContentPage
         if (realtime is null || cancellationToken.IsCancellationRequested) return;
         try
         {
-            await Task.Run(() => realtime.SubscribeAsync(conversation.Order.Id, cancellationToken), cancellationToken);
+            await Task.Run(() => realtime.SubscribeAsync(conversation.Id, cancellationToken), cancellationToken);
         }
         catch (OperationCanceledException) { }
         catch (Exception exception)
@@ -101,16 +111,16 @@ public partial class ConversationPage : ContentPage
         }
     }
 
-    private void OnRealtimeMessageCreated(string orderId, ConversationMessage message)
+    private void OnRealtimeMessageCreated(string conversationId, ConversationMessage message)
     {
-        if (orderId != conversation.Order.Id || messages.Any(item => item.Id == message.Id)) return;
+        if (conversationId != conversation.Id || messages.Any(item => item.Id == message.Id)) return;
         messages.Add(message);
         MessageList.ScrollTo(message, position: ScrollToPosition.End, animate: true);
     }
 
-    private void OnConversationRead(string orderId, string userId)
+    private void OnConversationRead(string conversationId, string userId)
     {
-        if (orderId != conversation.Order.Id) return;
+        if (conversationId != conversation.Id) return;
         foreach (var message in messages.Where(item => item.IsMine)) message.IsRead = true;
     }
 
@@ -120,15 +130,34 @@ public partial class ConversationPage : ContentPage
         RealtimeStatusLabel.Opacity = connected ? 1 : 0.7;
     }
 
+    private void OnRealtimeReconciliationRequired() => _ = ReconcileAfterReconnectAsync();
+
+    private async Task ReconcileAfterReconnectAsync()
+    {
+        await loadGate.WaitAsync();
+        loadGate.Release();
+        await LoadAsync(false);
+    }
+
     private async Task LoadAsync(bool showError = true)
     {
-        if (!await loadGate.WaitAsync(0)) return;
+        var pageGeneration = pageActivity.Capture();
+        if (!pageActivity.CanUpdate(pageGeneration)) return;
+        await loadGate.WaitAsync();
+        if (!pageActivity.CanUpdate(pageGeneration))
+        {
+            loadGate.Release();
+            return;
+        }
         LoadingMessages.IsVisible = !hasLoaded;
         MessageList.IsVisible = hasLoaded;
         Exception? loadError = null;
         try
         {
-            var response = await api.GetAsync<ApiList<ConversationMessage>>($"orders/{conversation.Order.Id}/messages");
+            var response = await api.GetAsync<MessagePage>($"conversations/{conversation.Id}/messages");
+            if (!pageActivity.CanUpdate(pageGeneration)) return;
+            nextCursor = response.Page.NextCursor;
+            LoadOlderButton.IsVisible = !string.IsNullOrWhiteSpace(nextCursor);
             if (!hasLoaded)
             {
                 messages = new ObservableCollection<ConversationMessage>(response.Data);
@@ -153,17 +182,53 @@ public partial class ConversationPage : ContentPage
         catch (Exception exception) { loadError = exception; }
         finally
         {
-            LoadingMessages.IsVisible = false;
-            Refresh.IsRefreshing = false;
+            if (pageActivity.CanUpdate(pageGeneration))
+            {
+                LoadingMessages.IsVisible = false;
+                Refresh.IsRefreshing = false;
+            }
             loadGate.Release();
         }
 
-        if (loadError is not null)
+        if (loadError is not null && pageActivity.CanUpdate(pageGeneration))
             await AppDialog.AlertAsync(this, "Unable to load conversation", loadError.Message);
+    }
+
+    private async void OnLoadOlderClicked(object? sender, EventArgs e)
+    {
+        if (isLoadingOlder || string.IsNullOrWhiteSpace(nextCursor)) return;
+        isLoadingOlder = true;
+        LoadOlderButton.IsEnabled = false;
+        LoadOlderButton.Text = "Loading…";
+        try
+        {
+            var cursor = Uri.EscapeDataString(nextCursor);
+            var response = await api.GetAsync<MessagePage>(
+                $"conversations/{conversation.Id}/messages?before={cursor}&limit=50");
+            for (var index = response.Data.Count - 1; index >= 0; index--)
+            {
+                var message = response.Data[index];
+                if (messages.All(existing => existing.Id != message.Id))
+                    messages.Insert(0, message);
+            }
+            nextCursor = response.Page.NextCursor;
+            LoadOlderButton.IsVisible = !string.IsNullOrWhiteSpace(nextCursor);
+        }
+        catch (Exception exception)
+        {
+            await AppDialog.AlertAsync(this, "Unable to load older messages", exception.Message, "Try again");
+        }
+        finally
+        {
+            isLoadingOlder = false;
+            LoadOlderButton.IsEnabled = true;
+            LoadOlderButton.Text = "Load older messages";
+        }
     }
 
     private async void OnAttachClicked(object? sender, EventArgs e)
     {
+        if (!conversation.CanAttachFiles) return;
         IReadOnlyList<FileResult> selected;
         try
         {
@@ -198,8 +263,6 @@ public partial class ConversationPage : ContentPage
         }
         files.Clear();
         files.AddRange(selected);
-        SelectedFilesLabel.Text = string.Join("  •  ", files.Select(file => file.FileName));
-        SelectedFilesLabel.Text = string.Join(" · ", files.Select(file => file.FileName));
         SelectedFilesLabel.Text = string.Join(" | ", files.Select(file => file.FileName));
         SelectedFilesLabel.IsVisible = true;
         SelectedFilesPanel.IsVisible = files.Count > 0;
@@ -229,7 +292,7 @@ public partial class ConversationPage : ContentPage
                 await api.PostMultipartAsync<ApiResult<ConversationMessage>>($"orders/{conversation.Order.Id}/messages/attachments", new Dictionary<string, string?> { ["body"] = body }, uploads);
             }
             else
-                await api.PostAsync<ApiResult<ConversationMessage>>($"orders/{conversation.Order.Id}/messages", new { body });
+                await api.PostAsync<ApiResult<ConversationMessage>>($"conversations/{conversation.Id}/messages", new { body });
             DraftEntry.Text = "";
             files.Clear();
             SelectedFilesPanel.IsVisible = false;

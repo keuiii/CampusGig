@@ -1,3 +1,5 @@
+using System.Net.Mail;
+
 namespace CampusGig.Mobile.Services;
 
 public enum AuthFormMode
@@ -25,14 +27,29 @@ public static class AuthFormRules
         {
             AuthFormMode.Mfa => normalizedCode.Length == (recoveryCode ? 10 : 6),
             AuthFormMode.Verify => NormalizeCode(code, false).Length == 6,
-            AuthFormMode.Forgot => !string.IsNullOrWhiteSpace(email),
+            AuthFormMode.Forgot => IsValidEmail(email),
             AuthFormMode.Reset => NormalizeCode(code, false).Length == 6 && (password?.Length ?? 0) >= 8,
-            AuthFormMode.Login => !string.IsNullOrWhiteSpace(email) && (password?.Length ?? 0) >= 8,
-            AuthFormMode.Register => !string.IsNullOrWhiteSpace(email)
+            AuthFormMode.Login => IsValidEmail(email) && (password?.Length ?? 0) >= 8,
+            AuthFormMode.Register => IsValidEmail(email)
                 && (password?.Length ?? 0) >= 8
                 && (displayName?.Trim().Length ?? 0) >= 2,
             _ => false,
         };
+    }
+
+    public static bool IsValidEmail(string? value)
+    {
+        var email = value?.Trim();
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254) return false;
+        try
+        {
+            var parsed = new MailAddress(email);
+            return string.Equals(parsed.Address, email, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     public static string NormalizeCode(string? value, bool recoveryCode)

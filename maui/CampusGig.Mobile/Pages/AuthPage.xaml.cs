@@ -14,12 +14,16 @@ public partial class AuthPage : ContentPage
     private string? mfaChallengeToken;
     private bool recoveryCode;
     private bool resetRecoveryCode;
+    private bool resetSecondFactorRequired;
     private bool entrancePlayed;
     private bool themeAnimating;
     private bool submitting;
     private bool modeAnimating;
     private bool normalizingCode;
-    private string submitButtonText = "Log in     →";
+    private bool normalizingResetCode;
+    private int renderedCodeLength;
+    private int renderedResetCodeLength;
+    private string submitButtonText = "Log in";
 
     public AuthPage(
         CampusGigApi api,
@@ -47,6 +51,8 @@ public partial class AuthPage : ContentPage
         EmailEntry.TextChanged += (_, _) => UpdateSubmitState();
         NameEntry.TextChanged += (_, _) => UpdateSubmitState();
         CodeEntry.TextChanged += OnCodeTextChanged;
+        ResetCodeEntry.TextChanged += OnResetCodeTextChanged;
+        ResetMfaEntry.TextChanged += OnResetMfaTextChanged;
         StudentCheckBox.CheckedChanged += (_, _) =>
         {
             RenderMode();
@@ -55,6 +61,7 @@ public partial class AuthPage : ContentPage
         RenderMode();
         GoogleButton.IsEnabled = googleIdentity.IsAvailable;
         ThemeThumb.TranslationX = InteractionMotion.ThemeThumbOffset(IsDarkMode);
+        AppVersionLabel.Text = $"Version {AppInfo.Current.VersionString}";
     }
 
     protected override async void OnAppearing()
@@ -109,10 +116,23 @@ public partial class AuthPage : ContentPage
             StatusLabel.Text = "";
             StatusPanel.IsVisible = false;
             CodeEntry.Text = "";
+            ResetCodeEntry.Text = "";
+            renderedResetCodeLength = 0;
             if (nextMode is AuthMode.Login or AuthMode.Register)
             {
                 PasswordEntry.Text = "";
                 ConfirmPasswordEntry.Text = "";
+                ResetMfaEntry.Text = "";
+                resetRecoveryCode = false;
+                resetSecondFactorRequired = false;
+            }
+            else if (nextMode == AuthMode.Forgot)
+            {
+                PasswordEntry.Text = "";
+                ConfirmPasswordEntry.Text = "";
+                ResetMfaEntry.Text = "";
+                resetRecoveryCode = false;
+                resetSecondFactorRequired = false;
             }
             RenderMode();
 
@@ -139,6 +159,9 @@ public partial class AuthPage : ContentPage
 
     private void RenderMode()
     {
+        PasswordEntry.ReturnType = mode is AuthMode.Register or AuthMode.Reset
+            ? ReturnType.Next
+            : ReturnType.Done;
         var tabbed = mode is AuthMode.Login or AuthMode.Register;
         AuthTabs.IsVisible = tabbed;
         var inactiveTabColor = AppThemeColor("#66716B", "#AAB6AF");
@@ -147,13 +170,23 @@ public partial class AuthPage : ContentPage
         RegisterTabButton.TextColor = mode == AuthMode.Register
             ? Color.FromArgb("#0F6B4F") : inactiveTabColor;
         NameGroup.IsVisible = mode == AuthMode.Register;
-        EmailGroup.IsVisible = mode is not AuthMode.Verify and not AuthMode.Mfa;
+        EmailGroup.IsVisible = mode is not AuthMode.Verify and not AuthMode.Mfa and not AuthMode.Reset;
+        ResetAccountPanel.IsVisible = mode == AuthMode.Reset;
+        ResetAccountLabel.Text = PasswordResetPresentationRules.MaskEmail(EmailEntry.Text);
         StudentGroup.IsVisible = mode == AuthMode.Register;
-        CodeGroup.IsVisible = mode is AuthMode.Verify or AuthMode.Reset or AuthMode.Mfa;
-        PasswordGroup.IsVisible = mode is AuthMode.Login or AuthMode.Register or AuthMode.Reset;
-        PasswordStrengthPanel.IsVisible = mode == AuthMode.Register;
-        ConfirmPasswordGroup.IsVisible = mode == AuthMode.Register;
-        ResetMfaGroup.IsVisible = mode == AuthMode.Reset;
+        CodeGroup.IsVisible = mode is AuthMode.Verify or AuthMode.Mfa ||
+                              (mode == AuthMode.Reset && !resetSecondFactorRequired);
+        StandardCodeField.IsVisible = mode != AuthMode.Reset;
+        ResetCodeField.IsVisible = mode == AuthMode.Reset && !resetSecondFactorRequired;
+        ResetCodeHint.IsVisible = ResetCodeField.IsVisible;
+        PasswordGroup.IsVisible = mode is AuthMode.Login or AuthMode.Register ||
+                                  (mode == AuthMode.Reset && !resetSecondFactorRequired);
+        PasswordHint.IsVisible = mode == AuthMode.Reset && !resetSecondFactorRequired;
+        PasswordStrengthPanel.IsVisible = PasswordStrengthRules.ShouldShow(
+            PasswordEntry.Text, mode is AuthMode.Register ||
+                                (mode == AuthMode.Reset && !resetSecondFactorRequired));
+        ConfirmPasswordGroup.IsVisible = mode == AuthMode.Reset && !resetSecondFactorRequired;
+        ResetMfaGroup.IsVisible = mode == AuthMode.Reset && resetSecondFactorRequired;
         RememberGroup.IsVisible = mode == AuthMode.Mfa;
         RecoveryButton.IsVisible = mode == AuthMode.Mfa;
         ForgotButton.IsVisible = mode == AuthMode.Login;
@@ -165,17 +198,37 @@ public partial class AuthPage : ContentPage
             : "SIX-DIGIT CODE";
         CodeEntry.Placeholder = recoveryCode ? "ABCDE-12345" : "000000";
         CodeEntry.Keyboard = recoveryCode ? Keyboard.Default : Keyboard.Numeric;
+        AuthenticatorCodeSlots.IsVisible = !recoveryCode;
+        RecoveryCodeSurface.IsVisible = recoveryCode;
+        CodeEntry.Opacity = recoveryCode ? 1 : 0.02;
+        CodeEntry.TextColor = recoveryCode
+            ? AppThemeColor("#17211D", "#F2F6F3")
+            : Colors.Transparent;
+        CodeEntry.Margin = recoveryCode ? new Thickness(34, 0, 12, 0) : new Thickness(0);
+        SemanticProperties.SetDescription(
+            CodeEntry,
+            recoveryCode ? "Account recovery code" : "Six-digit verification code");
+        RenderAuthenticatorCodeSlots(recoveryCode ? "" : CodeEntry.Text ?? "");
+        renderedCodeLength = recoveryCode ? 0 : CodeEntry.Text?.Length ?? 0;
 
         (PageTitle.Text, PageSubtitle.Text, SubmitButton.Text) = mode switch
         {
-            AuthMode.Login => ("Welcome to CampusGig", "Your trusted marketplace for verified student skills and services.", "Log in     →"),
-            AuthMode.Register => ("Join CampusGig", "Create an account to book trusted student services.", $"Create {(StudentCheckBox.IsChecked ? "student" : "client")} account     →"),
-            AuthMode.Verify => ("Verify your email", $"Enter the code sent to {EmailEntry.Text?.Trim()}.", "Verify email     →"),
-            AuthMode.Forgot => ("Forgot password?", "We’ll send a reset code to your account email.", "Send reset code     →"),
-            AuthMode.Reset => ("Create a new password", "Enter your code and choose a secure new password.", "Update password     →"),
-            AuthMode.Mfa => ("Two-factor verification", recoveryCode ? "Enter one of your saved recovery codes." : "Enter the current code from your authenticator app.", "Verify and sign in     →"),
+            AuthMode.Login => ("Welcome Back", "Sign in to continue to CampusGig.", "Log in"),
+            AuthMode.Register => ("Create Your Account", "Join CampusGig and book trusted student services.", $"Create {(StudentCheckBox.IsChecked ? "student" : "client")} account"),
+            AuthMode.Verify => ("Verify your email", $"Enter the code sent to {EmailEntry.Text?.Trim()}.", "Verify email"),
+            AuthMode.Forgot => ("Forgot password?", "We'll send a reset code to your account email.", "Send reset code"),
+            AuthMode.Reset => ("Create a new password", "Enter your code and choose a secure new password.", "Update password"),
+            AuthMode.Mfa => ("Two-factor verification", recoveryCode ? "Enter one of your saved recovery codes." : "Enter the current code from your authenticator app.", "Verify and sign in"),
             _ => throw new InvalidOperationException(),
         };
+        if (mode == AuthMode.Reset)
+        {
+            PageTitle.Text = resetSecondFactorRequired ? "Confirm it's you" : "Create a new password";
+            PageSubtitle.Text = resetSecondFactorRequired
+                ? "Complete the final security check for this protected account."
+                : "Enter the six-digit code and choose a secure new password.";
+            SubmitButton.Text = resetSecondFactorRequired ? "Confirm reset" : "Update password";
+        }
         if (BusyIndicator.IsRunning)
         {
             submitButtonText = SubmitButton.Text;
@@ -198,17 +251,24 @@ public partial class AuthPage : ContentPage
     private async void OnRegisterTabClicked(object? sender, EventArgs e) => await SetModeAsync(AuthMode.Register);
     private async void OnForgotClicked(object? sender, EventArgs e) => await SetModeAsync(AuthMode.Forgot);
     private async void OnBackClicked(object? sender, EventArgs e) => await SetModeAsync(AuthMode.Login);
+    private async void OnChangeResetEmailClicked(object? sender, EventArgs e) => await SetModeAsync(AuthMode.Forgot);
 
     private void OnShowPasswordClicked(object? sender, EventArgs e)
     {
-        PasswordEntry.IsPassword = !PasswordEntry.IsPassword;
-        ShowPasswordButton.Text = PasswordEntry.IsPassword ? "SHOW" : "HIDE";
+        PasswordEntry.IsPassword = PasswordVisibilityRules.Toggle(PasswordEntry.IsPassword);
+        ShowPasswordButton.Text = PasswordVisibilityRules.ButtonLabel(PasswordEntry.IsPassword);
+        SemanticProperties.SetDescription(
+            ShowPasswordButton,
+            PasswordEntry.IsPassword ? "Show password" : "Hide password");
     }
 
     private void OnShowConfirmPasswordClicked(object? sender, EventArgs e)
     {
-        ConfirmPasswordEntry.IsPassword = !ConfirmPasswordEntry.IsPassword;
-        ShowConfirmPasswordButton.Text = ConfirmPasswordEntry.IsPassword ? "SHOW" : "HIDE";
+        ConfirmPasswordEntry.IsPassword = PasswordVisibilityRules.Toggle(ConfirmPasswordEntry.IsPassword);
+        ShowConfirmPasswordButton.Text = PasswordVisibilityRules.ButtonLabel(ConfirmPasswordEntry.IsPassword);
+        SemanticProperties.SetDescription(
+            ShowConfirmPasswordButton,
+            ConfirmPasswordEntry.IsPassword ? "Show password confirmation" : "Hide password confirmation");
     }
 
     private async void OnRecoveryClicked(object? sender, EventArgs e)
@@ -226,6 +286,10 @@ public partial class AuthPage : ContentPage
         resetRecoveryCode = !resetRecoveryCode;
         ResetMfaEntry.Text = "";
         ResetRecoveryButton.Text = resetRecoveryCode ? "Use authenticator code" : "Use recovery code";
+        ResetMfaLabel.Text = resetRecoveryCode ? "RECOVERY CODE" : "AUTHENTICATOR CODE";
+        ResetMfaEntry.Placeholder = resetRecoveryCode ? "ABCDE-12345" : "000000";
+        ResetMfaEntry.Keyboard = resetRecoveryCode ? Keyboard.Default : Keyboard.Numeric;
+        UpdateSubmitState();
     }
 
     private async void OnThemeClicked(object? sender, EventArgs e)
@@ -262,9 +326,18 @@ public partial class AuthPage : ContentPage
         {
             IdToken = idToken,
             TrustedDeviceToken = session.TrustedDeviceToken,
+            DeviceName = DeviceInfo.Name,
         });
         await HandleAuthResponseAsync(response);
     });
+
+    private async void OnBrowseAsGuestClicked(object? sender, EventArgs e)
+    {
+        if (submitting) return;
+        BrowseGuestButton.IsEnabled = false;
+        try { await ((App)Application.Current!).EnterGuestModeAsync(); }
+        finally { BrowseGuestButton.IsEnabled = true; }
+    }
 
     private async Task SubmitAsync()
     {
@@ -273,23 +346,25 @@ public partial class AuthPage : ContentPage
 
         if (mode is AuthMode.Login or AuthMode.Register or AuthMode.Forgot or AuthMode.Reset)
             if (string.IsNullOrWhiteSpace(email)) throw new InvalidOperationException("Enter your email address.");
+        if (mode is (AuthMode.Login or AuthMode.Register or AuthMode.Forgot) &&
+            !AuthFormRules.IsValidEmail(email))
+            throw new InvalidOperationException("Enter a valid email address.");
 
         switch (mode)
         {
             case AuthMode.Login:
                 ValidatePassword(password);
                 var trustedDeviceToken = await session.GetTrustedDeviceTokenAsync(email);
-                await HandleAuthResponseAsync(await api.PostAsync<AuthResponse>("auth/login", new
+                await HandleAuthResponseAsync(await api.PostAsync<AuthResponse>("auth/login", new LoginRequest
                 {
-                    email,
-                    password,
-                    trustedDeviceToken,
+                    Email = email,
+                    Password = password,
+                    TrustedDeviceToken = trustedDeviceToken,
+                    DeviceName = DeviceInfo.Name,
                 }));
                 break;
             case AuthMode.Register:
                 ValidatePassword(password);
-                if (!PasswordStrengthRules.ConfirmationMatches(password, ConfirmPasswordEntry.Text))
-                    throw new InvalidOperationException("Enter the same password again to confirm it.");
                 var displayName = NameEntry.Text?.Trim() ?? "";
                 if (displayName.Length < 2) throw new InvalidOperationException("Enter your full name.");
                 var registration = await api.PostAsync<RegistrationResponse>("auth/register", new
@@ -307,24 +382,44 @@ public partial class AuthPage : ContentPage
                 {
                     email,
                     code = RequireCode(),
+                    clientType = "MOBILE",
+                    deviceName = DeviceInfo.Name,
                 }));
                 break;
             case AuthMode.Forgot:
                 var forgot = await api.PostAsync<ApiMessage>("auth/forgot-password", new { email });
                 await SetModeAsync(AuthMode.Reset);
-                if (!string.IsNullOrWhiteSpace(forgot.DevelopmentCode)) CodeEntry.Text = forgot.DevelopmentCode;
-                ShowStatus(forgot.Message, isError: false);
+                if (!string.IsNullOrWhiteSpace(forgot.DevelopmentCode)) ResetCodeEntry.Text = forgot.DevelopmentCode;
+                ResetCodeEntry.Focus();
                 break;
             case AuthMode.Reset:
                 ValidatePassword(password);
-                var reset = await api.PostAsync<ApiMessage>("auth/reset-password", new
+                if (!PasswordStrengthRules.ConfirmationMatches(password, ConfirmPasswordEntry.Text))
                 {
-                    email,
-                    code = RequireCode(),
-                    password,
-                    mfaCode = string.IsNullOrWhiteSpace(ResetMfaEntry.Text) ? null : ResetMfaEntry.Text.Trim(),
-                    recoveryCode = resetRecoveryCode,
-                });
+                    await ShakeAsync(ConfirmPasswordGroup);
+                    throw new InvalidOperationException("Enter the same password again to confirm it.");
+                }
+                ApiMessage reset;
+                try
+                {
+                    reset = await api.PostAsync<ApiMessage>("auth/reset-password", new
+                    {
+                        email,
+                        code = RequireCode(),
+                        password,
+                        mfaCode = string.IsNullOrWhiteSpace(ResetMfaEntry.Text) ? null : ResetMfaEntry.Text.Trim(),
+                        recoveryCode = resetRecoveryCode,
+                    });
+                }
+                catch (CampusGigApiException exception) when (
+                    !resetSecondFactorRequired &&
+                    PasswordResetPresentationRules.RequiresSecondFactor(exception.Message))
+                {
+                    await ShowResetSecondFactorAsync();
+                    return;
+                }
+                await FormContent.ScaleToAsync(0.985, 70, Easing.CubicIn);
+                await FormContent.ScaleToAsync(1, 150, Easing.CubicOut);
                 await DisplayAlertAsync("Password updated", reset.Message, "OK");
                 await SetModeAsync(AuthMode.Login);
                 break;
@@ -335,6 +430,8 @@ public partial class AuthPage : ContentPage
                     code = RequireCode(),
                     recoveryCode,
                     rememberDevice = RememberCheckBox.IsChecked,
+                    clientType = "MOBILE",
+                    deviceName = DeviceInfo.Name,
                 }));
                 break;
         }
@@ -342,7 +439,9 @@ public partial class AuthPage : ContentPage
 
     private string RequireCode()
     {
-        var code = CodeEntry.Text?.Trim() ?? "";
+        var code = mode == AuthMode.Reset
+            ? ResetCodeEntry.Text?.Trim() ?? ""
+            : CodeEntry.Text?.Trim() ?? "";
         if (code.Length < 6) throw new InvalidOperationException("Enter the required verification code.");
         return code;
     }
@@ -360,12 +459,35 @@ public partial class AuthPage : ContentPage
             await SetModeAsync(AuthMode.Mfa);
             return;
         }
-        await session.SaveAsync(response);
-        ((App)Application.Current!).ShowMain();
+        try
+        {
+            await session.SaveAsync(response);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine($"Authenticated session could not be stored: {exception}");
+            throw new InvalidOperationException(
+                "CampusGig signed you in, but this device could not securely save the session. Try logging in once more.",
+                exception);
+        }
+
+        try
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+                ((App)Application.Current!).ShowMain());
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"Authenticated home screen could not open: {exception}");
+            throw new InvalidOperationException(
+                "CampusGig signed you in, but the main screen could not open.",
+                exception);
+        }
     }
 
     private async Task RunAsync(Func<Task> action)
     {
+        if (submitting) return;
         SetBusy(true);
         try
         {
@@ -373,11 +495,29 @@ public partial class AuthPage : ContentPage
             StatusPanel.IsVisible = false;
             await action();
         }
-        catch (Exception exception) when (exception is CampusGigApiException or GoogleSignInException or InvalidOperationException or HttpRequestException or TaskCanceledException)
+        catch (Exception exception) when (exception is CampusGigApiException or GoogleSignInException or InvalidOperationException or HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or ArgumentException)
         {
-            ShowStatus(exception is TaskCanceledException
-                ? "The CampusGig API did not respond. Confirm that it is running."
-                : exception.Message, isError: true);
+            var message = exception switch
+            {
+                TaskCanceledException => "CampusGig is taking too long to respond. Check your connection and try again.",
+                HttpRequestException => "Unable to connect to CampusGig. Check your connection and try again.",
+                _ => exception.Message,
+            };
+            ShowStatus(message, isError: true);
+            await StatusPanel.FadeToAsync(1, 130, Easing.CubicOut);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"Authentication flow failed ({exception.GetType().Name}): {exception}");
+            var message = exception.GetBaseException() switch
+            {
+                OperationCanceledException =>
+                    "CampusGig could not finish opening your account. Please tap Log in again.",
+                { Message.Length: > 0 } cause => cause.Message,
+                var cause =>
+                    $"CampusGig could not finish opening your account ({cause.GetType().Name}).",
+            };
+            ShowStatus(message, isError: true);
             await StatusPanel.FadeToAsync(1, 130, Easing.CubicOut);
         }
         finally
@@ -412,9 +552,10 @@ public partial class AuthPage : ContentPage
         UpdateSubmitState();
         AuthTabs.IsEnabled = !busy;
         GoogleButton.IsEnabled = !busy && googleIdentity.IsAvailable;
+        BrowseGuestButton.IsEnabled = !busy;
     }
 
-    private void OnCodeTextChanged(object? sender, TextChangedEventArgs e)
+    private async void OnCodeTextChanged(object? sender, TextChangedEventArgs e)
     {
         if (normalizingCode) return;
         var normalized = AuthFormRules.NormalizeCode(e.NewTextValue, mode == AuthMode.Mfa && recoveryCode);
@@ -423,6 +564,78 @@ public partial class AuthPage : ContentPage
             normalizingCode = true;
             CodeEntry.Text = normalized;
             normalizingCode = false;
+        }
+        if (!recoveryCode)
+        {
+            RenderAuthenticatorCodeSlots(normalized);
+            if (normalized.Length > renderedCodeLength)
+            {
+                var enteredIndex = normalized.Length - 1;
+                await AuthenticatorCodeLabels[enteredIndex].ScaleToAsync(1.16, 55, Easing.CubicOut);
+                await AuthenticatorCodeLabels[enteredIndex].ScaleToAsync(1, 100, Easing.CubicOut);
+            }
+            renderedCodeLength = normalized.Length;
+        }
+        UpdateSubmitState();
+    }
+
+    private void RenderAuthenticatorCodeSlots(string code)
+    {
+        var normalized = AuthFormRules.NormalizeCode(code, recoveryCode: false);
+        var labels = AuthenticatorCodeLabels;
+        var boxes = AuthenticatorCodeBoxes;
+        for (var index = 0; index < labels.Length; index++)
+        {
+            var filled = index < normalized.Length;
+            labels[index].Text = filled ? normalized[index].ToString() : "";
+            labels[index].TextColor = AppThemeColor("#17211D", "#F2F6F3");
+            boxes[index].Stroke = AppThemeColor(filled ? "#72B79D" : "#DDE3DF", filled ? "#71D7B1" : "#385046");
+            boxes[index].BackgroundColor = AppThemeColor(filled ? "#F1F8F4" : "#FCFDFC", filled ? "#203B30" : "#151D19");
+        }
+    }
+
+    private async void OnResetCodeTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (normalizingResetCode) return;
+        var normalized = AuthFormRules.NormalizeCode(e.NewTextValue, recoveryCode: false);
+        if (!string.Equals(normalized, e.NewTextValue, StringComparison.Ordinal))
+        {
+            normalizingResetCode = true;
+            ResetCodeEntry.Text = normalized;
+            normalizingResetCode = false;
+        }
+
+        var labels = ResetCodeLabels;
+        var boxes = ResetCodeBoxes;
+        for (var index = 0; index < labels.Length; index++)
+        {
+            var filled = index < normalized.Length;
+            labels[index].Text = filled ? normalized[index].ToString() : "";
+            labels[index].TextColor = AppThemeColor("#17211D", "#F2F6F3");
+            boxes[index].Stroke = AppThemeColor(filled ? "#72B79D" : "#DDE3DF", filled ? "#71D7B1" : "#385046");
+            boxes[index].BackgroundColor = AppThemeColor(filled ? "#F1F8F4" : "#FCFDFC", filled ? "#203B30" : "#151D19");
+        }
+
+        if (normalized.Length > renderedResetCodeLength)
+        {
+            var enteredIndex = normalized.Length - 1;
+            await labels[enteredIndex].ScaleToAsync(1.18, 55, Easing.CubicOut);
+            await labels[enteredIndex].ScaleToAsync(1, 105, Easing.CubicOut);
+            if (normalized.Length == 6 && mode == AuthMode.Reset && !resetSecondFactorRequired)
+                PasswordEntry.Focus();
+        }
+        renderedResetCodeLength = normalized.Length;
+        UpdateSubmitState();
+    }
+
+    private void OnResetMfaTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        var normalized = AuthFormRules.NormalizeCode(e.NewTextValue, resetRecoveryCode);
+        if (!string.Equals(normalized, e.NewTextValue, StringComparison.Ordinal))
+        {
+            ResetMfaEntry.TextChanged -= OnResetMfaTextChanged;
+            ResetMfaEntry.Text = normalized;
+            ResetMfaEntry.TextChanged += OnResetMfaTextChanged;
         }
         UpdateSubmitState();
     }
@@ -434,10 +647,13 @@ public partial class AuthPage : ContentPage
             EmailEntry.Text,
             PasswordEntry.Text,
             NameEntry.Text,
-            CodeEntry.Text,
+            mode == AuthMode.Reset ? ResetCodeEntry.Text : CodeEntry.Text,
             recoveryCode);
-        if (mode == AuthMode.Register)
+        if (mode == AuthMode.Reset && !resetSecondFactorRequired)
             ready &= PasswordStrengthRules.ConfirmationMatches(PasswordEntry.Text, ConfirmPasswordEntry.Text);
+        if (mode == AuthMode.Reset && resetSecondFactorRequired)
+            ready = AuthFormRules.NormalizeCode(ResetMfaEntry.Text, resetRecoveryCode).Length ==
+                    (resetRecoveryCode ? 10 : 6);
         SubmitButton.IsEnabled = !submitting && ready;
         SubmitButton.Opacity = SubmitButton.IsEnabled ? 1 : 0.45;
     }
@@ -445,6 +661,9 @@ public partial class AuthPage : ContentPage
     private void RenderPasswordStrength()
     {
         var strength = PasswordStrengthRules.Evaluate(PasswordEntry.Text);
+        PasswordStrengthPanel.IsVisible = PasswordStrengthRules.ShouldShow(
+            PasswordEntry.Text, mode == AuthMode.Register ||
+                                (mode == AuthMode.Reset && !resetSecondFactorRequired));
         PasswordStrengthBar.Progress = strength.Progress;
         PasswordStrengthBar.ProgressColor = Color.FromArgb(IsDarkMode ? strength.DarkColor : strength.LightColor);
         PasswordStrengthLabel.Text = strength.Label;
@@ -453,7 +672,7 @@ public partial class AuthPage : ContentPage
 
     private void RenderPasswordConfirmation()
     {
-        if (mode != AuthMode.Register || string.IsNullOrEmpty(ConfirmPasswordEntry.Text))
+        if (mode != AuthMode.Reset || string.IsNullOrEmpty(ConfirmPasswordEntry.Text))
         {
             ConfirmPasswordHint.Text = "Passwords must match";
             ConfirmPasswordHint.TextColor = AppThemeColor("#66716B", "#AAB6AF");
@@ -477,5 +696,38 @@ public partial class AuthPage : ContentPage
     {
         if (sender is VisualElement element)
             await element.ScaleToAsync(1, 90, Easing.CubicOut);
+    }
+
+    private Label[] ResetCodeLabels =>
+        [CodeDigit0, CodeDigit1, CodeDigit2, CodeDigit3, CodeDigit4, CodeDigit5];
+
+    private Label[] AuthenticatorCodeLabels =>
+        [AuthCodeDigit0, AuthCodeDigit1, AuthCodeDigit2, AuthCodeDigit3, AuthCodeDigit4, AuthCodeDigit5];
+
+    private Border[] ResetCodeBoxes =>
+        [CodeBox0, CodeBox1, CodeBox2, CodeBox3, CodeBox4, CodeBox5];
+
+    private Border[] AuthenticatorCodeBoxes =>
+        [AuthCodeBox0, AuthCodeBox1, AuthCodeBox2, AuthCodeBox3, AuthCodeBox4, AuthCodeBox5];
+
+    private async Task ShowResetSecondFactorAsync()
+    {
+        await FieldsContent.FadeToAsync(0, 80, Easing.CubicIn);
+        resetSecondFactorRequired = true;
+        RenderMode();
+        ShowStatus("Reset code accepted. Complete the two-factor check.", isError: false);
+        FieldsContent.TranslationY = 6;
+        await Task.WhenAll(
+            FieldsContent.FadeToAsync(1, 170, Easing.CubicOut),
+            FieldsContent.TranslateToAsync(0, 0, 190, Easing.CubicOut));
+        ResetMfaEntry.Focus();
+    }
+
+    private static async Task ShakeAsync(VisualElement element)
+    {
+        await element.TranslateToAsync(-8, 0, 45, Easing.CubicOut);
+        await element.TranslateToAsync(8, 0, 55, Easing.CubicInOut);
+        await element.TranslateToAsync(-4, 0, 45, Easing.CubicInOut);
+        await element.TranslateToAsync(0, 0, 55, Easing.CubicOut);
     }
 }

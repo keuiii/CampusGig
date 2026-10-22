@@ -9,13 +9,20 @@ public sealed class MainTabbedPage : ContentPage
 {
     public static MainTabbedPage? Instance { get; private set; }
 
-    public static void ClearInstance() => Instance = null;
+    public static void ClearInstance()
+    {
+        if (Instance is not null)
+            foreach (var disposable in Instance.pages.Values.OfType<IDisposable>())
+                disposable.Dispose();
+        Instance = null;
+    }
 
     private readonly Dictionary<string, View> tabViews = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, (Label Icon, Label Label, Border Pip, VisualElement Item)> tabButtons = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (Image Icon, Label Label, VisualElement Item)> tabButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ContentPage> pages = new(StringComparer.Ordinal);
     private readonly Grid contentArea;
     private readonly MessagesPage messagesPage;
+    private readonly OrdersPage ordersPage;
     private readonly Border tabHighlight;
     private Border? messagesBadge;
     private Label? messagesBadgeLabel;
@@ -33,9 +40,10 @@ public sealed class MainTabbedPage : ContentPage
     {
         Instance = this;
         messagesPage = messages;
+        ordersPage = orders;
         messagesPage.UnreadCountChanged += UpdateMessagesBadge;
         NavigationPage.SetHasNavigationBar(this, false);
-        this.SetAppThemeColor(ContentPage.BackgroundColorProperty, Color.FromArgb("#FFFFFF"), Color.FromArgb("#111713"));
+        this.SetAppThemeColor(ContentPage.BackgroundColorProperty, Color.FromArgb("#F3F5F3"), Color.FromArgb("#111713"));
 
         pages["discover"] = home;
         pages["orders"] = orders;
@@ -78,17 +86,19 @@ public sealed class MainTabbedPage : ContentPage
 
         tabHighlight = new Border
         {
-            WidthRequest = 20,
-            HeightRequest = 3,
+            HeightRequest = 50,
             StrokeThickness = 0,
-            StrokeShape = new RoundRectangle { CornerRadius = 1.5 },
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
             HorizontalOptions = LayoutOptions.Start,
-            VerticalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.Center,
             InputTransparent = true,
             ZIndex = 0,
-            BackgroundColor = Color.FromArgb("#D9F36A"),
         };
-        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, 20, 3));
+        tabHighlight.SetAppThemeColor(
+            Border.BackgroundColorProperty,
+            Color.FromArgb("#DDF3E9"),
+            Color.FromArgb("#294238"));
+        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, .5, 0, 50));
         AbsoluteLayout.SetLayoutFlags(tabHighlight, AbsoluteLayoutFlags.YProportional);
         navHost.Children.Add(tabHighlight);
         navHost.Children.Add(navGrid);
@@ -99,18 +109,24 @@ public sealed class MainTabbedPage : ContentPage
 
         var bottomNavBorder = new Border
         {
-            HeightRequest = 77,
-            StrokeThickness = 0,
-            Padding = new Thickness(7, 4, 7, 5),
+            HeightRequest = 64,
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 20 },
+            Padding = new Thickness(6),
+            Margin = new Thickness(16, 5, 16, 8),
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.End,
-            Content = navHost
+            Content = navHost,
+            Shadow = new Shadow
+            {
+                Brush = Color.FromArgb("#33000000"),
+                Offset = new Point(0, 5),
+                Radius = 14,
+                Opacity = .24f,
+            },
         };
-        bottomNavBorder.SetAppThemeColor(Border.BackgroundColorProperty, Color.FromArgb("#FFFFFF"), Color.FromArgb("#151D19"));
-        bottomNavBorder.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#E4E8E5"), Color.FromArgb("#24312A"));
-        // Top border via BoxView inside the grid
-        var topDivider = new BoxView { HeightRequest = 1, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Start };
-        topDivider.SetAppThemeColor(BoxView.ColorProperty, Color.FromArgb("#E4E8E5"), Color.FromArgb("#24312A"));
+        bottomNavBorder.SetAppThemeColor(Border.BackgroundColorProperty, Color.FromArgb("#F2F7F4"), Color.FromArgb("#E61A241F"));
+        bottomNavBorder.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#DDE3DF"), Color.FromArgb("#24312A"));
 
         for (int i = 0; i < MobileNavigation.Tabs.Count; i++)
         {
@@ -119,17 +135,18 @@ public sealed class MainTabbedPage : ContentPage
             {
                 HorizontalOptions = LayoutOptions.Fill,
                 VerticalOptions = LayoutOptions.Fill,
-                Padding = new Thickness(4, 6, 4, 3),
+                Padding = new Thickness(4, 4, 4, 2),
                 Spacing = 0,
             };
 
-            var iconLabel = new Label
+            var icon = new Image
             {
-                Text = def.Icon,
-                FontSize = 20,
-                FontAttributes = FontAttributes.Bold,
-                HorizontalTextAlignment = TextAlignment.Center,
-                VerticalTextAlignment = TextAlignment.Center,
+                Source = def.IconFile,
+                WidthRequest = 22,
+                HeightRequest = 22,
+                Aspect = Aspect.AspectFit,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
             };
 
             var titleLabel = new Label
@@ -137,27 +154,18 @@ public sealed class MainTabbedPage : ContentPage
                 Text = def.Title,
                 FontSize = 9,
                 FontAttributes = FontAttributes.Bold,
-                Margin = new Thickness(0, 4, 0, 0),
+                Margin = new Thickness(0, 1, 0, 0),
                 HorizontalTextAlignment = TextAlignment.Center,
             };
 
-            var pip = new Border
-            {
-                WidthRequest = 18,
-                HeightRequest = 3,
-                StrokeThickness = 0,
-                StrokeShape = new RoundRectangle { CornerRadius = 1.5 },
-                BackgroundColor = Color.FromArgb("#D9F36A"),
-                Margin = new Thickness(0, 2, 0, 0),
-                HorizontalOptions = LayoutOptions.Center,
-                IsVisible = def.Route == "discover"
-            };
-
-            itemLayout.Children.Add(iconLabel);
+            itemLayout.Children.Add(icon);
             itemLayout.Children.Add(titleLabel);
 
             var route = def.Route;
-            var itemContainer = new Grid();
+            var itemContainer = new Grid
+            {
+                AutomationId = $"Tab{char.ToUpperInvariant(route[0])}{route[1..]}"
+            };
             itemContainer.ZIndex = 1;
             itemContainer.Children.Add(itemLayout);
             if (route == "messages")
@@ -166,7 +174,7 @@ public sealed class MainTabbedPage : ContentPage
                 {
                     FontSize = 8,
                     FontAttributes = FontAttributes.Bold,
-                    TextColor = Colors.White,
+                    TextColor = Color.FromArgb(UnreadBadgeRules.EmptyForeground),
                     HorizontalTextAlignment = TextAlignment.Center,
                     VerticalTextAlignment = TextAlignment.Center,
                 };
@@ -177,7 +185,7 @@ public sealed class MainTabbedPage : ContentPage
                     Padding = new Thickness(4, 0),
                     StrokeThickness = 2,
                     StrokeShape = new RoundRectangle { CornerRadius = 9 },
-                    BackgroundColor = Color.FromArgb("#D95045"),
+                    BackgroundColor = Color.FromArgb(UnreadBadgeRules.EmptyBackground),
                     HorizontalOptions = LayoutOptions.End,
                     VerticalOptions = LayoutOptions.Start,
                     Margin = new Thickness(0, 1, 17, 0),
@@ -200,7 +208,7 @@ public sealed class MainTabbedPage : ContentPage
             Grid.SetColumn(itemContainer, i);
             navGrid.Children.Add(itemContainer);
 
-            tabButtons[def.Route] = (iconLabel, titleLabel, pip, itemContainer);
+            tabButtons[def.Route] = (icon, titleLabel, itemContainer);
         }
 
         UpdateNavVisuals();
@@ -227,10 +235,10 @@ public sealed class MainTabbedPage : ContentPage
         base.OnAppearing();
         UpdateNavVisuals();
         if (pages.TryGetValue(activeRoute, out var page) && page is ITabLifecycle lifecycle)
-            await lifecycle.OnTabAppearingAsync();
+            await RunLifecycleSafelyAsync(lifecycle.OnTabAppearingAsync);
         _ = RefreshUnreadCountSafelyAsync();
         unreadTimer ??= Dispatcher.CreateTimer();
-        unreadTimer.Interval = TimeSpan.FromSeconds(8);
+        unreadTimer.Interval = TimeSpan.FromSeconds(30);
         unreadTimer.Tick -= OnUnreadTimerTick;
         unreadTimer.Tick += OnUnreadTimerTick;
         unreadTimer.Start();
@@ -240,13 +248,26 @@ public sealed class MainTabbedPage : ContentPage
     {
         unreadTimer?.Stop();
         if (pages.TryGetValue(activeRoute, out var page) && page is ITabLifecycle lifecycle)
-            await lifecycle.OnTabDisappearingAsync();
+            await RunLifecycleSafelyAsync(lifecycle.OnTabDisappearingAsync);
         base.OnDisappearing();
     }
 
     public void SelectTab(string route) => _ = SelectTabAsync(route);
 
+    public async Task OpenClientOrderAsync(string orderId)
+    {
+        await SelectTabAsync("orders");
+        await ordersPage.OpenOrderAsync(orderId);
+    }
+
     public void RefreshTheme() => UpdateNavVisuals();
+
+    public Task RefreshActiveTabAsync()
+    {
+        if (!pages.TryGetValue(activeRoute, out var page) || page is not ITabLifecycle lifecycle)
+            return Task.CompletedTask;
+        return RunLifecycleSafelyAsync(lifecycle.OnTabAppearingAsync);
+    }
 
     public async Task SelectTabAsync(string route)
     {
@@ -315,24 +336,24 @@ public sealed class MainTabbedPage : ContentPage
         if (tabHighlight.Parent is not AbsoluteLayout navHost || navHost.Width <= 0)
             return Task.CompletedTask;
 
-        const double width = 20;
-        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, width, 3));
-        var offset = InteractionMotion.TabUnderlineOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, width);
+        var width = InteractionMotion.TabHighlightWidth(navHost.Width, MobileNavigation.Tabs.Count, 4);
+        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, .5, width, 56));
+        var offset = InteractionMotion.TabHighlightOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, 4);
         return tabHighlight.TranslateToAsync(offset, 0, 90, Easing.CubicOut);
     }
 
     private void PositionTabHighlight(string route)
     {
         if (tabHighlight.Parent is not AbsoluteLayout navHost || navHost.Width <= 0) return;
-        const double width = 20;
-        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, 1, width, 3));
-        var offset = InteractionMotion.TabUnderlineOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, width);
+        var width = InteractionMotion.TabHighlightWidth(navHost.Width, MobileNavigation.Tabs.Count, 4);
+        AbsoluteLayout.SetLayoutBounds(tabHighlight, new Rect(0, .5, width, 56));
+        var offset = InteractionMotion.TabHighlightOffset(TabIndex(route), navHost.Width, MobileNavigation.Tabs.Count, 4);
         tabHighlight.TranslationX = offset;
     }
 
     private async void OnUnreadTimerTick(object? sender, EventArgs e)
     {
-        if (activeRoute != "messages")
+        if (activeRoute != "messages" && !messagesPage.IsRealtimeConnected)
             await RefreshUnreadCountSafelyAsync();
     }
 
@@ -347,6 +368,8 @@ public sealed class MainTabbedPage : ContentPage
         if (messagesBadge is null || messagesBadgeLabel is null) return;
         messagesBadge.IsVisible = UnreadBadgeRules.IsVisible(unreadCount);
         messagesBadgeLabel.Text = UnreadBadgeRules.Label(unreadCount);
+        messagesBadge.BackgroundColor = Color.FromArgb(UnreadBadgeRules.Background(unreadCount));
+        messagesBadgeLabel.TextColor = Color.FromArgb(UnreadBadgeRules.Foreground(unreadCount));
     }
 
     private void UpdateNavVisuals()
@@ -355,12 +378,12 @@ public sealed class MainTabbedPage : ContentPage
         var activeColor = isDark ? Color.FromArgb("#D9F36A") : Color.FromArgb("#08543D");
         var inactiveColor = isDark ? Color.FromArgb("#7E8A83") : Color.FromArgb("#8A938E");
 
-        foreach (var (route, (icon, label, pip, _)) in tabButtons)
+        foreach (var (route, (icon, label, _)) in tabButtons)
         {
             var isSelected = route == activeRoute;
-            icon.TextColor = isSelected ? activeColor : inactiveColor;
+            icon.Opacity = isSelected ? 1 : .48;
+            icon.Scale = isSelected ? 1.08 : 1;
             label.TextColor = isSelected ? activeColor : inactiveColor;
-            pip.IsVisible = false;
         }
     }
 }

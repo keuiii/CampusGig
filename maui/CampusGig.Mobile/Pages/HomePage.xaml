@@ -2,16 +2,19 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:CampusGig.Mobile.Models"
+             xmlns:controls="clr-namespace:CampusGig.Mobile.Controls"
              x:Class="CampusGig.Mobile.Pages.HomePage"
-             BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#111713}">
+             BackgroundColor="{AppThemeBinding Light=#F3F5F3, Dark=#111713}">
     <RefreshView x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F6B4F">
-        <ScrollView>
-            <VerticalStackLayout Padding="0,10,0,34" Spacing="0">
-                <Grid x:Name="HeaderArea" Padding="22,10,22,16" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+        <CollectionView x:Name="ServiceCards" ItemsSource="{Binding FilteredServices}"
+                        SelectionMode="None">
+            <CollectionView.Header>
+                <VerticalStackLayout Padding="0,10,0,0" Spacing="0">
+                <Grid x:Name="HeaderArea" AutomationId="DiscoverPage" Padding="20,8,20,12" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <VerticalStackLayout Spacing="1">
                         <Label Text="WELCOME TO" FontSize="9" CharacterSpacing="1.6" FontAttributes="Bold"
                                TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
-                        <Label FontSize="25" FontAttributes="Bold">
+                        <Label FontSize="25" FontFamily="OpenSansSemibold" FontAttributes="Bold" CharacterSpacing="-0.8">
                             <Label.FormattedText>
                                 <FormattedString>
                                     <Span Text="Campus" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
@@ -20,18 +23,17 @@
                             </Label.FormattedText>
                         </Label>
                     </VerticalStackLayout>
-                    <Grid x:Name="NotificationButton" Grid.Column="1" WidthRequest="48" HeightRequest="48">
+                    <Grid x:Name="NotificationButton" AutomationId="NotificationsBell" Grid.Column="1" WidthRequest="48" HeightRequest="48"
+                          SemanticProperties.Description="Open notifications">
                         <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnNotificationsClicked"/></Grid.GestureRecognizers>
                         <Border WidthRequest="42" HeightRequest="42" HorizontalOptions="Start" VerticalOptions="End"
                                 StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=#E1EEE7, Dark=#203B30}"
                                 StrokeShape="RoundRectangle 21">
-                            <Grid WidthRequest="24" HeightRequest="24" HorizontalOptions="Center" VerticalOptions="Center">
-                                <Path Aspect="Uniform" Stroke="{AppThemeBinding Light=#173D31, Dark=#D8E8E0}" StrokeThickness="2"
-                                      StrokeLineCap="Round" StrokeLineJoin="Round"
-                                      Data="M18,8 C18,4.6863 15.3137,2 12,2 C8.6863,2 6,4.6863 6,8 C6,15 3,15 3,17 L21,17 C21,15 18,15 18,8" />
-                                <Path Aspect="Uniform" Stroke="{AppThemeBinding Light=#173D31, Dark=#D8E8E0}" StrokeThickness="2"
-                                      StrokeLineCap="Round" StrokeLineJoin="Round" Data="M10,21 L14,21" />
-                            </Grid>
+                            <Path x:Name="NotificationBellIcon" AutomationId="NotificationBellIcon"
+                                  WidthRequest="22" HeightRequest="23" Aspect="Uniform"
+                                  Stroke="{AppThemeBinding Light=#173D31, Dark=#D8E8E0}" StrokeThickness="1.85"
+                                  StrokeLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M12,3 C8.7,3 6,5.7 6,9 L6,12.5 C6,14.4 5.35,15.8 4,17.2 C3.6,17.65 3.9,18.35 4.55,18.35 L19.45,18.35 C20.1,18.35 20.4,17.65 20,17.2 C18.65,15.8 18,14.4 18,12.5 L18,9 C18,5.7 15.3,3 12,3 Z M9.6,20.25 C10.15,21.35 10.95,22 12,22 C13.05,22 13.85,21.35 14.4,20.25" />
                         </Border>
                         <Border x:Name="NotificationBadge" IsVisible="False" MinimumWidthRequest="18" HeightRequest="18" Padding="4,0"
                                 HorizontalOptions="End" VerticalOptions="Start" StrokeThickness="2"
@@ -52,60 +54,76 @@
                     </Border>
                 </Grid>
 
-                <Border x:Name="HeroCard" Margin="15,0" Padding="24,28,24,24" StrokeThickness="0" StrokeShape="RoundRectangle 24"
+                <Border x:Name="HeroCard" Margin="20,0" Padding="18,20,18,18" StrokeThickness="0" StrokeShape="RoundRectangle 20"
                         BackgroundColor="{AppThemeBinding Light=#F4F3EC, Dark=#1C2520}">
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto" IsClippedToBounds="True">
                         <Ellipse Grid.RowSpan="4" WidthRequest="170" HeightRequest="170" HorizontalOptions="End"
                                  VerticalOptions="Start" TranslationX="70" TranslationY="-66" Fill="{AppThemeBinding Light=#E4EFC0, Dark=#244035}" />
                         <Label Text="STUDENT SKILLS, REAL OPPORTUNITIES" FontSize="9" CharacterSpacing="1.3"
                                FontAttributes="Bold" TextColor="#0F6B4F" />
-                        <Label Grid.Row="1" Margin="0,10,0,0" Text="What do you need help with today?" FontSize="31"
+                        <Label Grid.Row="1" Margin="0,7,0,0" Text="What do you need help with today?" FontSize="27"
                                LineHeight="1.18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
-                        <Label Grid.Row="2" Margin="0,10,0,0" Text="Find trusted services from verified students in your campus community."
+                        <Label Grid.Row="2" Margin="0,7,0,0" Text="Find trusted services from verified students in your campus community."
                                FontSize="13" LineHeight="1.45" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
-                        <Border Grid.Row="3" Margin="0,22,0,0" HeightRequest="56" Padding="13,0" Stroke="#E3E7E4"
+                        <Border Grid.Row="3" Margin="0,14,0,0" HeightRequest="48" Padding="12,0" Stroke="#E3E7E4"
                                 StrokeShape="RoundRectangle 14" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
-                            <Grid ColumnDefinitions="32,*">
-                                <Label Text="⌕" FontSize="27" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
-                                <Entry x:Name="SearchBox" Grid.Column="1" Placeholder="Search student services"
+                            <Grid ColumnDefinitions="32,*,36">
+                                <Path WidthRequest="19" HeightRequest="19" Aspect="Uniform" Stroke="#0F6B4F" StrokeThickness="1.8"
+                                      StrokeLineCap="Round" StrokeLineJoin="Round" HorizontalOptions="Center" VerticalOptions="Center"
+                                      Data="M21,21 L16.65,16.65 M19,11 C19,15.4183 15.4183,19 11,19 C6.5817,19 3,15.4183 3,11 C3,6.5817 6.5817,3 11,3 C15.4183,3 19,6.5817 19,11 Z" />
+                                <Entry x:Name="SearchBox" AutomationId="SearchServices" Grid.Column="1" Placeholder="Search student services" MaxLength="120"
                                        TextChanged="OnFilterChanged" FontSize="13" />
+                                <Button x:Name="ClearSearchButton" AutomationId="ClearServiceSearch" Grid.Column="2"
+                                        Text="&#x00D7;" IsVisible="False" Clicked="OnClearSearchClicked"
+                                        SemanticProperties.Description="Clear service search"
+                                        FontSize="21" Padding="0" WidthRequest="36" HeightRequest="44"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
                             </Grid>
                         </Border>
                     </Grid>
                 </Border>
 
-                <VerticalStackLayout x:Name="SchoolSection" Margin="0,24,0,0" Spacing="8" IsVisible="False">
-                    <Label Text="PREFERRED SCHOOL" Margin="22,0" FontSize="9" CharacterSpacing="1.5"
+                <VerticalStackLayout x:Name="SchoolSection" Margin="0,18,0,0" Spacing="7" IsVisible="False">
+                    <Label Text="PREFERRED SCHOOL" Margin="20,0" FontSize="9" CharacterSpacing="1.5"
                            FontAttributes="Bold" TextColor="#0F6B4F" />
-                    <Label x:Name="SchoolCountLabel" Margin="22,0" FontSize="11"
+                    <Label x:Name="SchoolCountLabel" Margin="20,0" FontSize="11"
                            TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
-                    <CollectionView x:Name="SchoolList" HeightRequest="48" SelectionMode="Single"
-                                    SelectionChanged="OnSchoolSelected" Margin="22,0,0,0">
+                    <CollectionView x:Name="SchoolList" HeightRequest="40" SelectionMode="Single"
+                                    SelectionChanged="OnSchoolSelected" Margin="20,0"
+                                    HorizontalOptions="Start" HorizontalScrollBarVisibility="Never">
                         <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="9" />
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
                         </CollectionView.ItemsLayout>
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:SchoolItem">
-                                <Border Padding="15,9" Margin="0,0,0,2" Stroke="#DDE4DF" StrokeShape="RoundRectangle 20"
+                                <Border x:Name="SchoolChip" Padding="13,6" Margin="0" MinimumHeightRequest="36"
+                                        VerticalOptions="Center" Stroke="#DDE4DF" StrokeShape="RoundRectangle 18"
                                         BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}">
                                     <VisualStateManager.VisualStateGroups>
                                         <VisualStateGroup Name="CommonStates">
                                             <VisualState Name="Normal" />
                                             <VisualState Name="Selected">
                                                 <VisualState.Setters>
-                                                    <Setter Property="BackgroundColor" Value="#0F6B4F" />
+                                                    <Setter Property="BackgroundColor" Value="#DFF2E8" />
+                                                    <Setter Property="Stroke" Value="#B9DDCA" />
+                                                    <Setter TargetName="SchoolChipLabel" Property="Label.TextColor" Value="#08543D" />
                                                 </VisualState.Setters>
                                             </VisualState>
                                         </VisualStateGroup>
                                     </VisualStateManager.VisualStateGroups>
-                                    <Label Text="{Binding ShortName}" FontSize="11" FontAttributes="Bold" />
+                                    <Label x:Name="SchoolChipLabel" Text="{Binding ShortName}" FontSize="11"
+                                           FontAttributes="Bold" LineBreakMode="NoWrap"
+                                           HorizontalOptions="Center" VerticalOptions="Center"
+                                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
+                                           TextColor="{AppThemeBinding Light=#24332C, Dark=#EAF2ED}" />
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
                 </VerticalStackLayout>
 
-                <Grid x:Name="CategoryHeader" IsVisible="False" Margin="22,28,22,14" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                <Grid x:Name="CategoryHeader" IsVisible="False" Margin="20,22,20,11" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
                     <Label Text="EXPLORE" FontSize="9" CharacterSpacing="1.5" FontAttributes="Bold" TextColor="#0F6B4F" />
                     <Label Grid.Row="1" Text="Browse categories" FontSize="22" FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
@@ -113,8 +131,8 @@
                             Clicked="OnClearCategoryClicked" BackgroundColor="Transparent" TextColor="#0F6B4F"
                             FontSize="12" FontAttributes="Bold" Padding="12,8" VerticalOptions="End" />
                 </Grid>
-                <CollectionView x:Name="CategoryList" IsVisible="False" HeightRequest="158" SelectionMode="Single"
-                                SelectionChanged="OnCategorySelected" Margin="22,0,0,0">
+                <CollectionView x:Name="CategoryList" IsVisible="False" HeightRequest="142" SelectionMode="None"
+                                Margin="20,0,0,0">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Horizontal" ItemSpacing="11" />
                     </CollectionView.ItemsLayout>
@@ -122,6 +140,9 @@
                         <DataTemplate x:DataType="models:CategoryItem">
                             <Border WidthRequest="132" Padding="14" Stroke="#E3E7E4" StrokeShape="RoundRectangle 16"
                                     BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCategoryTapped" CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
                                 <VerticalStackLayout>
                                     <Border WidthRequest="43" HeightRequest="43" HorizontalOptions="Start" StrokeThickness="0"
                                             BackgroundColor="{Binding IconBackground}" StrokeShape="RoundRectangle 11">
@@ -138,29 +159,116 @@
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <Grid x:Name="MarketplaceHeader" Margin="22,29,22,15" RowDefinitions="Auto,Auto">
+                <Grid x:Name="MarketplaceHeader" Margin="20,22,20,11" RowDefinitions="Auto,Auto">
                     <Label Text="MARKETPLACE" FontSize="9" CharacterSpacing="1.5" FontAttributes="Bold" TextColor="#0F6B4F" />
-                    <Label x:Name="MarketplaceTitleLabel" Grid.Row="1" Text="Available services" FontSize="22" FontAttributes="Bold"
+                    <Label x:Name="MarketplaceTitleLabel" AutomationId="DiscoverTitle" Grid.Row="1" Text="Available services" FontSize="22" FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
                 </Grid>
-                <VerticalStackLayout x:Name="ServiceCards" BindableLayout.ItemsSource="{Binding FilteredServices}"
-                                     Spacing="14" Margin="22,0">
-                    <BindableLayout.ItemTemplate>
+                <Grid Margin="20,0,20,10" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <Label x:Name="MarketplaceResultCountLabel" Text="0 services" FontSize="11"
+                           TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}"
+                           VerticalTextAlignment="Center" />
+                    <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                    <Button x:Name="SavedServicesButton" AutomationId="SavedServicesButton" Text="Saved" Clicked="OnSavedServicesClicked"
+                            HeightRequest="40" Padding="14,0" CornerRadius="12" FontSize="11" FontAttributes="Bold"
+                            BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1D4537}"
+                            TextColor="{AppThemeBinding Light=#08543D, Dark=#91DABD}" />
+                    <Button x:Name="MarketplaceFiltersButton" AutomationId="MarketplaceFiltersButton"
+                            Text="Filters" Clicked="OnMarketplaceFiltersClicked" HeightRequest="40" Padding="14,0"
+                            CornerRadius="12" FontSize="11" FontAttributes="Bold"
+                            BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1D4537}"
+                            TextColor="{AppThemeBinding Light=#08543D, Dark=#91DABD}" />
+                    </HorizontalStackLayout>
+                </Grid>
+                <Border x:Name="MarketplaceFiltersPanel" AutomationId="MarketplaceFiltersPanel" IsVisible="False"
+                        Margin="22,0,22,18" Padding="16" Stroke="{AppThemeBinding Light=#DDE6E1, Dark=#34423A}"
+                        StrokeShape="RoundRectangle 17" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
+                    <VerticalStackLayout Spacing="13">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="REFINE SERVICES" FontSize="9" CharacterSpacing="1.3" FontAttributes="Bold" TextColor="#0F6B4F" />
+                                <Label Text="Choose only what matters for this request." FontSize="11"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1" Text="Clear" Clicked="OnClearAdvancedFiltersClicked"
+                                    BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="11" FontAttributes="Bold" Padding="10,4" />
+                        </Grid>
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" RowSpacing="12" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="BUDGET RANGE" FontSize="8" CharacterSpacing="1" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Picker x:Name="BudgetRangePicker" AutomationId="BudgetRangeFilter"
+                                        SelectedIndexChanged="OnAdvancedFilterChanged" HeightRequest="46" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="MINIMUM RATING" FontSize="8" CharacterSpacing="1" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Picker x:Name="MinimumRatingPicker" AutomationId="MinimumRatingFilter"
+                                        SelectedIndexChanged="OnAdvancedFilterChanged" HeightRequest="46" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="1" Spacing="6">
+                                <Label Text="DELIVERY TIME" FontSize="8" CharacterSpacing="1" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Picker x:Name="MaximumDeliveryPicker" AutomationId="MaximumDeliveryFilter"
+                                        SelectedIndexChanged="OnAdvancedFilterChanged" HeightRequest="46" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="6">
+                                <Label Text="SORT SERVICES" FontSize="8" CharacterSpacing="1" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Picker x:Name="MarketplaceSortPicker" AutomationId="MarketplaceSortFilter"
+                                        SelectedIndexChanged="OnAdvancedFilterChanged" HeightRequest="46" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+                </VerticalStackLayout>
+            </CollectionView.Header>
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="14" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:ServiceItem">
-                            <Border Padding="0" Stroke="#E3E7E4" StrokeShape="RoundRectangle 17"
+                            <Border AutomationId="ServiceCard" Margin="20,0" Padding="0" Stroke="#DDE6E1" StrokeShape="RoundRectangle 17"
                                     BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnServiceTapped" CommandParameter="{Binding .}" />
-                                </Border.GestureRecognizers>
                                 <VerticalStackLayout Spacing="0">
-                                    <Grid HeightRequest="112" BackgroundColor="{AppThemeBinding Light=#E4F0E9, Dark=#203B30}">
-                                        <Image Source="{Binding CoverImageUrl}" Aspect="AspectFill" />
-                                        <Label Text="◇" FontSize="42" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    <Grid HeightRequest="108" BackgroundColor="{AppThemeBinding Light=#E4F0E9, Dark=#203B30}">
+                                        <Image Source="{Binding CoverImageUrl}" Aspect="AspectFill">
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnServiceTapped" CommandParameter="{Binding .}" />
+                                            </Image.GestureRecognizers>
+                                        </Image>
+                                        <Button AutomationId="SaveServiceButton" Text="{Binding SaveLabel}" CommandParameter="{Binding .}" Clicked="OnSaveServiceClicked"
+                                                HorizontalOptions="End" VerticalOptions="Start" Margin="0,10,10,0"
+                                                WidthRequest="40" HeightRequest="40" Padding="0" CornerRadius="20"
+                                                FontSize="24" BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#203B30}"
+                                                TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}" />
+                                        <Grid IsVisible="{Binding ShowCoverPlaceholder}" WidthRequest="38" HeightRequest="38"
+                                              HorizontalOptions="Center" VerticalOptions="Center">
+                                            <Grid.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnServiceTapped" CommandParameter="{Binding .}" />
+                                            </Grid.GestureRecognizers>
+                                            <Path Aspect="Uniform" Stroke="#0F6B4F" StrokeThickness="1.7" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                                  Data="M3,5 L21,5 L21,19 L3,19 Z M3,16 L8,11 L12,15 L15,12 L21,18 M16,9 C16,8.4477 16.4477,8 17,8 C17.5523,8 18,8.4477 18,9 C18,9.5523 17.5523,10 17,10 C16.4477,10 16,9.5523 16,9 Z" />
+                                        </Grid>
                                     </Grid>
-                                    <VerticalStackLayout Padding="17" Spacing="7">
-                                        <Label Text="{Binding Category}" FontSize="9" CharacterSpacing="1" FontAttributes="Bold" TextColor="#0F6B4F" />
-                                        <Label Text="{Binding Title}" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
-                                        <HorizontalStackLayout Spacing="7">
+                                    <VerticalStackLayout Padding="15,11,15,13" Spacing="7">
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnServiceTapped" CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Border HorizontalOptions="Start" Padding="9,4" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                                                    BackgroundColor="{AppThemeBinding Light=#E8F4EE, Dark=#244035}">
+                                                <Label Text="{Binding Category}" FontSize="8" CharacterSpacing="1" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#087052, Dark=#8BE0BE}" />
+                                            </Border>
+                                            <Border Grid.Column="1" Padding="9,4" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                                                    BackgroundColor="{AppThemeBinding Light=#F1F3EF, Dark=#29342E}">
+                                                <Label Text="{Binding DeliveryLabel}" FontSize="8" FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=#59655F, Dark=#B5C0BA}" />
+                                            </Border>
+                                        </Grid>
+                                        <Label Text="{Binding Title}" FontSize="18" LineHeight="1.16" FontAttributes="Bold" MaxLines="2"
+                                               TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                                        <Grid ColumnDefinitions="22,*,15" ColumnSpacing="7">
                                             <Border WidthRequest="22" HeightRequest="22" StrokeThickness="0" StrokeShape="RoundRectangle 11"
                                                     BackgroundColor="{AppThemeBinding Light=#E1EEE7, Dark=#203B30}">
                                                 <Grid>
@@ -169,43 +277,78 @@
                                                            HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                                 </Grid>
                                             </Border>
-                                            <Label Text="{Binding ProviderLabel}" FontSize="10" VerticalTextAlignment="Center"
+                                            <Label Grid.Column="1" Text="{Binding ProviderLabel}" FontSize="10" VerticalTextAlignment="Center"
+                                                   MaxLines="1" LineBreakMode="TailTruncation"
                                                    TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
-                                        </HorizontalStackLayout>
-                                        <BoxView HeightRequest="1" Margin="0,7,0,3" Color="{AppThemeBinding Light=#EDF0EE, Dark=#34423A}" />
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <Label FontSize="11" TextColor="#D18E13">
-                                                <Label.FormattedText><FormattedString><Span Text="★ "/><Span Text="{Binding Rating}"/></FormattedString></Label.FormattedText>
-                                            </Label>
-                                            <Label Grid.Column="1" Text="{Binding PriceLabel}" FontSize="12" FontAttributes="Bold" />
+                                            <Border Grid.Column="2" WidthRequest="15" HeightRequest="15" StrokeThickness="0" StrokeShape="RoundRectangle 8"
+                                                    BackgroundColor="#087A5A" VerticalOptions="Center">
+                                                <Path WidthRequest="9" HeightRequest="9" Aspect="Uniform" Stroke="White" StrokeThickness="2.2"
+                                                      StrokeLineCap="Round" StrokeLineJoin="Round" Data="M4,8 L7,11 L13,5"
+                                                      HorizontalOptions="Center" VerticalOptions="Center" />
+                                            </Border>
+                                        </Grid>
+                                        <BoxView HeightRequest="1" Margin="0,5,0,2" Color="{AppThemeBinding Light=#EDF0EE, Dark=#34423A}" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                                <Path WidthRequest="15" HeightRequest="15" Aspect="Uniform" Fill="#E6A72B" Stroke="#E6A72B" StrokeThickness="1"
+                                                      Data="M12,2 L15.1,8.3 L22,9.3 L17,14.2 L18.2,21 L12,17.8 L5.8,21 L7,14.2 L2,9.3 L8.9,8.3 Z" />
+                                                <Label Text="{Binding RatingLabel}" FontSize="12" FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=#4A554F, Dark=#D5DFDA}" VerticalTextAlignment="Center" />
+                                            </HorizontalStackLayout>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="0" HorizontalOptions="End">
+                                                <Label Text="{Binding PriceContextLabel}" FontSize="7" CharacterSpacing="0.9" FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=#7A8580, Dark=#93A49B}" HorizontalTextAlignment="End" />
+                                                <HorizontalStackLayout Spacing="6" HorizontalOptions="End">
+                                                    <Label Text="{Binding PriceAmountLabel}" FontSize="16" FontAttributes="Bold"
+                                                           TextColor="{AppThemeBinding Light=#075B42, Dark=#8BE0BE}" VerticalTextAlignment="Center" />
+                                                    <Border IsVisible="{Binding IsFixedPrice}" WidthRequest="22" HeightRequest="22" Padding="4"
+                                                            StrokeThickness="0" StrokeShape="RoundRectangle 11"
+                                                            BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#244035}"
+                                                            SemanticProperties.Description="Fixed price">
+                                                        <Path Aspect="Uniform" Stroke="{AppThemeBinding Light=#087A5A, Dark=#8BE0BE}"
+                                                              StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                                              Data="M7,10 L7,7 C7,4.2 9.2,2 12,2 C14.8,2 17,4.2 17,7 L17,10 M5,10 L19,10 L19,21 L5,21 Z" />
+                                                    </Border>
+                                                </HorizontalStackLayout>
+                                            </VerticalStackLayout>
                                         </Grid>
                                     </VerticalStackLayout>
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
-                    </BindableLayout.ItemTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.Footer>
+                <VerticalStackLayout Padding="0,0,0,34" Spacing="14">
+                <Button x:Name="LoadMoreServicesButton" AutomationId="LoadMoreServicesButton"
+                        Text="Show more services" IsVisible="False" Clicked="OnLoadMoreServicesClicked"
+                        Margin="22,0" HeightRequest="46" CornerRadius="13"
+                        BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1D4537}"
+                        TextColor="{AppThemeBinding Light=#08543D, Dark=#91DABD}" />
+                <VerticalStackLayout x:Name="MarketplacePageErrorPanel" IsVisible="False" Margin="22,0" Spacing="8">
+                    <Label x:Name="MarketplacePageError" FontSize="11" HorizontalTextAlignment="Center" TextColor="#B34838" />
+                    <Button AutomationId="RetryMarketplaceButton" Text="Retry" Clicked="OnRetryMarketplaceClicked"
+                            HeightRequest="40" Padding="18,0" CornerRadius="12" HorizontalOptions="Center"
+                            BackgroundColor="Transparent" BorderColor="#B34838" BorderWidth="1" TextColor="#B34838" />
                 </VerticalStackLayout>
-                <Border x:Name="LoadingServices" IsVisible="False" Margin="22,0" Padding="28,34" Stroke="#E3E7E4"
-                        StrokeShape="RoundRectangle 18" BackgroundColor="{AppThemeBinding Light=#FBFCFB, Dark=#1C2520}">
-                    <VerticalStackLayout HorizontalOptions="Center" Spacing="8">
-                        <ActivityIndicator IsRunning="True" Color="#0F6B4F" />
-                        <Label Text="Connecting to CampusGig" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                        <Label Text="Loading real marketplace data." FontSize="11" TextColor="#66716B" HorizontalTextAlignment="Center" />
-                    </VerticalStackLayout>
-                </Border>
+                <VerticalStackLayout x:Name="LoadingServices" IsVisible="False" Margin="22,0" Spacing="14"
+                                     SemanticProperties.Description="Loading services">
+                    <controls:SkeletonCard Kind="Service" />
+                    <controls:SkeletonCard Kind="Service" />
+                </VerticalStackLayout>
                 <Border x:Name="EmptyServices" IsVisible="False" Margin="22,0" Padding="28,34" Stroke="#E3E7E4"
                         StrokeShape="RoundRectangle 18" BackgroundColor="{AppThemeBinding Light=#FBFCFB, Dark=#1C2520}">
                     <VerticalStackLayout HorizontalOptions="Center" Spacing="8">
                         <Label Text="◇" FontSize="38" TextColor="#0F6B4F" HorizontalTextAlignment="Center" />
-                        <Label Text="No services found" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                        <Label Text="Try another school, category, or search." FontSize="11" TextColor="#66716B" HorizontalTextAlignment="Center" />
+                        <Label x:Name="EmptyServicesTitle" Text="No services found" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Label x:Name="EmptyServicesDescription" Text="Try another school, category, or search." FontSize="11" TextColor="#66716B" HorizontalTextAlignment="Center" />
                         <Button Text="Clear filters" Clicked="OnClearFiltersClicked" Margin="0,8,0,0"
                                 BackgroundColor="{AppThemeBinding Light=#E2F1E8, Dark=#1D4537}"
                                 TextColor="{AppThemeBinding Light=#08543D, Dark=#91DABD}"
                                 CornerRadius="12" HeightRequest="42" Padding="18,0" HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
-            </VerticalStackLayout>
-        </ScrollView>
+                </VerticalStackLayout>
+            </CollectionView.Footer>
+        </CollectionView>
     </RefreshView>
 </ContentPage>

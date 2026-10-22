@@ -7,24 +7,26 @@ public sealed class NotificationsPage : ContentPage
 {
     private readonly CampusGigApi api;
     private readonly SessionService session;
+    private readonly RealtimeService realtime;
     private readonly CollectionView list = new();
     private readonly Func<Task>? onUnreadChanged;
     private readonly List<NotificationItem> notificationItems;
     private readonly Button readAllButton;
     private bool readingAll;
 
-    public NotificationsPage(CampusGigApi api, SessionService session, IEnumerable<NotificationItem> items, Func<Task>? onUnreadChanged = null)
+    public NotificationsPage(CampusGigApi api, SessionService session, RealtimeService realtime, IEnumerable<NotificationItem> items, Func<Task>? onUnreadChanged = null)
     {
         NavigationPage.SetHasNavigationBar(this, false);
         this.api = api;
         this.session = session;
+        this.realtime = realtime;
         this.onUnreadChanged = onUnreadChanged;
         Title = "Notifications";
         this.SetAppThemeColor(BackgroundColorProperty, Color.FromArgb("#F7FAF8"), Color.FromArgb("#111713"));
 
         var close = new Button
         {
-            Text = "‹ Discover",
+            Text = "< Discover",
             BackgroundColor = Colors.Transparent,
             TextColor = Color.FromArgb("#0F6B4F"),
             HorizontalOptions = LayoutOptions.Start,
@@ -83,7 +85,7 @@ public sealed class NotificationsPage : ContentPage
 
         var layout = new Grid
         {
-            Padding = new Thickness(22, 12, 22, 24),
+            Padding = new Thickness(20, 10, 20, 22),
             RowDefinitions = { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Star) },
             Children = { new VerticalStackLayout { Spacing = 4, Children = { close, headingRow } }, list },
         };
@@ -135,8 +137,8 @@ public sealed class NotificationsPage : ContentPage
 
         var row = new Border
         {
-            Margin = new Thickness(0, 0, 0, 10),
-            Padding = 14,
+            Margin = new Thickness(0, 0, 0, 8),
+            Padding = 12,
             Stroke = Color.FromArgb("#DCE6E0"),
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 14 },
             Content = rowGrid,
@@ -245,11 +247,22 @@ public sealed class NotificationsPage : ContentPage
             if (string.IsNullOrWhiteSpace(item.OrderId)) return;
             if (item.Type == "NEW_MESSAGE")
             {
-                var conversations = (await api.GetAsync<ApiList<ConversationItem>>("conversations")).Data;
-                var conversation = conversations.FirstOrDefault(value => value.Order.Id == item.OrderId);
+                ConversationItem? conversation = null;
+                string? cursor = null;
+                do
+                {
+                    var cursorQuery = string.IsNullOrWhiteSpace(cursor)
+                        ? ""
+                        : $"&cursor={Uri.EscapeDataString(cursor)}";
+                    var page = await api.GetAsync<ApiList<ConversationItem>>(
+                        $"conversations?limit=20{cursorQuery}");
+                    conversation = page.Data.FirstOrDefault(value => value.Order.Id == item.OrderId);
+                    cursor = page.Pagination.HasMore ? page.Pagination.NextCursor : null;
+                }
+                while (conversation is null && !string.IsNullOrWhiteSpace(cursor));
                 if (conversation is not null) { await Navigation.PushAsync(new ConversationPage(api, conversation)); return; }
             }
-            await Navigation.PushAsync(new OrderWorkspacePage(api, session, item.OrderId));
+            await Navigation.PushAsync(new OrderWorkspacePage(api, session, realtime, item.OrderId));
         }
         catch (Exception ex) { await DisplayAlertAsync("Unable to open notification", ex.Message, "OK"); }
     }

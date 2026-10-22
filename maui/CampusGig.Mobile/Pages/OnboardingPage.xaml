@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CampusGig.Mobile.Models"
+             x:Class="CampusGig.Mobile.Pages.OnboardingPage"
+             BackgroundColor="{AppThemeBinding Light=#F3F5F3, Dark=#111713}"
+             Shell.NavBarIsVisible="False">
+    <Grid x:Name="PageContent" IsClippedToBounds="True" RowDefinitions="Auto,*,Auto">
+        <Grid Grid.RowSpan="3" InputTransparent="True">
+            <Ellipse WidthRequest="250" HeightRequest="250" HorizontalOptions="End" VerticalOptions="Start"
+                     TranslationX="115" TranslationY="-145" Fill="{AppThemeBinding Light=#E4EFC8, Dark=#1B352A}" Opacity="0.8" />
+            <Ellipse WidthRequest="210" HeightRequest="210" HorizontalOptions="Start" VerticalOptions="End"
+                     TranslationX="-115" TranslationY="105" Fill="{AppThemeBinding Light=#DCECE4, Dark=#183126}" Opacity="0.72" />
+        </Grid>
+
+        <Grid Grid.Row="0" Padding="22,18,18,8" ColumnDefinitions="*,Auto" ZIndex="2">
+            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                <Image Source="campusgig_mark.svg" WidthRequest="42" HeightRequest="42"
+                       Aspect="AspectFit" SemanticProperties.Description="CampusGig" />
+                <VerticalStackLayout Spacing="0" VerticalOptions="Center">
+                    <Label FontSize="18" FontFamily="OpenSansSemibold" FontAttributes="Bold" CharacterSpacing="-0.6">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Campus" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                                <Span Text="Gig" TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <Label Text="STUDENT SKILLS, REAL OPPORTUNITIES" FontSize="6" CharacterSpacing="0.7"
+                           FontAttributes="Bold" TextColor="#0F6B4F" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+            <Button Grid.Column="1" Text="Skip" AutomationId="OnboardingSkip" Clicked="OnSkipClicked"
+                    Padding="14,8" HeightRequest="42" BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light=#526159, Dark=#B7C5BD}" FontAttributes="Bold" FontSize="12" />
+        </Grid>
+
+        <CarouselView x:Name="SlidesCarousel" Grid.Row="1" Margin="10,4,10,0"
+                      Loop="False" PeekAreaInsets="12" PositionChanged="OnPositionChanged"
+                      IndicatorView="{x:Reference SlideIndicator}" AutomationId="OnboardingCarousel">
+            <CarouselView.ItemTemplate>
+                <DataTemplate x:DataType="models:OnboardingSlide">
+                    <Grid Padding="5,8,5,12">
+                        <Border Padding="22" Stroke="{AppThemeBinding Light=#DCE6E0, Dark=#314239}"
+                                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"
+                                StrokeShape="RoundRectangle 28" Shadow="0,10,24,#18000000">
+                            <Grid RowDefinitions="Auto,230,Auto,Auto,Auto" RowSpacing="15">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding Kicker}" FontSize="9" CharacterSpacing="1.5"
+                                           FontAttributes="Bold" TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}"
+                                           VerticalTextAlignment="Center" />
+                                    <Border Grid.Column="1" Padding="10,5" StrokeThickness="0" StrokeShape="RoundRectangle 13"
+                                            BackgroundColor="{AppThemeBinding Light=#EEF3F0, Dark=#243129}">
+                                        <Label Text="{Binding Number}" FontSize="9" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#526159, Dark=#B7C5BD}" />
+                                    </Border>
+                                </Grid>
+
+                                <Border Grid.Row="1" StrokeThickness="0" StrokeShape="RoundRectangle 24"
+                                        BackgroundColor="{Binding HeroColor}">
+                                    <Grid Padding="22">
+                                        <Ellipse WidthRequest="190" HeightRequest="190" HorizontalOptions="End" VerticalOptions="Start"
+                                                 TranslationX="68" TranslationY="-72" Fill="#D9F36A" Opacity="0.2" />
+                                        <Ellipse WidthRequest="145" HeightRequest="145" HorizontalOptions="Start" VerticalOptions="End"
+                                                 TranslationX="-60" TranslationY="65" Fill="#FFFFFF" Opacity="0.08" />
+                                        <Label Text="{Binding Number}" FontSize="86" FontAttributes="Bold" TextColor="#FFFFFF"
+                                               Opacity="0.1" HorizontalOptions="End" VerticalOptions="End" TranslationY="16" />
+                                        <VerticalStackLayout Spacing="13" VerticalOptions="Center">
+                                            <Border WidthRequest="62" HeightRequest="62" HorizontalOptions="Start" StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 18" BackgroundColor="#FFFFFF">
+                                                <Image Source="campusgig_mark.svg" WidthRequest="42" HeightRequest="42"
+                                                       HorizontalOptions="Center" VerticalOptions="Center" Aspect="AspectFit" />
+                                            </Border>
+                                            <Border Padding="13,10" HorizontalOptions="Start" MaximumWidthRequest="250"
+                                                    StrokeThickness="0" StrokeShape="RoundRectangle 14" BackgroundColor="#F2FFFFFF">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                                    <Border WidthRequest="24" HeightRequest="24" StrokeThickness="0"
+                                                            StrokeShape="RoundRectangle 12" BackgroundColor="#D9F36A">
+                                                        <Label Text="&#x2713;" FontSize="12" FontAttributes="Bold" TextColor="#0F6B4F"
+                                                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                                    </Border>
+                                                    <Label Grid.Column="1" Text="{Binding Highlight}" FontSize="11" FontAttributes="Bold"
+                                                           TextColor="#173B30" VerticalTextAlignment="Center" LineBreakMode="WordWrap" />
+                                                </Grid>
+                                            </Border>
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+
+                                <Label Grid.Row="2" Text="{Binding Title}" FontSize="27" FontAttributes="Bold"
+                                       LineHeight="1.08" LineBreakMode="WordWrap"
+                                       TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                                <Label Grid.Row="3" Text="{Binding Description}" FontSize="13" LineHeight="1.38"
+                                       LineBreakMode="WordWrap" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                <Grid Grid.Row="4" ColumnDefinitions="28,*" ColumnSpacing="9">
+                                    <Label Text="&#x2192;" FontSize="17" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" />
+                                    <Label Grid.Column="1" Text="{Binding SupportingText}" FontSize="10" LineHeight="1.25"
+                                           FontAttributes="Bold" TextColor="{AppThemeBinding Light=#526159, Dark=#B7C5BD}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+        </CarouselView>
+
+        <Grid Grid.Row="2" Padding="24,8,24,24" RowDefinitions="Auto,Auto" RowSpacing="14">
+            <IndicatorView x:Name="SlideIndicator" HorizontalOptions="Center" IndicatorSize="8"
+                           IndicatorColor="{AppThemeBinding Light=#CAD5CF, Dark=#3A4A42}"
+                           SelectedIndicatorColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" />
+                <Button x:Name="PrimaryButton" Grid.Row="1" Text="Next" AutomationId="OnboardingNext"
+                    Clicked="OnPrimaryClicked" HeightRequest="52" WidthRequest="220" HorizontalOptions="Center"
+                    CornerRadius="16" BackgroundColor="#0F6B4F" TextColor="White"
+                    FontSize="14" FontAttributes="Bold" />
+        </Grid>
+    </Grid>
+</ContentPage>

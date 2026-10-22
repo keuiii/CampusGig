@@ -35,8 +35,8 @@
 		<ApplicationId>com.campusgig.app</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>1</ApplicationVersion>
+		<ApplicationDisplayVersion>1.0.4</ApplicationDisplayVersion>
+		<ApplicationVersion>5</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
@@ -44,13 +44,43 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
+		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64;android-x64</RuntimeIdentifiers>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+		<!-- Supply this for staging/release builds, for example:
+		     -p:CampusGigApiBaseUrl=https://staging.example.com/api/v1 -->
+		<CampusGigApiBaseUrl Condition="'$(CampusGigApiBaseUrl)' == ''"></CampusGigApiBaseUrl>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyMetadata Include="CampusGigApiBaseUrl" Value="$(CampusGigApiBaseUrl)" />
+	</ItemGroup>
+
+	<Target Name="ValidateReleaseApiEndpoint"
+			BeforeTargets="Build"
+			Condition="'$(Configuration)' == 'Release'">
+		<Error Condition="$([System.String]::IsNullOrWhiteSpace('$(CampusGigApiBaseUrl)'))"
+			   Text="Release builds require -p:CampusGigApiBaseUrl=https://your-domain/api/v1." />
+		<Error Condition="!$([System.String]::Copy('$(CampusGigApiBaseUrl)').StartsWith('https://'))"
+			   Text="CampusGigApiBaseUrl must use HTTPS for Release builds." />
+	</Target>
+
+	<Target Name="ValidateAndroidReleaseSigning"
+			BeforeTargets="Build"
+			Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<Error Condition="$([System.String]::IsNullOrWhiteSpace('$(AndroidSigningKeyStore)'))"
+			   Text="Android Release builds require the team release keystore via AndroidSigningKeyStore." />
+		<Error Condition="$([System.String]::IsNullOrWhiteSpace('$(AndroidSigningKeyAlias)'))"
+			   Text="Android Release builds require AndroidSigningKeyAlias." />
+		<Error Condition="$([System.String]::Copy('$(AndroidSigningKeyAlias)').ToLowerInvariant()) == 'androiddebugkey'"
+			   Text="Android Release builds cannot use the Android debug signing identity." />
+		<Error Condition="$([System.String]::IsNullOrWhiteSpace('$(AndroidSigningKeyPass)')) Or $([System.String]::IsNullOrWhiteSpace('$(AndroidSigningStorePass)'))"
+			   Text="Android Release builds require signing key and keystore password references." />
+	</Target>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android' and '$(Configuration)' == 'Debug'">
 		<AndroidKeyStore>true</AndroidKeyStore>
-		<AndroidSigningKeyStore>$(MSBuildThisFileDirectory)..\..\mobile\android\app\debug.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyStore>$(MSBuildThisFileDirectory)Platforms\Android\campusgig-debug.keystore</AndroidSigningKeyStore>
 		<AndroidSigningKeyAlias>androiddebugkey</AndroidSigningKeyAlias>
 		<AndroidSigningKeyPass>android</AndroidSigningKeyPass>
 		<AndroidSigningStorePass>android</AndroidSigningStorePass>
@@ -63,10 +93,13 @@
 		<!-- Splash Screen -->
 		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#F7F8F3" BaseSize="180,180" />
 
-		<!-- Images -->
-		<MauiImage Include="Resources\Images\*" />
-		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
-		<MauiImage Include="..\..\mobile\assets\google-g.png" Link="Resources\Images\google_g.png" />
+		<!-- Only package images referenced by the application. -->
+		<MauiImage Include="Resources\Images\campusgig_mark.svg" />
+		<MauiImage Include="Resources\Images\google_g.png" />
+		<MauiImage Include="Resources\Images\tab_*.svg" />
+		<MauiImage Include="Resources\Images\message_*.svg" />
+		<MauiImage Include="Resources\Images\listing_*.svg" />
+		<MauiImage Include="Resources\Images\social_*.svg" />
 		
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
@@ -81,5 +114,29 @@
 		<PackageReference Include="SocketIOClient" Version="4.0.5" />
 		<PackageReference Include="Xamarin.AndroidX.Credentials.PlayServicesAuth" Version="1.3.0.2" Condition="'$(TargetFramework)' == 'net10.0-android'" />
 	</ItemGroup>
+
+	<!-- Restore local API and PayMongo return tunnels after every Android Debug
+	     build. Both commands are non-fatal because either the emulator or USB
+	     device may be absent in CI and during desktop-only development. -->
+	<Target Name="ReverseAndroidDevelopmentPorts"
+			AfterTargets="Build"
+			Condition="'$(TargetFramework)' == 'net10.0-android' and '$(Configuration)' == 'Debug' and Exists('$(AndroidSdkDirectory)platform-tools\adb.exe')">
+		<Exec Command="&quot;$(AndroidSdkDirectory)platform-tools\adb.exe&quot; -d reverse tcp:4000 tcp:4000"
+			  IgnoreExitCode="true"
+			  StandardOutputImportance="Low"
+			  StandardErrorImportance="Low" />
+		<Exec Command="&quot;$(AndroidSdkDirectory)platform-tools\adb.exe&quot; -d reverse tcp:3000 tcp:3000"
+			  IgnoreExitCode="true"
+			  StandardOutputImportance="Low"
+			  StandardErrorImportance="Low" />
+		<Exec Command="&quot;$(AndroidSdkDirectory)platform-tools\adb.exe&quot; -e reverse tcp:4000 tcp:4000"
+			  IgnoreExitCode="true"
+			  StandardOutputImportance="Low"
+			  StandardErrorImportance="Low" />
+		<Exec Command="&quot;$(AndroidSdkDirectory)platform-tools\adb.exe&quot; -e reverse tcp:3000 tcp:3000"
+			  IgnoreExitCode="true"
+			  StandardOutputImportance="Low"
+			  StandardErrorImportance="Low" />
+	</Target>
 
 </Project>

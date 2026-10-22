@@ -3,6 +3,7 @@ namespace CampusGig.Mobile.Services;
 public static class UiInteractionRules
 {
     public const double MinimumTouchTarget = 48;
+    public const double CompactActionWidth = 220;
 
     public static bool CanInvoke(bool isEnabled, bool isBusy) => isEnabled && !isBusy;
 

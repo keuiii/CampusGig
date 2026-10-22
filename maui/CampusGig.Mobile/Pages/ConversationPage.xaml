@@ -4,12 +4,14 @@
              xmlns:models="clr-namespace:CampusGig.Mobile.Models"
              xmlns:controls="clr-namespace:CampusGig.Mobile.Controls"
              x:Class="CampusGig.Mobile.Pages.ConversationPage"
-             BackgroundColor="{AppThemeBinding Light=#F7FAF8, Dark=#111713}">
+             BackgroundColor="{AppThemeBinding Light=#F3F5F3, Dark=#111713}">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Grid x:Name="HeaderBar" Padding="14,11" ColumnDefinitions="38,44,*" ColumnSpacing="10"
+        <Grid x:Name="HeaderBar" Padding="14,11" ColumnDefinitions="44,44,*" ColumnSpacing="10"
               BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
-            <Button Text="‹" Clicked="OnCloseClicked" BackgroundColor="Transparent" TextColor="#0F6B4F"
-                    FontSize="29" Padding="0" WidthRequest="38" HeightRequest="42" />
+            <Button Text="&lt;" Clicked="OnCloseClicked" AutomationId="ConversationBack"
+                    SemanticProperties.Description="Back to messages"
+                    BackgroundColor="Transparent" TextColor="#0F6B4F"
+                    FontSize="22" FontAttributes="Bold" Padding="0" WidthRequest="44" HeightRequest="44" />
             <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" StrokeThickness="0" StrokeShape="RoundRectangle 14"
                     BackgroundColor="{AppThemeBinding Light=#DDECE4, Dark=#244035}">
                 <Grid IsClippedToBounds="True">
@@ -31,6 +33,12 @@
         <RefreshView Grid.Row="1" x:Name="Refresh" Refreshing="OnRefreshing" RefreshColor="#0F8060">
             <CollectionView x:Name="MessageList" Margin="0,6,0,0" ItemsUpdatingScrollMode="KeepLastItemInView" SelectionMode="None"
                             VerticalScrollBarVisibility="Never">
+                <CollectionView.Header>
+                    <Button x:Name="LoadOlderButton" Text="Load older messages" Clicked="OnLoadOlderClicked"
+                            IsVisible="False" HorizontalOptions="Center" Margin="0,8,0,6" Padding="18,8"
+                            BackgroundColor="{AppThemeBinding Light=#E2F0E8, Dark=#203B30}"
+                            TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}" FontSize="11" CornerRadius="14" />
+                </CollectionView.Header>
                 <CollectionView.EmptyView>
                     <VerticalStackLayout Margin="35,100" Spacing="8" HorizontalOptions="Center">
                         <Border WidthRequest="58" HeightRequest="58" StrokeThickness="0" StrokeShape="RoundRectangle 29"
@@ -86,23 +94,25 @@
                 </Grid>
             </Border>
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                <Button Text="+" Clicked="OnAttachClicked" WidthRequest="46" HeightRequest="46" CornerRadius="14"
+                <Button x:Name="AttachButton" Text="+" Clicked="OnAttachClicked" WidthRequest="46" HeightRequest="46" CornerRadius="14"
+                        AutomationId="AttachMessageFiles" SemanticProperties.Description="Attach files to this message"
                         BackgroundColor="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}"
                         TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}" FontSize="20" Padding="0" />
-                <Editor x:Name="DraftEntry" Grid.Column="1" Placeholder="Write a message…" TextChanged="OnDraftChanged"
+                <Editor x:Name="DraftEntry" AutomationId="MessageDraft" Grid.Column="1" Placeholder="Write a message…" TextChanged="OnDraftChanged"
                         AutoSize="TextChanges" MaxLength="2000" MaximumHeightRequest="100" MinimumHeightRequest="46"
                         BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#151D19}"
                         TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" PlaceholderColor="#929A96" />
-                <controls:BusyButton x:Name="SendButton" Grid.Column="2" Text="→" BusyText="" Clicked="OnSendClicked"
+                <controls:BusyButton x:Name="SendButton" AutomationId="SendMessageButton" Grid.Column="2" Text="→" BusyText="" Clicked="OnSendClicked"
+                                     SemanticProperties.Description="Send message"
                                      WidthRequest="48" HeightRequest="48" FillColor="#0F8060" TextColor="White" CornerRadius="24" />
             </Grid>
         </VerticalStackLayout>
 
-        <VerticalStackLayout x:Name="LoadingMessages" Grid.Row="1" IsVisible="False" Spacing="9"
-                             VerticalOptions="Center" HorizontalOptions="Center">
-            <ActivityIndicator IsRunning="True" Color="#0F8060" />
-            <Label Text="Loading conversation…" FontSize="10"
-                   TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+        <VerticalStackLayout x:Name="LoadingMessages" Grid.Row="1" IsVisible="False" Margin="16,24"
+                             Spacing="18" VerticalOptions="Start" SemanticProperties.Description="Loading conversation">
+            <controls:SkeletonCard Kind="Conversation" HorizontalOptions="Start" WidthRequest="280" />
+            <controls:SkeletonCard Kind="Conversation" HorizontalOptions="End" WidthRequest="240" />
+            <controls:SkeletonCard Kind="Conversation" HorizontalOptions="Start" WidthRequest="260" />
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

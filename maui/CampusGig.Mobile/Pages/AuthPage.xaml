@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CampusGig.Mobile.Pages.AuthPage"
-             BackgroundColor="{AppThemeBinding Light=#F5F4EE, Dark=#111713}">
+             BackgroundColor="{AppThemeBinding Light=#F3F5F3, Dark=#111713}">
     <Grid IsClippedToBounds="True">
         <Ellipse WidthRequest="220" HeightRequest="220" HorizontalOptions="End" VerticalOptions="Start"
                  TranslationX="95" TranslationY="-125" Fill="{AppThemeBinding Light=#DFEDB6, Dark=#244035}" Opacity="0.68" />
@@ -25,15 +25,13 @@
             </Grid>
         </Border>
 
-        <ScrollView>
-            <VerticalStackLayout x:Name="AuthContent" Padding="22,28" Spacing="0" MaximumWidthRequest="430"
-                                 HorizontalOptions="Center" VerticalOptions="Center">
-                <Border WidthRequest="52" HeightRequest="52" HorizontalOptions="Center" StrokeThickness="0"
-                        BackgroundColor="#0F6B4F" StrokeShape="RoundRectangle 15">
-                    <Label Text="C" FontSize="26" FontAttributes="Bold" TextColor="#D9F36A"
-                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
-                </Border>
-                <Label HorizontalTextAlignment="Center" Margin="0,10,0,0" FontSize="24" FontAttributes="Bold">
+        <ScrollView VerticalScrollBarVisibility="Never" VerticalOptions="Fill">
+            <VerticalStackLayout x:Name="AuthContent" Padding="22,22,22,28" Spacing="0" MaximumWidthRequest="430"
+                                 HorizontalOptions="Center" VerticalOptions="Start">
+                <Image Source="campusgig_mark.svg" WidthRequest="48" HeightRequest="48"
+                       HorizontalOptions="Center" Aspect="AspectFit" SemanticProperties.Description="CampusGig" />
+                <Label HorizontalTextAlignment="Center" Margin="0,6,0,0" FontSize="22" FontFamily="OpenSansSemibold"
+                       FontAttributes="Bold" CharacterSpacing="-0.8">
                     <Label.FormattedText><FormattedString>
                         <Span Text="Campus" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
                         <Span Text="Gig" TextColor="#0F6B4F" />
@@ -42,26 +40,29 @@
                 <Label Text="STUDENT SKILLS, REAL OPPORTUNITIES" HorizontalTextAlignment="Center" Margin="0,2,0,0"
                        FontSize="7" CharacterSpacing="1.05" FontAttributes="Bold" TextColor="#0F6B4F" />
 
-                <VerticalStackLayout Margin="12,21,12,0" Spacing="6">
-                    <Label x:Name="PageTitle" Text="Welcome to CampusGig" HorizontalTextAlignment="Center"
-                           FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                <VerticalStackLayout Margin="12,10,12,0" Spacing="3">
+                    <Label x:Name="PageTitle" AutomationId="AuthTitle" Text="Welcome Back" HorizontalTextAlignment="Center"
+                           FontSize="23" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
                     <Label x:Name="PageSubtitle" Text="Your trusted marketplace for verified student skills and services."
                            HorizontalTextAlignment="Center" FontSize="11" LineHeight="1.35"
                            TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
                 </VerticalStackLayout>
 
-                <Border Margin="0,20,0,0" Padding="18" Stroke="#E1E6E2" StrokeShape="RoundRectangle 20"
+                <Border Margin="0,11,0,0" Padding="14" Stroke="#E1E6E2" StrokeShape="RoundRectangle 18"
                         BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}">
                     <VerticalStackLayout x:Name="FormContent" Spacing="0">
-                        <Grid x:Name="AuthTabs" HeightRequest="45" Padding="4" ColumnDefinitions="*,*"
-                              IsClippedToBounds="True" BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#151D19}">
-                            <Border x:Name="TabIndicator" Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 9"
-                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}" />
-                            <Button x:Name="LoginTabButton" Grid.Column="0" Text="Log in" Clicked="OnLoginTabClicked" Pressed="OnButtonPressed" Released="OnButtonReleased" BackgroundColor="Transparent" HorizontalOptions="Fill"
-                                    TextColor="#0F6B4F" FontSize="11" FontAttributes="Bold" Padding="0" />
-                            <Button x:Name="RegisterTabButton" Grid.Column="1" Text="Sign up" Clicked="OnRegisterTabClicked" Pressed="OnButtonPressed" Released="OnButtonReleased" BackgroundColor="Transparent" HorizontalOptions="Fill"
-                                    TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" FontSize="11" FontAttributes="Bold" Padding="0" />
-                        </Grid>
+                        <Border x:Name="AuthTabs" HeightRequest="42" Padding="3" StrokeThickness="0"
+                                StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{AppThemeBinding Light=#EEF2EF, Dark=#151D19}">
+                            <Grid ColumnDefinitions="*,*">
+                                <Border x:Name="TabIndicator" Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 9"
+                                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}" />
+                                <Button x:Name="LoginTabButton" Grid.Column="0" Text="Log in" Clicked="OnLoginTabClicked" Pressed="OnButtonPressed" Released="OnButtonReleased" BackgroundColor="Transparent" HorizontalOptions="Fill"
+                                        TextColor="#0F6B4F" FontSize="11" FontAttributes="Bold" Padding="0" />
+                                <Button x:Name="RegisterTabButton" Grid.Column="1" Text="Sign up" Clicked="OnRegisterTabClicked" Pressed="OnButtonPressed" Released="OnButtonReleased" BackgroundColor="Transparent" HorizontalOptions="Fill"
+                                        TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" FontSize="11" FontAttributes="Bold" Padding="0" />
+                            </Grid>
+                        </Border>
 
                         <Border x:Name="StatusPanel" IsVisible="False" Margin="0,12,0,0" Padding="11,9"
                                 Stroke="#F2C6C2" StrokeShape="RoundRectangle 10"
@@ -76,51 +77,150 @@
 
                         <VerticalStackLayout x:Name="FieldsContent" Spacing="0">
 
-                        <VerticalStackLayout x:Name="NameGroup" IsVisible="False" Margin="0,15,0,0" Spacing="6">
+                        <VerticalStackLayout x:Name="NameGroup" IsVisible="False" Margin="0,9,0,0" Spacing="4">
                             <Label Text="FULL NAME" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
-                            <Border HeightRequest="49" Padding="12,0" Stroke="{AppThemeBinding Light=#DDE3DF, Dark=#385046}" StrokeShape="RoundRectangle 11"
+                            <Border HeightRequest="46" Padding="12,0" Stroke="{AppThemeBinding Light=#DDE3DF, Dark=#385046}" StrokeShape="RoundRectangle 11"
                                     BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
-                                <Grid ColumnDefinitions="24,*"><Label Text="◎" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
-                                    <Entry x:Name="NameEntry" Grid.Column="1" Placeholder="Your full name" /></Grid>
+                                <Grid ColumnDefinitions="24,*">
+                                    <Path WidthRequest="17" HeightRequest="17" Aspect="Uniform" Stroke="#0F6B4F"
+                                          StrokeThickness="1.7" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                          HorizontalOptions="Center" VerticalOptions="Center"
+                                          Data="M12,12 A4,4 0 1 0 12,4 A4,4 0 1 0 12,12 M5,21 C5,16.6 8.1,14 12,14 C15.9,14 19,16.6 19,21" />
+                                    <Entry x:Name="NameEntry" AutomationId="RegisterFullName" Grid.Column="1"
+                                           Placeholder="Your full name" ReturnType="Next" /></Grid>
                             </Border>
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout x:Name="EmailGroup" Margin="0,15,0,0" Spacing="6">
+                        <VerticalStackLayout x:Name="EmailGroup" Margin="0,9,0,0" Spacing="4">
                             <Label Text="EMAIL ADDRESS" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
-                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                            <Border HeightRequest="46" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
                                     BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
                                 <Grid ColumnDefinitions="24,*"><Label Text="@" TextColor="#0F6B4F" FontAttributes="Bold" VerticalTextAlignment="Center" />
-                                    <Entry x:Name="EmailEntry" Grid.Column="1" Placeholder="you@example.com" Keyboard="Email" /></Grid>
+                                    <Entry x:Name="EmailEntry" AutomationId="LoginEmail" Grid.Column="1" Placeholder="you@example.com"
+                                           Keyboard="Email" ReturnType="Next" /></Grid>
                             </Border>
                         </VerticalStackLayout>
 
-                        <Border x:Name="StudentGroup" IsVisible="False" Margin="0,12,0,0" Padding="11" Stroke="#DDE5E0"
+                        <Border x:Name="ResetAccountPanel" IsVisible="False" Margin="0,15,0,0" Padding="12,10"
+                                Stroke="{AppThemeBinding Light=#D8E7DF, Dark=#385046}" StrokeShape="RoundRectangle 12"
+                                BackgroundColor="{AppThemeBinding Light=#F1F8F4, Dark=#18251F}">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                <Border WidthRequest="32" HeightRequest="32" StrokeThickness="0" StrokeShape="RoundRectangle 16"
+                                        BackgroundColor="{AppThemeBinding Light=#DDF1E7, Dark=#244035}">
+                                    <Label Text="@" FontSize="13" FontAttributes="Bold" TextColor="#0F6B4F"
+                                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="RESET CODE SENT TO" FontSize="7" CharacterSpacing="1.05" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
+                                    <Label x:Name="ResetAccountLabel" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="2" Text="CHANGE" Clicked="OnChangeResetEmailClicked"
+                                        Padding="6,0" HeightRequest="32" BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}"
+                                        FontSize="8" FontAttributes="Bold" />
+                            </Grid>
+                        </Border>
+
+                        <Border x:Name="StudentGroup" IsVisible="False" Margin="0,8,0,0" Padding="6,0" HeightRequest="46" Stroke="#DDE5E0"
                                 StrokeShape="RoundRectangle 11" BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#151D19}">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <CheckBox x:Name="StudentCheckBox" Color="#0F6B4F" />
-                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                            <Grid ColumnDefinitions="44,*" ColumnSpacing="4">
+                                <CheckBox x:Name="StudentCheckBox" Color="#0F6B4F" MinimumWidthRequest="44" MinimumHeightRequest="44"
+                                          SemanticProperties.Description="I am currently a student" />
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="0">
                                     <Label Text="I’m currently a student" FontSize="10" FontAttributes="Bold" />
-                                    <Label Text="Select for school verification and future provider access." FontSize="8" TextColor="#66716B" />
                                 </VerticalStackLayout>
                             </Grid>
                         </Border>
 
                         <VerticalStackLayout x:Name="CodeGroup" IsVisible="False" Margin="0,15,0,0" Spacing="6">
                             <Label x:Name="CodeLabel" Text="SIX-DIGIT CODE" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
-                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
-                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
-                                <Grid ColumnDefinitions="24,*"><Label Text="#" TextColor="#0F6B4F" FontAttributes="Bold" VerticalTextAlignment="Center" />
-                                    <Entry x:Name="CodeEntry" Grid.Column="1" Placeholder="000000" Keyboard="Numeric" MaxLength="20" /></Grid>
-                            </Border>
+                            <Grid x:Name="StandardCodeField" HeightRequest="54">
+                                <Grid x:Name="AuthenticatorCodeSlots" ColumnDefinitions="*,*,*,*,*,*" ColumnSpacing="6">
+                                    <Border x:Name="AuthCodeBox0" Grid.Column="0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                        <Label x:Name="AuthCodeDigit0" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Border x:Name="AuthCodeBox1" Grid.Column="1" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                        <Label x:Name="AuthCodeDigit1" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Border x:Name="AuthCodeBox2" Grid.Column="2" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                        <Label x:Name="AuthCodeDigit2" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Border x:Name="AuthCodeBox3" Grid.Column="3" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                        <Label x:Name="AuthCodeDigit3" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Border x:Name="AuthCodeBox4" Grid.Column="4" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                        <Label x:Name="AuthCodeDigit4" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <Border x:Name="AuthCodeBox5" Grid.Column="5" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                            BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                        <Label x:Name="AuthCodeDigit5" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <Border x:Name="RecoveryCodeSurface" IsVisible="False" Stroke="#DDE3DF" StrokeShape="RoundRectangle 12"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label Text="#" Margin="14,0,0,0" TextColor="#0F6B4F" FontSize="16" FontAttributes="Bold"
+                                           HorizontalOptions="Start" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Entry x:Name="CodeEntry" AutomationId="VerificationCode" Grid.ColumnSpan="6"
+                                       Placeholder="000000" Keyboard="Numeric" MaxLength="20" ReturnType="Done"
+                                       BackgroundColor="Transparent" TextColor="Transparent" Opacity="0.02"
+                                       SemanticProperties.Description="Six-digit verification code" />
+                            </Grid>
+                            <Grid x:Name="ResetCodeField" IsVisible="False" HeightRequest="52"
+                                  ColumnDefinitions="*,*,*,*,*,*" ColumnSpacing="7">
+                                <Border x:Name="CodeBox0" Grid.Column="0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label x:Name="CodeDigit0" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Border x:Name="CodeBox1" Grid.Column="1" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label x:Name="CodeDigit1" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Border x:Name="CodeBox2" Grid.Column="2" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label x:Name="CodeDigit2" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Border x:Name="CodeBox3" Grid.Column="3" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label x:Name="CodeDigit3" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Border x:Name="CodeBox4" Grid.Column="4" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label x:Name="CodeDigit4" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Border x:Name="CodeBox5" Grid.Column="5" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                        BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                    <Label x:Name="CodeDigit5" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Border>
+                                <Entry x:Name="ResetCodeEntry" Grid.ColumnSpan="6" Keyboard="Numeric" MaxLength="6"
+                                       AutomationId="ResetCode" BackgroundColor="Transparent" TextColor="Transparent"
+                                       Opacity="0.02" ReturnType="Next"
+                                       SemanticProperties.Description="Six-digit password reset code" />
+                            </Grid>
+                            <Label x:Name="ResetCodeHint" IsVisible="False" Text="Code expires 10 minutes after it is sent."
+                                   FontSize="9" TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout x:Name="PasswordGroup" Margin="0,15,0,0" Spacing="6">
+                        <VerticalStackLayout x:Name="PasswordGroup" Margin="0,9,0,0" Spacing="4">
                             <Label x:Name="PasswordLabel" Text="PASSWORD" FontSize="8" CharacterSpacing="1.2" FontAttributes="Bold" TextColor="#66716B" />
-                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                            <Border HeightRequest="46" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
                                     BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
-                                <Grid ColumnDefinitions="24,*,52"><Label Text="●" FontSize="9" TextColor="#0F6B4F" VerticalTextAlignment="Center" />
-                                    <Entry x:Name="PasswordEntry" Grid.Column="1" Placeholder="At least 8 characters" IsPassword="True" />
-                                    <Button x:Name="ShowPasswordButton" Grid.Column="2" Text="SHOW" Clicked="OnShowPasswordClicked"
+                                <Grid ColumnDefinitions="24,*,52">
+                                    <Path WidthRequest="17" HeightRequest="17" Aspect="Uniform" Stroke="#0F6B4F"
+                                          StrokeThickness="1.7" StrokeLineCap="Round" StrokeLineJoin="Round"
+                                          HorizontalOptions="Center" VerticalOptions="Center"
+                                          Data="M7,10 L7,7 C7,4.2 9.2,2 12,2 C14.8,2 17,4.2 17,7 L17,10 M5,10 L19,10 L19,21 L5,21 Z" />
+                                    <Entry x:Name="PasswordEntry" AutomationId="LoginPassword" Grid.Column="1"
+                                           Placeholder="At least 8 characters" IsPassword="True" ReturnType="Done" />
+                                    <Button x:Name="ShowPasswordButton" Grid.Column="2" Text="Show" Clicked="OnShowPasswordClicked"
+                                            SemanticProperties.Description="Show password" MinimumWidthRequest="48" MinimumHeightRequest="44"
                                             Padding="0" BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="8" FontAttributes="Bold" /></Grid>
                             </Border>
                             <Label x:Name="PasswordHint" Text="○  Minimum 8 characters" FontSize="9" TextColor="#66716B" />
@@ -142,9 +242,10 @@
                                     BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
                                 <Grid ColumnDefinitions="24,*,52">
                                     <Label Text="=" FontSize="11" TextColor="#0F6B4F" FontAttributes="Bold" VerticalTextAlignment="Center" />
-                                    <Entry x:Name="ConfirmPasswordEntry" Grid.Column="1" Placeholder="Enter password again" IsPassword="True" />
+                                    <Entry x:Name="ConfirmPasswordEntry" Grid.Column="1" Placeholder="Enter password again" IsPassword="True" ReturnType="Done" />
                                     <Button x:Name="ShowConfirmPasswordButton" Grid.Column="2" Text="SHOW" Clicked="OnShowConfirmPasswordClicked"
                                             WidthRequest="48" Padding="0" BackgroundColor="Transparent"
+                                            SemanticProperties.Description="Show password confirmation"
                                             TextColor="{AppThemeBinding Light=#0F6B4F, Dark=#71D7B1}" FontSize="8" FontAttributes="Bold" />
                                 </Grid>
                             </Border>
@@ -152,9 +253,17 @@
                                    TextColor="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout x:Name="ResetMfaGroup" IsVisible="False" Margin="0,14,0,0" Spacing="6">
-                            <Label Text="AUTHENTICATOR CODE (IF ENABLED)" FontSize="8" CharacterSpacing="1.1" FontAttributes="Bold" TextColor="#66716B" />
-                            <Entry x:Name="ResetMfaEntry" Placeholder="Optional" MaxLength="20" />
+                        <VerticalStackLayout x:Name="ResetMfaGroup" IsVisible="False" Margin="0,14,0,0" Spacing="8">
+                            <Border Padding="11,9" Stroke="{AppThemeBinding Light=#CFE0D7, Dark=#385046}" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF6F1, Dark=#203B30}">
+                                <Label Text="This account has two-factor protection. Confirm the reset with your authenticator or one recovery code."
+                                       FontSize="9" LineHeight="1.3" TextColor="{AppThemeBinding Light=#50675C, Dark=#C6D2CB}" />
+                            </Border>
+                            <Label x:Name="ResetMfaLabel" Text="AUTHENTICATOR CODE" FontSize="8" CharacterSpacing="1.1" FontAttributes="Bold" TextColor="#66716B" />
+                            <Border HeightRequest="49" Padding="12,0" Stroke="#DDE3DF" StrokeShape="RoundRectangle 11"
+                                    BackgroundColor="{AppThemeBinding Light=#FCFDFC, Dark=#151D19}">
+                                <Entry x:Name="ResetMfaEntry" Placeholder="000000" Keyboard="Numeric" MaxLength="20" ReturnType="Done" />
+                            </Border>
                             <Button x:Name="ResetRecoveryButton" Text="Use recovery code" Clicked="OnResetRecoveryClicked"
                                     BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
                         </VerticalStackLayout>
@@ -168,28 +277,34 @@
                         <Button x:Name="RecoveryButton" IsVisible="False" Text="Use a recovery code" Clicked="OnRecoveryClicked"
                                 BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
 
-                        <Grid Margin="0,15,0,0" WidthRequest="260" HeightRequest="47" HorizontalOptions="Center">
-                            <Button x:Name="SubmitButton" Text="Log in     →" Clicked="OnSubmitClicked" Pressed="OnButtonPressed" Released="OnButtonReleased"
-                                    HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="#0F6B4F"
-                                    TextColor="White" FontSize="12" FontAttributes="Bold" CornerRadius="11" />
+                        <Grid Margin="0,11,0,0" MaximumWidthRequest="300" HeightRequest="44" HorizontalOptions="Fill">
+                            <Button x:Name="SubmitButton" Text="Log in" Clicked="OnSubmitClicked" Pressed="OnButtonPressed" Released="OnButtonReleased"
+                                    AutomationId="LoginSubmit" HorizontalOptions="Fill" VerticalOptions="Fill" BackgroundColor="#1B4D3E"
+                                    TextColor="White" FontSize="12" FontAttributes="Bold" CornerRadius="11"
+                                    Style="{StaticResource DisabledActionStateStyle}" />
                             <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" Color="White"
                                                WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" InputTransparent="True" />
                         </Grid>
                         <Button x:Name="ForgotButton" Text="Forgot password?" Clicked="OnForgotClicked"
-                                BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
-                        <Button x:Name="BackButton" IsVisible="False" Text="← Back to login" Clicked="OnBackClicked"
+                                Margin="0,2,0,0" HeightRequest="44" MinimumHeightRequest="44" Padding="8,0"
+                                HorizontalOptions="Center" BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
+                        <Button x:Name="BackButton" IsVisible="False" Text="&lt; Back to login" Clicked="OnBackClicked"
                                 BackgroundColor="Transparent" TextColor="#0F6B4F" FontSize="10" />
 
-                        <VerticalStackLayout x:Name="SocialGroup" Margin="0,10,0,10" Spacing="7">
+                        <VerticalStackLayout x:Name="SocialGroup" Margin="0,12,0,5" Spacing="4">
                             <Label Text="OR CONTINUE WITH" HorizontalTextAlignment="Center" FontSize="7" CharacterSpacing="0.6" FontAttributes="Bold" TextColor="#66716B" />
                             <ImageButton x:Name="GoogleButton" Source="google_g.png" SemanticProperties.Description="Continue with Google"
                                          Clicked="OnGoogleClicked" Pressed="OnButtonPressed" Released="OnButtonReleased"
-                                         WidthRequest="44" HeightRequest="44" Padding="10" HorizontalOptions="Center"
+                                         WidthRequest="42" HeightRequest="42" Padding="9" HorizontalOptions="Center"
                                          CornerRadius="22" BorderWidth="1" BorderColor="#DDE3DF"
                                          BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#151D19}" />
+                            <Button x:Name="BrowseGuestButton" AutomationId="BrowseAsGuestButton"
+                                    Text="Browse as guest" Clicked="OnBrowseAsGuestClicked"
+                                    BackgroundColor="Transparent" TextColor="#0F6B4F"
+                                    FontSize="11" FontAttributes="Bold" HorizontalOptions="Center" />
                         </VerticalStackLayout>
 
-                        <Border Margin="0,4,0,0" Padding="11,9" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                        <Border Margin="0,2,0,0" Padding="10,7" StrokeThickness="0" StrokeShape="RoundRectangle 10"
                                 BackgroundColor="{AppThemeBinding Light=#EEF6F1, Dark=#203B30}">
                             <Grid ColumnDefinitions="24,*"><Border WidthRequest="20" HeightRequest="20" StrokeThickness="0" BackgroundColor="#D9F36A" StrokeShape="RoundRectangle 10">
                                 <Label Text="✓" FontSize="10" TextColor="#0F6B4F" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
@@ -200,8 +315,10 @@
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
-                <Label Text="By continuing, you agree to the CampusGig community guidelines." Margin="22,8,22,0"
+                <Label Text="By continuing, you agree to the CampusGig community guidelines." Margin="22,5,22,0"
                        FontSize="8" TextColor="#7C8580" HorizontalTextAlignment="Center" />
+                <Label x:Name="AppVersionLabel" Margin="22,2,22,0" FontSize="8"
+                       TextColor="#7C8580" HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

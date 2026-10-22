@@ -4,6 +4,9 @@ public sealed record PasswordStrength(int Score, double Progress, string Label, 
 
 public static class PasswordStrengthRules
 {
+    public static bool ShouldShow(string? password, bool supportedContext) =>
+        supportedContext && !string.IsNullOrEmpty(password);
+
     public static PasswordStrength Evaluate(string? password)
     {
         if (string.IsNullOrEmpty(password))

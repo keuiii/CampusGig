@@ -12,36 +12,154 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\CampusGig.Mobile\App.xaml"
+          Link="Fixtures\App.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Controls\SkeletonBlock.cs"
+          Link="Fixtures\SkeletonBlock.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Controls\SkeletonCard.cs"
+          Link="Fixtures\SkeletonCard.cs"
+          CopyToOutputDirectory="PreserveNewest" />
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\CampusGig.Mobile\Models\ApiModels.cs" Link="Models\ApiModels.cs" />
     <Compile Include="..\CampusGig.Mobile\Models\MobileNavigation.cs" Link="Models\MobileNavigation.cs" />
+    <Compile Include="..\CampusGig.Mobile\ViewModels\ProfileAccountState.cs" Link="ViewModels\ProfileAccountState.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ISessionStorage.cs" Link="Services\ISessionStorage.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\GoogleIdentityOptions.cs" Link="Services\GoogleIdentityOptions.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\GuestAccessRules.cs" Link="Services\GuestAccessRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\AuthFormRules.cs" Link="Services\AuthFormRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\AuthorizationFailureRules.cs" Link="Services\AuthorizationFailureRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\CampusTime.cs" Link="Services\CampusTime.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ApiPayloadRules.cs" Link="Services\ApiPayloadRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ApiEndpointRules.cs" Link="Services\ApiEndpointRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\AccountRefreshRules.cs" Link="Services\AccountRefreshRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\CampusGigApiException.cs" Link="Services\CampusGigApiException.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\DialogPresentationRules.cs" Link="Services\DialogPresentationRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\DownloadRetryRules.cs" Link="Services\DownloadRetryRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\DisputePresentation.cs" Link="Services\DisputePresentation.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\InteractionMotion.cs" Link="Services\InteractionMotion.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\MobileFileRules.cs" Link="Services\MobileFileRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\MarketplaceLoadRules.cs" Link="Services\MarketplaceLoadRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\MarketplacePresentation.cs" Link="Services\MarketplacePresentation.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\MfaPresentationRules.cs" Link="Services\MfaPresentationRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\OrderWorkflowRules.cs" Link="Services\OrderWorkflowRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\OrderReviewPresentation.cs" Link="Services\OrderReviewPresentation.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\OnboardingPresentationRules.cs" Link="Services\OnboardingPresentationRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PageActivityGuard.cs" Link="Services\PageActivityGuard.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PaymentReturnRules.cs" Link="Services\PaymentReturnRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\RefundPresentation.cs" Link="Services\RefundPresentation.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PricingModelRules.cs" Link="Services\PricingModelRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\MessagePalette.cs" Link="Services\MessagePalette.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ProfileActionRules.cs" Link="Services\ProfileActionRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ProfileImageRules.cs" Link="Services\ProfileImageRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProfilePresentationRules.cs" Link="Services\ProfilePresentationRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProviderEarningsPresentation.cs" Link="Services\ProviderEarningsPresentation.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProviderListingLifecycleRules.cs" Link="Services\ProviderListingLifecycleRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProviderListingEditorRules.cs" Link="Services\ProviderListingEditorRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\ProviderSocialLinkRules.cs" Link="Services\ProviderSocialLinkRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\RefreshRequestRules.cs" Link="Services\RefreshRequestRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\RealtimeConnectionPolicy.cs" Link="Services\RealtimeConnectionPolicy.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\RealtimeReconciliationGate.cs" Link="Services\RealtimeReconciliationGate.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordVisibilityRules.cs" Link="Services\PasswordVisibilityRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordStrengthRules.cs" Link="Services\PasswordStrengthRules.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\PasswordResetPresentationRules.cs" Link="Services\PasswordResetPresentationRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\PasswordChangeFlowRules.cs" Link="Services\PasswordChangeFlowRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\ServiceBookingRules.cs" Link="Services\ServiceBookingRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\SessionService.cs" Link="Services\SessionService.cs" />
+    <Compile Include="..\CampusGig.Mobile\Services\StartupPresentationRules.cs" Link="Services\StartupPresentationRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\UiInteractionRules.cs" Link="Services\UiInteractionRules.cs" />
     <Compile Include="..\CampusGig.Mobile\Services\UnreadBadgeRules.cs" Link="Services\UnreadBadgeRules.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\CampusGig.Mobile\Pages\AuthPage.xaml"
+          Link="Fixtures\AuthPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\HomePage.xaml"
+          Link="Fixtures\HomePage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\HomePage.xaml.cs"
+          Link="Fixtures\HomePage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\MainTabbedPage.cs"
+          Link="Fixtures\MainTabbedPage.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\MessagesPage.xaml"
+          Link="Fixtures\MessagesPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\MessagesPage.xaml.cs"
+          Link="Fixtures\MessagesPage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\OrderWorkspacePage.xaml"
+          Link="Fixtures\OrderWorkspacePage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\OrderWorkspacePage.xaml.cs"
+          Link="Fixtures\OrderWorkspacePage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\OrdersPage.xaml"
+          Link="Fixtures\OrdersPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ProfilePage.xaml"
+          Link="Fixtures\ProfilePage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ProfilePage.xaml.cs"
+          Link="Fixtures\ProfilePage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\SplashPage.xaml"
+          Link="Fixtures\SplashPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ConversationPage.xaml"
+          Link="Fixtures\ConversationPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\OnboardingPage.xaml"
+          Link="Fixtures\OnboardingPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\AuthPage.xaml.cs"
+          Link="Fixtures\AuthPage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\NotificationsPage.cs"
+          Link="Fixtures\NotificationsPage.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\OnboardingPage.xaml.cs"
+          Link="Fixtures\OnboardingPage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ProviderListingsPage.cs"
+          Link="Fixtures\ProviderListingsPage.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ProviderEarningsPage.cs"
+          Link="Fixtures\ProviderEarningsPage.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ProviderListingEditorPage.xaml"
+          Link="Fixtures\ProviderListingEditorPage.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ProviderListingEditorPage.xaml.cs"
+          Link="Fixtures\ProviderListingEditorPage.xaml.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\PublicProviderProfilePage.cs"
+          Link="Fixtures\PublicProviderProfilePage.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Pages\ServiceBookingPage.cs"
+          Link="Fixtures\ServiceBookingPage.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\MauiProgram.cs"
+          Link="Fixtures\MauiProgram.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Platforms\Android\MainActivity.cs"
+          Link="Fixtures\MainActivity.cs"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Resources\Images\social_*.svg"
+          Link="Fixtures\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Resources\Images\listing_*.svg"
+          Link="Fixtures\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\CampusGig.Mobile\Resources\Images\tab_messages.svg"
+          Link="Fixtures\tab_messages.svg"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

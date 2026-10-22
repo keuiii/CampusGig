@@ -6,11 +6,30 @@
              x:Class="CampusGig.Mobile.App">
     <Application.Resources>
         <ResourceDictionary>
-            <Style x:Key="SectionLabelStyle" TargetType="Label"><Setter Property="FontSize" Value="9"/><Setter Property="CharacterSpacing" Value="1.4"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="TextColor" Value="#0F6B4F"/></Style>
-            <Style x:Key="FieldLabelStyle" TargetType="Label"><Setter Property="FontSize" Value="8"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="TextColor" Value="#66716B"/></Style>
-            <Style x:Key="ProfileCardStyle" TargetType="Border"><Setter Property="Padding" Value="18"/><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#1C2520}"/><Setter Property="Stroke" Value="#D9E5DF"/><Setter Property="StrokeShape" Value="RoundRectangle 18"/></Style>
-            <Style x:Key="PrimaryButtonStyle" TargetType="Button"><Setter Property="BackgroundColor" Value="#0F6B4F"/><Setter Property="TextColor" Value="White"/><Setter Property="CornerRadius" Value="11"/><Setter Property="HorizontalOptions" Value="Fill"/><Setter Property="Margin" Value="0,5,0,0"/></Style>
-            <Style x:Key="SoftButtonStyle" TargetType="Button"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#087A5A, Dark=#83D6B6}"/><Setter Property="CornerRadius" Value="11"/><Setter Property="HorizontalOptions" Value="Start"/><Setter Property="Padding" Value="18,10"/></Style>
+            <Style TargetType="ContentPage">
+                <Setter Property="HideSoftInputOnTapped" Value="True" />
+            </Style>
+            <Style x:Key="SectionLabelStyle" TargetType="Label"><Setter Property="FontSize" Value="11"/><Setter Property="CharacterSpacing" Value="1.2"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#0F6B4F, Dark=#91DABD}"/></Style>
+            <Style x:Key="FieldLabelStyle" TargetType="Label"><Setter Property="FontSize" Value="11"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#52605A, Dark=#B8C5BE}"/></Style>
+            <Style x:Key="PageTitleStyle" TargetType="Label"><Setter Property="FontSize" Value="30"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="LineBreakMode" Value="WordWrap"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></Style>
+            <Style x:Key="SectionTitleStyle" TargetType="Label"><Setter Property="FontSize" Value="20"/><Setter Property="FontAttributes" Value="Bold"/><Setter Property="LineBreakMode" Value="WordWrap"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#17211D, Dark=#F2F6F3}"/></Style>
+            <Style x:Key="MutedBodyStyle" TargetType="Label"><Setter Property="FontSize" Value="12"/><Setter Property="LineHeight" Value="1.3"/><Setter Property="LineBreakMode" Value="WordWrap"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}"/></Style>
+            <Style x:Key="ProfileCardStyle" TargetType="Border"><Setter Property="Padding" Value="16"/><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F4F3EC, Dark=#1C2520}"/><Setter Property="Stroke" Value="{AppThemeBinding Light=#D9E5DF, Dark=#34423A}"/><Setter Property="StrokeShape" Value="RoundRectangle 16"/></Style>
+            <Style x:Key="MainTabHeaderStyle" TargetType="Border"><Setter Property="Margin" Value="20,12,20,0"/><Setter Property="Padding" Value="16,10"/><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F4F3EC, Dark=#1C2520}"/><Setter Property="StrokeThickness" Value="0"/><Setter Property="StrokeShape" Value="RoundRectangle 16"/></Style>
+            <Style x:Key="MainTabHeaderAccentStyle" TargetType="Ellipse"><Setter Property="WidthRequest" Value="72"/><Setter Property="HeightRequest" Value="72"/><Setter Property="HorizontalOptions" Value="End"/><Setter Property="VerticalOptions" Value="Start"/><Setter Property="TranslationX" Value="28"/><Setter Property="TranslationY" Value="-28"/><Setter Property="Fill" Value="{AppThemeBinding Light=#E4EFC0, Dark=#244035}"/><Setter Property="InputTransparent" Value="True"/></Style>
+            <Style x:Key="MainTabHeaderSubtitleStyle" TargetType="Label"><Setter Property="FontSize" Value="10"/><Setter Property="LineBreakMode" Value="TailTruncation"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#66716B, Dark=#AAB6AF}"/></Style>
+            <Style x:Key="SurfaceCardStyle" TargetType="Border"><Setter Property="Padding" Value="16"/><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F4F3EC, Dark=#1C2520}"/><Setter Property="Stroke" Value="{AppThemeBinding Light=#D9E5DF, Dark=#34423A}"/><Setter Property="StrokeShape" Value="RoundRectangle 18"/></Style>
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button"><Setter Property="BackgroundColor" Value="#0F6B4F"/><Setter Property="TextColor" Value="White"/><Setter Property="CornerRadius" Value="12"/><Setter Property="HorizontalOptions" Value="Fill"/><Setter Property="MinimumHeightRequest" Value="46"/><Setter Property="Padding" Value="16,10"/><Setter Property="Margin" Value="0,3,0,0"/></Style>
+            <Style x:Key="SoftButtonStyle" TargetType="Button"><Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E1F2E9, Dark=#203B30}"/><Setter Property="TextColor" Value="{AppThemeBinding Light=#087A5A, Dark=#83D6B6}"/><Setter Property="CornerRadius" Value="12"/><Setter Property="HorizontalOptions" Value="Start"/><Setter Property="MinimumHeightRequest" Value="44"/><Setter Property="Padding" Value="16,9"/></Style>
+            <Style x:Key="DisabledActionStateStyle" TargetType="Button">
+                <Style.Triggers>
+                    <Trigger TargetType="Button" Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="1" />
+                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#D5DEDA, Dark=#2A3731}" />
+                        <Setter Property="TextColor" Value="{AppThemeBinding Light=#52605A, Dark=#C4CEC9}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
             <pages:MessageAlignmentConverter x:Key="MessageAlignmentConverter" />
             <pages:MessageBubbleConverter x:Key="MessageBubbleConverter" />
             <pages:MessageTextConverter x:Key="MessageTextConverter" />

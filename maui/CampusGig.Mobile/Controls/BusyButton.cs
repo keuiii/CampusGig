@@ -105,13 +105,13 @@ public sealed class BusyButton : ContentView
         surface.BackgroundColor = FillColor;
         surface.StrokeShape = new RoundRectangle { CornerRadius = CornerRadius };
         surface.Opacity = 1;
-        Opacity = IsEnabled ? 1 : 0.45;
         label.Text = IsBusy ? BusyText : Text;
         label.TextColor = TextColor;
         label.IsVisible = !IsBusy;
         indicator.Color = TextColor;
         indicator.IsVisible = IsBusy;
         indicator.IsRunning = IsBusy;
+        Opacity = IsEnabled ? 1 : 0.45;
         input.IsEnabled = UiInteractionRules.CanInvoke(IsEnabled, IsBusy);
         SemanticProperties.SetDescription(input,
             IsBusy ? BusyText : string.IsNullOrWhiteSpace(SemanticDescription) ? Text : SemanticDescription);

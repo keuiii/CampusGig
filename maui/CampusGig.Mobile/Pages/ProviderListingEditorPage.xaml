@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CampusGig.Mobile.Pages.ProviderListingEditorPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{AppThemeBinding Light=#F3F5F3, Dark=#111713}">
+
+    <ContentPage.Resources>
+        <Style x:Key="WizardPrimaryButton" TargetType="Button" BasedOn="{StaticResource DisabledActionStateStyle}">
+            <Setter Property="HeightRequest" Value="48" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="HorizontalOptions" Value="Fill" />
+            <Setter Property="BackgroundColor" Value="#0F6B4F" />
+            <Setter Property="TextColor" Value="White" />
+        </Style>
+        <Style x:Key="WizardSecondaryButton" TargetType="Button" BasedOn="{StaticResource DisabledActionStateStyle}">
+            <Setter Property="HeightRequest" Value="48" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="HorizontalOptions" Value="Fill" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#EEF6F1, Dark=#22332B}" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#0F6B4F, Dark=#79D4B2}" />
+            <Setter Property="BorderColor" Value="{AppThemeBinding Light=#D4E6DC, Dark=#395146}" />
+            <Setter Property="BorderWidth" Value="1" />
+        </Style>
+        <Style x:Key="WizardGhostButton" TargetType="Button">
+            <Setter Property="HeightRequest" Value="44" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="HorizontalOptions" Value="Fill" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#0F6B4F, Dark=#79D4B2}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+        <Border Padding="20,10,20,14" StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light=#F9FBF9, Dark=#142019}">
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="3">
+                <Button Text="&lt; Listings" Clicked="OnBackClicked"
+                        AutomationId="ListingEditorBack"
+                        Padding="4,5" FontSize="13" FontAttributes="Bold"
+                        HorizontalOptions="Start" BackgroundColor="Transparent" TextColor="#0F6B4F" />
+                <Label Grid.Row="1" x:Name="HeaderTitle" Text="Create listing"
+                       FontSize="24" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#111814, Dark=#F2F6F3}" />
+            </Grid>
+        </Border>
+
+        <ScrollView x:Name="FormScroll" Grid.Row="1" VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout x:Name="FormRoot" Padding="20,14,20,36" Spacing="12"
+                                 SizeChanged="OnFormRootSizeChanged">
+                <Border x:Name="RejectionPanel" IsVisible="False" Padding="14"
+                        Stroke="#F1C9C4" BackgroundColor="#FFF4F2"
+                        StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="ADMIN FEEDBACK" FontSize="9" CharacterSpacing="1.2"
+                               FontAttributes="Bold" TextColor="#A33E36" />
+                        <Label x:Name="RejectionLabel" FontSize="12" TextColor="#7A332E" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border AutomationId="ListingSectionGuide" Padding="14,12" Stroke="#DDE4DF"
+                        StrokeShape="RoundRectangle 15"
+                        BackgroundColor="{AppThemeBinding Light=#F8FAF9, Dark=#1A231F}">
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label x:Name="ProgressStepLabel" Text="STEP 1 OF 4"
+                                   Style="{StaticResource SectionLabelStyle}" />
+                            <Label x:Name="ProgressSectionLabel" Grid.Column="1" Text="Details"
+                                   FontSize="11" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        </Grid>
+                        <ProgressBar x:Name="FormProgress" Progress="0.25" HeightRequest="7"
+                                     ProgressColor="#0F8060"
+                                     BackgroundColor="{AppThemeBinding Light=#DFE8E2, Dark=#2C3932}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="DetailsSection" Padding="17" Stroke="#DDE4DF" StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1A231F}">
+                    <VerticalStackLayout Spacing="13">
+                        <Label Text="SERVICE DETAILS" Style="{StaticResource SectionLabelStyle}" />
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Category" FontSize="11" FontAttributes="Bold" />
+                            <Border Padding="12,4" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                <Picker x:Name="CategoryPicker" Title="Choose a category"
+                                        AutomationId="ListingCategoryPicker"
+                                        SelectedIndexChanged="OnFormChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Service title" FontSize="11" FontAttributes="Bold" />
+                            <Border Padding="12,3" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                <Entry x:Name="TitleEntry" Placeholder="What will the client receive?"
+                                       AutomationId="ListingTitleEntry" MaxLength="120"
+                                       ReturnType="Next"
+                                       TextChanged="OnFormChanged" />
+                            </Border>
+                            <Label x:Name="TitleCounter" FontSize="10" HorizontalTextAlignment="End"
+                                   TextColor="#78827D" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Description" FontSize="11" FontAttributes="Bold" />
+                            <Border Padding="12,8" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                <Editor x:Name="DescriptionEditor"
+                                        Placeholder="Explain the outcome, process, and what the client should provide."
+                                        AutomationId="ListingDescriptionEditor" MaxLength="3000"
+                                        MinimumHeightRequest="135" AutoSize="TextChanges"
+                                        TextChanged="OnFormChanged" />
+                            </Border>
+                            <Label x:Name="DescriptionCounter" FontSize="10" HorizontalTextAlignment="End"
+                                   TextColor="#78827D" />
+                        </VerticalStackLayout>
+
+                        <Grid x:Name="DeliveryLocationGrid" ColumnDefinitions="*,*" ColumnSpacing="10" RowSpacing="10">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Delivery" FontSize="11" FontAttributes="Bold" />
+                                <Border Padding="10,4" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                    <Picker x:Name="DeliveryPicker" AutomationId="ListingDeliveryPicker"
+                                            SelectedIndexChanged="OnFormChanged" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="Campus location (optional)" FontSize="11" FontAttributes="Bold" />
+                                <Border Padding="10,3" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                    <Entry x:Name="CampusLocationEntry" Placeholder="Library, campus, etc."
+                                           AutomationId="ListingCampusLocationEntry" MaxLength="160"
+                                           ReturnType="Done"
+                                           TextChanged="OnFormChanged" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout x:Name="PricingModelField" Spacing="6">
+                            <Label Text="Pricing model" FontSize="11" FontAttributes="Bold" />
+                            <Border Padding="12,4" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                <Picker x:Name="PricingModelPicker" AutomationId="ListingPricingModelPicker"
+                                        SelectedIndexChanged="OnPricingModelChanged" />
+                            </Border>
+                            <Label Text="The pricing model is fixed after the listing is created."
+                                   FontSize="10" TextColor="#66716B" />
+                        </VerticalStackLayout>
+                        <Button Text="Continue" Clicked="OnDetailsNextClicked"
+                                AutomationId="ListingDetailsNext"
+                                Style="{StaticResource WizardPrimaryButton}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout x:Name="PricingSection" Spacing="10" IsVisible="False">
+                <VerticalStackLayout x:Name="LegacyPackagesSection" Spacing="10">
+                    <Label Text="PACKAGES" Style="{StaticResource SectionLabelStyle}" />
+                    <Label Text="Start with Basic, then add Standard or Premium when they offer a clear upgrade."
+                           FontSize="12" TextColor="#66716B" />
+                    <VerticalStackLayout x:Name="PackagesStack" Spacing="11" />
+                </VerticalStackLayout>
+
+                <Border x:Name="SinglePriceSection" IsVisible="False" Padding="17"
+                        Stroke="#DDE4DF" StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1A231F}">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="SINGLE-PRICE TERMS" Style="{StaticResource SectionLabelStyle}" />
+                        <Grid x:Name="SinglePriceFieldsGrid" ColumnDefinitions="*,*,*" ColumnSpacing="10" RowSpacing="10">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Price (₱)" FontSize="11" FontAttributes="Bold" />
+                                <Border Padding="11,3" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                    <Entry x:Name="BasePriceEntry" AutomationId="ListingBasePrice"
+                                           Keyboard="Numeric" ReturnType="Next" TextChanged="OnFormChanged" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="Delivery days" FontSize="11" FontAttributes="Bold" />
+                                <Border Padding="11,3" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                    <Entry x:Name="NormalDeliveryDaysEntry" AutomationId="ListingNormalDeliveryDays"
+                                           Keyboard="Numeric" ReturnType="Next" TextChanged="OnFormChanged" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="6">
+                                <Label Text="Included revisions" FontSize="11" FontAttributes="Bold" />
+                                <Border Padding="11,3" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                    <Entry x:Name="IncludedRevisionsEntry" AutomationId="ListingIncludedRevisions"
+                                           Keyboard="Numeric" ReturnType="Done" TextChanged="OnFormChanged" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Label Text="Whole delivery days are stored by the API as canonical minutes."
+                               FontSize="10" TextColor="#66716B" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="Accept rush orders" FontSize="11" FontAttributes="Bold" />
+                                <Label Text="CampusGig applies standardized rush pricing."
+                                       FontSize="10" TextColor="#66716B" />
+                            </VerticalStackLayout>
+                            <Switch x:Name="AcceptsRushSwitch" Grid.Column="1"
+                                    AutomationId="ListingAcceptsRush"
+                                    OnColor="#0F8060" Toggled="OnRushChanged" />
+                        </Grid>
+                        <VerticalStackLayout x:Name="FastestRushGroup" IsVisible="False" Spacing="6">
+                            <Label Text="Fastest supported turnaround" FontSize="11" FontAttributes="Bold" />
+                            <Border Padding="12,4" Stroke="#DCE5DF" StrokeShape="RoundRectangle 12">
+                                <Picker x:Name="FastestRushPicker" AutomationId="ListingFastestRush"
+                                        SelectedIndexChanged="OnFormChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                    <Grid ColumnDefinitions="104,*" ColumnSpacing="10">
+                        <Button Text="Back" Clicked="OnPricingBackClicked"
+                                AutomationId="ListingPricingBack"
+                                Style="{StaticResource WizardSecondaryButton}" />
+                        <Button Grid.Column="1" Text="Continue" Clicked="OnPricingNextClicked"
+                                AutomationId="ListingPricingNext"
+                                Style="{StaticResource WizardPrimaryButton}" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <Border x:Name="MediaSection" IsVisible="False" Padding="17" Stroke="#DDE4DF" StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1A231F}">
+                    <VerticalStackLayout Spacing="11">
+                        <Label Text="SERVICE GALLERY" Style="{StaticResource SectionLabelStyle}" />
+                        <Label Text="Add one cover image and up to five gallery images or portfolio PDFs. You can select several files at once. Each file can be up to 8 MB."
+                               FontSize="12" TextColor="#66716B" />
+                        <Border x:Name="CurrentCoverFrame" IsVisible="False" HeightRequest="150" Padding="0"
+                                Stroke="#DDE4DF" StrokeShape="RoundRectangle 14" BackgroundColor="#EAF1EC">
+                            <Image x:Name="CurrentCoverImage" AutomationId="ListingCurrentCover" Aspect="AspectFill" />
+                        </Border>
+                        <VerticalStackLayout x:Name="ExistingMediaStack" Spacing="7" />
+                        <Grid x:Name="MediaActionsGrid" ColumnDefinitions="*,*" ColumnSpacing="9" RowSpacing="9">
+                            <Button Text="Choose cover" Clicked="OnChooseCoverClicked"
+                                    AutomationId="ListingChooseCover"
+                                    Style="{StaticResource WizardSecondaryButton}" />
+                            <Button Grid.Column="1" Text="Add gallery" Clicked="OnChoosePortfolioClicked"
+                                    AutomationId="ListingChoosePortfolio"
+                                    Style="{StaticResource WizardSecondaryButton}" />
+                        </Grid>
+                        <Label x:Name="PortfolioCapacityLabel" Text="0 of 5 gallery slots used"
+                               FontSize="10" FontAttributes="Bold" TextColor="#0F6B4F" />
+                        <Label x:Name="CoverSelectionLabel" IsVisible="False" FontSize="11" TextColor="#52605A" />
+                        <Label x:Name="PortfolioSelectionLabel" IsVisible="False" FontSize="11" TextColor="#52605A" />
+                        <Grid ColumnDefinitions="104,*" ColumnSpacing="10">
+                            <Button Text="Back" Clicked="OnMediaBackClicked"
+                                    AutomationId="ListingMediaBack"
+                                    Style="{StaticResource WizardSecondaryButton}" />
+                            <Button Grid.Column="1" Text="Continue to review" Clicked="OnMediaNextClicked"
+                                    AutomationId="ListingMediaNext"
+                                    Style="{StaticResource WizardPrimaryButton}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout x:Name="ReviewSection" IsVisible="False" Spacing="12">
+                <Border Padding="17" Stroke="#DDE4DF" StrokeShape="RoundRectangle 18"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1A231F}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="REVIEW" Style="{StaticResource SectionLabelStyle}" />
+                        <Label x:Name="ReviewTitleLabel" FontSize="18" FontAttributes="Bold" />
+                        <Label x:Name="ReviewTermsLabel" FontSize="12" TextColor="#52605A" />
+                        <Label Text="Confirm the details, then save your draft or submit it for administrator review."
+                               FontSize="11" TextColor="#66716B" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Padding="14" StrokeThickness="0" BackgroundColor="#EEF7F2"
+                        StrokeShape="RoundRectangle 14">
+                    <Label x:Name="ValidationHintLabel"
+                           Text="Complete the required details to save your private draft."
+                           FontSize="11" TextColor="#376451" />
+                </Border>
+
+                <ActivityIndicator x:Name="SavingIndicator" IsVisible="False" IsRunning="False"
+                                   Color="#0F8060" HorizontalOptions="Center" />
+                <Button x:Name="SubmitButton" Text="Submit for review" Clicked="OnSubmitClicked"
+                        AutomationId="ListingSaveAndSubmit"
+                        Style="{StaticResource WizardPrimaryButton}" />
+                <Button x:Name="SaveDraftButton" Text="Save as draft" Clicked="OnSaveDraftClicked"
+                        AutomationId="ListingSaveDraft"
+                        Style="{StaticResource WizardSecondaryButton}" />
+                <Label Text="Submitted listings stay private until an administrator approves them."
+                       FontSize="10" TextColor="#78827D" HorizontalTextAlignment="Center" />
+                <Button Text="←  Back to media" Clicked="OnReviewBackClicked"
+                        AutomationId="ListingReviewBack"
+                        Style="{StaticResource WizardGhostButton}" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

@@ -1,19 +1,35 @@
 using CampusGig.Mobile.Models;
 using CampusGig.Mobile.Services;
 using CampusGig.Mobile.Controls;
+using CampusGig.Mobile.ViewModels;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace CampusGig.Mobile.Pages;
 
-public partial class ProfilePage : ContentPage, ITabLifecycle
+public partial class ProfilePage : ContentPage, ITabLifecycle, IDisposable
 {
+    private sealed record SupportCategoryOption(string Value, string Label);
+
+    private static readonly SupportCategoryOption[] SupportCategoryOptions =
+    [
+        new("ACCOUNT", "Account and sign-in"),
+        new("PAYMENT", "Payment"),
+        new("ORDER", "Order or service"),
+        new("TECHNICAL", "Technical problem"),
+        new("SAFETY", "Safety concern"),
+        new("OTHER", "Other")
+    ];
+
     private readonly CampusGigApi api;
     private readonly SessionService session;
     private readonly IGoogleIdentityService googleIdentity;
+    private readonly RealtimeService realtime;
+    private readonly ProfileViewModel viewModel;
     private List<SchoolItem> schools = [];
     private SchoolItem? selectedSchool;
     private StudentProfile? student;
     private VerificationRequest? verification;
+    private ProviderDashboardStats? providerStats;
     private FileResult? chosenStudentIdFile;
     private MfaStatus mfa = new();
     private bool entrancePlayed;
@@ -25,26 +41,49 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
     private string savedHeadline = "";
     private string savedProviderBio = "";
     private string savedSkills = "";
+    private string savedInstagram = "";
+    private string savedLinkedin = "";
+    private string savedX = "";
+    private string savedPortfolio = "";
     private bool savedAvailability;
+    private int savedMaxActiveOrders = 5;
+    private int savedMaxPendingOrders = 50;
     private PasswordChangeResult? passwordChangeRequest;
     private IDispatcherTimer? passwordStatusTimer;
     private bool passwordStatusLoading;
     private bool profileLoading;
+    private bool profileContentLoaded;
+    private bool sessionsLoading;
+    private bool availabilityUpdating;
+    private bool applyingRemoteProfile;
 
-    public ProfilePage(CampusGigApi api, SessionService session, IGoogleIdentityService googleIdentity)
+    public ProfilePage(CampusGigApi api, SessionService session, IGoogleIdentityService googleIdentity, RealtimeService realtime, ProfileViewModel viewModel)
     {
         InitializeComponent();
         this.api = api;
         this.session = session;
         this.googleIdentity = googleIdentity;
+        this.realtime = realtime;
+        this.viewModel = viewModel;
+        BindingContext = viewModel;
+        viewModel.RefreshRequested += OnProfileRefreshRequested;
         SignOutButton.Command = new Command(async () => await SignOutAsync());
+        SupportCategoryPicker.ItemsSource = SupportCategoryOptions;
+        SupportCategoryPicker.ItemDisplayBinding = new Binding(nameof(SupportCategoryOption.Label));
+        SupportCategoryPicker.SelectedIndex = 0;
         ProgramEntry.TextChanged += (_, _) => UpdateSaveButtons();
         YearEntry.TextChanged += (_, _) => UpdateSaveButtons();
         BioEntry.TextChanged += (_, _) => UpdateSaveButtons();
         HeadlineEntry.TextChanged += (_, _) => UpdateSaveButtons();
         ProviderBioEntry.TextChanged += (_, _) => UpdateSaveButtons();
         SkillsEntry.TextChanged += (_, _) => UpdateSaveButtons();
-        AvailableSwitch.Toggled += (_, _) => UpdateSaveButtons();
+        InstagramEntry.TextChanged += (_, _) => UpdateSaveButtons();
+        LinkedinEntry.TextChanged += (_, _) => UpdateSaveButtons();
+        XEntry.TextChanged += (_, _) => UpdateSaveButtons();
+        PortfolioEntry.TextChanged += (_, _) => UpdateSaveButtons();
+        MaxActiveOrdersEntry.TextChanged += (_, _) => UpdateSaveButtons();
+        MaxPendingOrdersEntry.TextChanged += (_, _) => UpdateSaveButtons();
+        AvailableSwitch.Toggled += OnAvailabilityToggled;
         CurrentPasswordEntry.TextChanged += (_, _) => UpdateSecurityButtons();
         NewPasswordEntry.TextChanged += (_, _) =>
         {
@@ -55,13 +94,79 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         PasswordMfaEntry.TextChanged += (_, _) => UpdateSecurityButtons();
         RecoveryCodeSwitch.Toggled += (_, _) => UpdateSecurityButtons();
         MfaSetupCodeEntry.TextChanged += (_, _) => UpdateSecurityButtons();
+        SupportCategoryPicker.SelectedIndexChanged += (_, _) => UpdateSupportButton();
+        SupportSubjectEntry.TextChanged += (_, _) => UpdateSupportButton();
+        SupportMessageEntry.TextChanged += (_, _) =>
+        {
+            SupportMessageCountLabel.Text = $"{SupportMessageEntry.Text?.Length ?? 0}/2000";
+            UpdateSupportButton();
+        };
         VerificationButton.IsEnabled = false;
         UpdatePasswordButton.IsEnabled = false;
         ConfirmMfaButton.IsEnabled = false;
+        UpdateSupportButton();
+    }
+
+    private void UpdateSupportButton()
+    {
+        var category = (SupportCategoryPicker.SelectedItem as SupportCategoryOption)?.Value;
+        SubmitSupportButton.IsEnabled = ProfileActionRules.CanSubmitSupport(
+            category,
+            SupportSubjectEntry.Text,
+            SupportMessageEntry.Text);
+    }
+
+    private async void OnSupportHeaderClicked(object? sender, TappedEventArgs e)
+    {
+        SupportPanel.IsVisible = !SupportPanel.IsVisible;
+        await SupportChevron.RotateToAsync(SupportPanel.IsVisible ? 90 : 0, 140, Easing.CubicOut);
+        if (SupportPanel.IsVisible)
+            await RevealExpandedSectionAsync(SupportPanel);
+    }
+
+    private async void OnStudentIdentityHeaderClicked(object? sender, TappedEventArgs e)
+    {
+        StudentIdentityForm.IsVisible = !StudentIdentityForm.IsVisible;
+        await StudentIdentityChevron.RotateToAsync(StudentIdentityForm.IsVisible ? 90 : 0, 140, Easing.CubicOut);
+        if (StudentIdentityForm.IsVisible)
+            await RevealExpandedSectionAsync(StudentIdentityForm);
+    }
+
+    private async Task RevealExpandedSectionAsync(VisualElement section)
+    {
+        await Task.Delay(60);
+        await ProfileScrollView.ScrollToAsync(section, ScrollToPosition.MakeVisible, true);
+    }
+
+    private async void OnSubmitSupportClicked(object? sender, EventArgs e)
+    {
+        var category = SupportCategoryPicker.SelectedItem as SupportCategoryOption;
+        if (!ProfileActionRules.CanSubmitSupport(category?.Value, SupportSubjectEntry.Text, SupportMessageEntry.Text))
+            return;
+
+        await RunAsync(sender as BusyButton, "Support request submitted", async () =>
+        {
+            var receipt = await api.PostAsync<SupportTicketReceipt>("support/tickets", new
+            {
+                category = category!.Value,
+                subject = SupportSubjectEntry.Text!.Trim(),
+                message = SupportMessageEntry.Text!.Trim(),
+                source = "MOBILE"
+            });
+
+            SupportSubjectEntry.Text = "";
+            SupportMessageEntry.Text = "";
+            SupportReceiptLabel.Text = $"Submitted · {receipt.Reference}";
+            SupportReceiptLabel.IsVisible = true;
+            UpdateSupportButton();
+        },
+        successMessage: "CampusGig support received your report. Keep the reference shown in your profile.",
+        failureTitle: "Unable to submit report");
     }
 
     public async Task OnTabAppearingAsync()
     {
+        viewModel.Activate();
         BindAccount();
         RenderPasswordChangeRequest();
 
@@ -77,6 +182,8 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
 
         if (schools.Count == 0)
             await LoadAsync();
+        else
+            await RefreshAccountStateAsync();
 
         if (!entrancePlayed)
         {
@@ -91,6 +198,7 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
 
     public Task OnTabDisappearingAsync()
     {
+        viewModel.Deactivate();
         StopPasswordStatusPolling();
         return Task.CompletedTask;
     }
@@ -103,20 +211,79 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
 
     public async Task RefreshTabAsync()
     {
-        BindAccount();
-        if (schools.Count == 0)
-            await LoadAsync();
+        await LoadAsync();
+    }
+
+    private async Task RefreshAccountStateAsync()
+    {
+        if (profileLoading || viewModel.LifecycleToken.IsCancellationRequested) return;
+        var cancellationToken = viewModel.LifecycleToken;
+
+        try
+        {
+            var refreshResult = await viewModel.RefreshAccountAsync();
+            if (refreshResult is null) return;
+            var account = refreshResult.User;
+            BindAccount();
+
+            if (account.Roles.Contains("STUDENT"))
+            {
+                var studentTask = api.GetAsync<ApiResult<StudentProfile?>>("profile/student", cancellationToken);
+                var verificationTask = api.GetAsync<ApiResult<VerificationRequest?>>("profile/student/verification", cancellationToken);
+                await Task.WhenAll(studentTask, verificationTask);
+                student = (await studentTask).Data;
+                verification = (await verificationTask).Data;
+                RenderVerification();
+            }
+
+            var providerAccessWasGranted = AccountRefreshRules.ProviderAccessWasGranted(refreshResult.PreviousRoles, account.Roles);
+            if (providerAccessWasGranted)
+                await LoadAsync();
+            else if (account.Roles.Contains("PROVIDER"))
+            {
+                var canReplaceDraft = AccountRefreshRules.CanReplaceProviderDraft(
+                    savedHeadline,
+                    savedProviderBio,
+                    savedSkills,
+                    savedAvailability,
+                    HeadlineEntry.Text,
+                    ProviderBioEntry.Text,
+                    SkillsEntry.Text,
+                    AvailableSwitch.IsToggled,
+                    [savedInstagram, savedLinkedin, savedX, savedPortfolio],
+                    [InstagramEntry.Text, LinkedinEntry.Text, XEntry.Text, PortfolioEntry.Text]) &&
+                    savedMaxActiveOrders == ParseLimit(MaxActiveOrdersEntry.Text, 0) &&
+                    savedMaxPendingOrders == ParseLimit(MaxPendingOrdersEntry.Text, 0);
+                var providerTask = api.GetAsync<ApiResult<ProviderProfile?>>("provider/profile", cancellationToken);
+                var statsTask = api.GetAsync<ProviderDashboardStats>("provider/dashboard", cancellationToken);
+                await Task.WhenAll(providerTask, statsTask);
+                providerStats = await statsTask;
+                if (canReplaceDraft)
+                    ApplyProviderProfile((await providerTask).Data);
+                UpdateProgressBar();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"Account state refresh failed: {exception.Message}");
+        }
+    }
+
+    private void OnProfileRefreshRequested() => _ = RefreshAccountStateAsync();
+
+    public void Dispose()
+    {
+        viewModel.RefreshRequested -= OnProfileRefreshRequested;
+        viewModel.Dispose();
     }
 
     private void BindAccount()
     {
-        var user = session.User;
-        NameLabel.Text = user?.DisplayName ?? "CampusGig user";
-        EmailLabel.Text = user?.Email ?? "";
-        RolesLabel.Text = user is not null && user.Roles.Count > 0
-            ? string.Join(" · ", user.Roles)
-            : "CLIENT";
-
+        viewModel.ApplySession();
+        var user = viewModel.User;
         InitialsLabel.Text = string.Join("", (user?.DisplayName ?? "C")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2)
@@ -137,13 +304,8 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         }
 
         ApiUrlEntry.Text = api.BaseUrl;
-        var isStudent = user?.Roles.Contains("STUDENT") == true;
-        StudentSection.IsVisible = isStudent;
-        ClientInfoCard.IsVisible = !isStudent;
-        ProviderRowSubtitle.Text = user?.Roles.Contains("PROVIDER") == true
-            ? "Headline, bio, skills and availability"
-            : "Unlocks after student verification";
-
+        if (!viewModel.ShowsProviderJourney)
+            ProviderPanel.IsVisible = false;
         var isDark = ((App)Application.Current!).UserAppTheme == AppTheme.Dark;
         ThemeThumb.TranslationX = isDark ? 30 : 0;
         UpdateProgressBar();
@@ -159,24 +321,26 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         }
 
         profileLoading = true;
+        ProfileSkeleton.IsVisible = !profileContentLoaded;
         Exception? loadError = null;
+        var cancellationToken = viewModel.LifecycleToken;
         try
         {
-            var account = await api.GetAsync<AuthUser>("auth/me");
-            await session.UpdateUserAsync(account);
+            var refreshResult = await viewModel.RefreshAccountAsync();
+            if (refreshResult is null) return;
             BindAccount();
-            schools = (await api.GetAsync<ApiList<SchoolItem>>("schools")).Data;
+            schools = (await api.GetAsync<ApiList<SchoolItem>>("schools", cancellationToken)).Data;
 
-            if (StudentSection.IsVisible)
+            if (viewModel.IsStudent)
             {
-                student = (await api.GetAsync<ApiResult<StudentProfile?>>("profile/student")).Data;
-                verification = (await api.GetAsync<ApiResult<VerificationRequest?>>("profile/student/verification")).Data;
+                student = (await api.GetAsync<ApiResult<StudentProfile?>>("profile/student", cancellationToken)).Data;
+                verification = (await api.GetAsync<ApiResult<VerificationRequest?>>("profile/student/verification", cancellationToken)).Data;
 
                 if (student is not null)
                 {
                     selectedSchool = schools.FirstOrDefault(x => x.Id == student.SchoolId);
                     ProgramEntry.Text = student.Program;
-                    YearEntry.Text = student.YearLevel?.ToString();
+                    YearEntry.Text = student.YearLevel?.ToString() ?? "";
                     BioEntry.Text = student.Bio;
                     SaveStudentSnapshot();
                 }
@@ -190,23 +354,37 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
                 RenderVerification();
             }
 
-            if (session.User?.Roles.Contains("PROVIDER") == true)
+            if (viewModel.IsProvider)
             {
-                var provider = (await api.GetAsync<ApiResult<ProviderProfile?>>("provider/profile")).Data;
+                var providerTask = api.GetAsync<ApiResult<ProviderProfile?>>("provider/profile", cancellationToken);
+                var statsTask = api.GetAsync<ProviderDashboardStats>("provider/dashboard", cancellationToken);
+                await Task.WhenAll(providerTask, statsTask);
+                var provider = (await providerTask).Data;
+                providerStats = await statsTask;
                 HeadlineEntry.Text = provider?.Headline ?? "";
                 ProviderBioEntry.Text = provider?.Bio ?? "";
                 SkillsEntry.Text = provider is null ? "" : string.Join(", ", provider.Skills);
+                InstagramEntry.Text = provider?.InstagramUrl ?? "";
+                LinkedinEntry.Text = provider?.LinkedinUrl ?? "";
+                XEntry.Text = provider?.XUrl ?? "";
+                PortfolioEntry.Text = provider?.PortfolioUrl ?? "";
                 AvailableSwitch.IsToggled = provider?.IsAvailable ?? true;
+                MaxActiveOrdersEntry.Text = (provider?.MaxActiveOrders ?? 5).ToString();
+                MaxPendingOrdersEntry.Text = (provider?.MaxPendingOrders ?? 50).ToString();
                 SaveProviderSnapshot();
             }
 
             UpdateSaveButtons();
 
-            mfa = await api.GetAsync<MfaStatus>("auth/mfa/status");
+            mfa = await api.GetAsync<MfaStatus>("auth/mfa/status", cancellationToken);
             RenderMfa();
+            await LoadAuthSessionsAsync();
             passwordChangeRequest = await api.GetOptionalAsync<PasswordChangeResult>("auth/password-change/pending");
             RenderPasswordChangeRequest();
             UpdateProgressBar();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
@@ -215,6 +393,8 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         finally
         {
             profileLoading = false;
+            profileContentLoaded = true;
+            ProfileSkeleton.IsVisible = false;
             Refresh.IsRefreshing = false;
         }
 
@@ -267,11 +447,34 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
 
     private void UpdateProgressBar()
     {
-        var status = student?.VerificationStatus ?? verification?.Status;
-        int completion = status == "APPROVED" ? 80 : (student is not null ? 55 : 20);
-        CompletionLabel.Text = $"{completion}% profile complete";
+        var isProvider = session.User?.Roles.Contains("PROVIDER") == true;
+        var isFullyVerifiedProvider = ProfilePresentationRules.ShowsVerifiedProviderBadge(
+            isProvider,
+            providerStats?.Verified == true,
+            providerStats?.ProfileStrength ?? 0);
+        ProviderVerifiedBadge.IsVisible = isFullyVerifiedProvider;
+        ProgressSection.IsVisible = ProfilePresentationRules.ShowsProviderJourney(session.User?.Roles) && !isFullyVerifiedProvider;
+
+        if (isFullyVerifiedProvider)
+            return;
+
+        int completion;
+        if (isProvider && providerStats is not null)
+        {
+            completion = Math.Clamp(providerStats.ProfileStrength, 0, 100);
+            CompletionLabel.Text = $"{completion}% provider readiness";
+        }
+        else
+        {
+            var status = student?.VerificationStatus ?? verification?.Status;
+            completion = status == "APPROVED" ? 80 : (student is not null ? 55 : 20);
+            CompletionLabel.Text = $"{completion}% profile complete";
+        }
+
         var baseWidth = ProfileCard.Width > 0 ? (ProfileCard.Width - 40) : 260;
-        ProgressBarFill.WidthRequest = Math.Max(24, baseWidth * (completion / 100.0));
+        ProgressBarFill.WidthRequest = completion == 0
+            ? 0
+            : Math.Max(24, baseWidth * (completion / 100.0));
     }
 
     private void SaveStudentSnapshot()
@@ -282,12 +485,47 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         savedBio = BioEntry.Text?.Trim() ?? "";
     }
 
+    private int? SelectedYearLevel =>
+        int.TryParse(YearEntry.Text?.Trim(), out var year) && year is >= 1 and <= 6
+            ? year
+            : null;
+
+    private void ApplyProviderProfile(ProviderProfile? provider)
+    {
+        applyingRemoteProfile = true;
+        try
+        {
+            HeadlineEntry.Text = provider?.Headline ?? "";
+            ProviderBioEntry.Text = provider?.Bio ?? "";
+            SkillsEntry.Text = provider is null ? "" : string.Join(", ", provider.Skills);
+            InstagramEntry.Text = provider?.InstagramUrl ?? "";
+            LinkedinEntry.Text = provider?.LinkedinUrl ?? "";
+            XEntry.Text = provider?.XUrl ?? "";
+            PortfolioEntry.Text = provider?.PortfolioUrl ?? "";
+            AvailableSwitch.IsToggled = provider?.IsAvailable ?? true;
+            MaxActiveOrdersEntry.Text = (provider?.MaxActiveOrders ?? 5).ToString();
+            MaxPendingOrdersEntry.Text = (provider?.MaxPendingOrders ?? 50).ToString();
+            SaveProviderSnapshot();
+            UpdateSaveButtons();
+        }
+        finally
+        {
+            applyingRemoteProfile = false;
+        }
+    }
+
     private void SaveProviderSnapshot()
     {
         savedHeadline = HeadlineEntry.Text?.Trim() ?? "";
         savedProviderBio = ProviderBioEntry.Text?.Trim() ?? "";
         savedSkills = SkillsEntry.Text?.Trim() ?? "";
+        savedInstagram = InstagramEntry.Text?.Trim() ?? "";
+        savedLinkedin = LinkedinEntry.Text?.Trim() ?? "";
+        savedX = XEntry.Text?.Trim() ?? "";
+        savedPortfolio = PortfolioEntry.Text?.Trim() ?? "";
         savedAvailability = AvailableSwitch.IsToggled;
+        savedMaxActiveOrders = ParseLimit(MaxActiveOrdersEntry.Text, 5);
+        savedMaxPendingOrders = ParseLimit(MaxPendingOrdersEntry.Text, 50);
     }
 
     private void UpdateSaveButtons()
@@ -302,10 +540,20 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         var providerChanged = savedHeadline != (HeadlineEntry.Text?.Trim() ?? "") ||
                               savedProviderBio != (ProviderBioEntry.Text?.Trim() ?? "") ||
                               savedSkills != (SkillsEntry.Text?.Trim() ?? "") ||
-                              savedAvailability != AvailableSwitch.IsToggled;
+                              savedInstagram != (InstagramEntry.Text?.Trim() ?? "") ||
+                              savedLinkedin != (LinkedinEntry.Text?.Trim() ?? "") ||
+                              savedX != (XEntry.Text?.Trim() ?? "") ||
+                              savedPortfolio != (PortfolioEntry.Text?.Trim() ?? "") ||
+                              savedAvailability != AvailableSwitch.IsToggled ||
+                              savedMaxActiveOrders != ParseLimit(MaxActiveOrdersEntry.Text, 0) ||
+                              savedMaxPendingOrders != ParseLimit(MaxPendingOrdersEntry.Text, 0);
+        var maxActiveOrders = ParseLimit(MaxActiveOrdersEntry.Text, 0);
+        var maxPendingOrders = ParseLimit(MaxPendingOrdersEntry.Text, 0);
         var providerValid = (HeadlineEntry.Text?.Trim().Length ?? 0) >= 3 &&
                             (ProviderBioEntry.Text?.Trim().Length ?? 0) >= 20 &&
-                            !string.IsNullOrWhiteSpace(SkillsEntry.Text);
+                            !string.IsNullOrWhiteSpace(SkillsEntry.Text) &&
+                            maxActiveOrders is >= 1 and <= 20 &&
+                            maxPendingOrders is >= 1 and <= 100;
         SetSaveButtonState(SaveProviderButton, providerChanged && providerValid, "#08543D");
     }
 
@@ -410,7 +658,7 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
     private void RenderNewPasswordStrength()
     {
         var strength = PasswordStrengthRules.Evaluate(NewPasswordEntry.Text);
-        NewPasswordStrengthPanel.IsVisible = !string.IsNullOrEmpty(NewPasswordEntry.Text);
+        NewPasswordStrengthPanel.IsVisible = PasswordStrengthRules.ShouldShow(NewPasswordEntry.Text, supportedContext: true);
         NewPasswordStrengthBar.Progress = strength.Progress;
         var isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
         NewPasswordStrengthBar.ProgressColor = Color.FromArgb(isDark ? strength.DarkColor : strength.LightColor);
@@ -420,9 +668,10 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
 
     private async void OnSaveStudentClicked(object? sender, EventArgs e)
     {
-        if (selectedSchool is null || !int.TryParse(YearEntry.Text, out var year) || year is < 1 or > 10 || string.IsNullOrWhiteSpace(ProgramEntry.Text))
+        var year = SelectedYearLevel;
+        if (selectedSchool is null || year is null || string.IsNullOrWhiteSpace(ProgramEntry.Text))
         {
-            await DisplayAlertAsync("Check student profile", "Choose a school, enter your program, and use a year level from 1 to 10.", "OK");
+            await DisplayAlertAsync("Check student profile", "Choose a school, enter your program, and enter a year level from 1 to 6.", "OK");
             return;
         }
 
@@ -432,7 +681,7 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
             {
                 schoolId = selectedSchool.Id,
                 program = ProgramEntry.Text.Trim(),
-                yearLevel = year,
+                yearLevel = year.Value,
                 bio = BioEntry.Text?.Trim()
             })).Data;
             SaveStudentSnapshot();
@@ -447,10 +696,22 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
             .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var maxActiveOrders = ParseLimit(MaxActiveOrdersEntry.Text, 0);
+        var maxPendingOrders = ParseLimit(MaxPendingOrdersEntry.Text, 0);
 
-        if ((HeadlineEntry.Text?.Trim().Length ?? 0) < 3 || (ProviderBioEntry.Text?.Trim().Length ?? 0) < 20 || skills.Length == 0)
+        if ((HeadlineEntry.Text?.Trim().Length ?? 0) < 3 || (ProviderBioEntry.Text?.Trim().Length ?? 0) < 20 || skills.Length == 0 ||
+            maxActiveOrders is < 1 or > 20 || maxPendingOrders is < 1 or > 100)
         {
-            await DisplayAlertAsync("Check provider profile", "Use a headline, a bio of at least 20 characters, and at least one skill.", "OK");
+            await DisplayAlertAsync("Check provider profile", "Use a headline, a bio of at least 20 characters, at least one skill, and workload limits within the displayed ranges.", "OK");
+            return;
+        }
+
+        if (!ProviderSocialLinkRules.IsValid("instagram", InstagramEntry.Text) ||
+            !ProviderSocialLinkRules.IsValid("linkedin", LinkedinEntry.Text) ||
+            !ProviderSocialLinkRules.IsValid("x", XEntry.Text) ||
+            !ProviderSocialLinkRules.IsValid("portfolio", PortfolioEntry.Text))
+        {
+            await DisplayAlertAsync("Check public links", "Use full HTTPS links and make sure each social link matches its platform.", "OK");
             return;
         }
 
@@ -461,11 +722,59 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
                 headline = HeadlineEntry.Text!.Trim(),
                 bio = ProviderBioEntry.Text!.Trim(),
                 skills,
-                isAvailable = AvailableSwitch.IsToggled
+                isAvailable = AvailableSwitch.IsToggled,
+                maxActiveOrders,
+                maxPendingOrders,
+                instagramUrl = EmptyToNull(InstagramEntry.Text),
+                linkedinUrl = EmptyToNull(LinkedinEntry.Text),
+                xUrl = EmptyToNull(XEntry.Text),
+                portfolioUrl = EmptyToNull(PortfolioEntry.Text)
             });
+            providerStats = await api.GetAsync<ProviderDashboardStats>("provider/dashboard");
             SaveProviderSnapshot();
+            UpdateProgressBar();
             UpdateSaveButtons();
         }, successMessage: "Your provider headline, bio, skills, and availability were updated successfully.");
+    }
+
+    private static string? EmptyToNull(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static int ParseLimit(string? value, int fallback) =>
+        int.TryParse(value?.Trim(), out var parsed) ? parsed : fallback;
+
+    private async void OnAvailabilityToggled(object? sender, ToggledEventArgs e)
+    {
+        AvailabilityStatusLabel.Text = e.Value
+            ? "Online · clients can send requests"
+            : "Offline · published services are paused";
+        AvailabilityStatusLabel.TextColor = Color.FromArgb(e.Value ? "#0F8060" : "#8A5A13");
+        UpdateSaveButtons();
+
+        if (profileLoading || applyingRemoteProfile || availabilityUpdating || savedAvailability == e.Value)
+            return;
+
+        availabilityUpdating = true;
+        AvailableSwitch.IsEnabled = false;
+        try
+        {
+            await api.PutAsync<ApiResult<ProviderProfile>>("provider/availability", new
+            {
+                isAvailable = e.Value
+            });
+            savedAvailability = e.Value;
+            UpdateSaveButtons();
+        }
+        catch (Exception exception)
+        {
+            AvailableSwitch.IsToggled = savedAvailability;
+            await AppDialog.AlertAsync(this, "Availability not updated", exception.Message, "Try again");
+        }
+        finally
+        {
+            availabilityUpdating = false;
+            AvailableSwitch.IsEnabled = true;
+        }
     }
 
     private async void OnVerificationClicked(object? sender, EventArgs e)
@@ -519,10 +828,11 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
     private async void OnProviderProfileRowClicked(object? sender, EventArgs e)
     {
         var user = session.User;
+        var sessionGeneration = session.Generation;
         try
         {
             user = await api.GetAsync<AuthUser>("auth/me");
-            await session.UpdateUserAsync(user);
+            if (!await session.UpdateUserAsync(user, sessionGeneration)) return;
             BindAccount();
         }
         catch (CampusGigApiException)
@@ -545,7 +855,39 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
             await Task.WhenAll(
                 ProviderPanel.FadeToAsync(1, 170, Easing.CubicOut),
                 ProviderPanel.TranslateToAsync(0, 0, 190, Easing.CubicOut));
+            await RevealExpandedSectionAsync(ProviderPanel);
         }
+    }
+
+    private async void OnProviderListingsClicked(object? sender, TappedEventArgs e)
+    {
+        if (session.User?.Roles.Contains("PROVIDER") != true) return;
+        var page = new ProviderListingsPage(api, realtime);
+        var navigationPage = new NavigationPage(page);
+        navigationPage.SetAppThemeColor(
+            NavigationPage.BarBackgroundColorProperty,
+            Color.FromArgb("#F7FAF8"),
+            Color.FromArgb("#142019"));
+        navigationPage.SetAppThemeColor(
+            NavigationPage.BarTextColorProperty,
+            Color.FromArgb("#0F6B4F"),
+            Color.FromArgb("#D9F36A"));
+        await Navigation.PushModalAsync(navigationPage);
+    }
+
+    private async void OnProviderEarningsClicked(object? sender, TappedEventArgs e)
+    {
+        if (session.User?.Roles.Contains("PROVIDER") != true) return;
+        var navigationPage = new NavigationPage(new ProviderEarningsPage(api));
+        navigationPage.SetAppThemeColor(
+            NavigationPage.BarBackgroundColorProperty,
+            Color.FromArgb("#F7FAF8"),
+            Color.FromArgb("#142019"));
+        navigationPage.SetAppThemeColor(
+            NavigationPage.BarTextColorProperty,
+            Color.FromArgb("#0F6B4F"),
+            Color.FromArgb("#D9F36A"));
+        await Navigation.PushModalAsync(navigationPage);
     }
 
     private async void OnAccountSettingsRowClicked(object? sender, EventArgs e)
@@ -561,6 +903,8 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
             await Task.WhenAll(
                 SettingsPanel.FadeToAsync(1, 170, Easing.CubicOut),
                 SettingsPanel.TranslateToAsync(0, 0, 190, Easing.CubicOut));
+            await RevealExpandedSectionAsync(SettingsPanel);
+            await LoadAuthSessionsAsync(showError: true);
         }
     }
 
@@ -589,11 +933,21 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
 
         await RunAsync("Profile picture updated", async () =>
         {
+            var sessionGeneration = session.Generation;
             await api.PostMultipartAsync<ApiResult<object>>("profile/avatar", new Dictionary<string, string?>(), [Upload("avatar", file)]);
-            if (session.User is not null)
+            var currentUser = session.User;
+            if (currentUser is not null)
             {
-                session.User.HasAvatar = true;
-                await session.UpdateUserAsync(session.User);
+                var updatedUser = new AuthUser
+                {
+                    Id = currentUser.Id,
+                    Email = currentUser.Email,
+                    DisplayName = currentUser.DisplayName,
+                    HasAvatar = true,
+                    Status = currentUser.Status,
+                    Roles = [.. currentUser.Roles],
+                };
+                if (!await session.UpdateUserAsync(updatedUser, sessionGeneration)) return;
             }
             BindAccount();
         }, successMessage: "Your new profile picture is now visible across CampusGig.");
@@ -819,10 +1173,10 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         RecoveryCodesPanel.IsVisible = true;
     }
 
-    private Task RunAsync(string title, Func<Task> action, bool notify = true, string? successMessage = null) =>
-        RunAsync(null, title, action, notify, successMessage);
+    private Task RunAsync(string title, Func<Task> action, bool notify = true, string? successMessage = null, string failureTitle = "Unable to save change") =>
+        RunAsync(null, title, action, notify, successMessage, failureTitle);
 
-    private async Task RunAsync(BusyButton? button, string title, Func<Task> action, bool notify = true, string? successMessage = null)
+    private async Task RunAsync(BusyButton? button, string title, Func<Task> action, bool notify = true, string? successMessage = null, string failureTitle = "Unable to save change")
     {
         if (button?.IsBusy == true) return;
         if (button is not null)
@@ -845,7 +1199,7 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         // Feedback dialogs can remain open indefinitely; the action button must
         // return to its idle visual state before waiting for the user to dismiss one.
         if (failure is not null)
-            await DisplayAlertAsync("Unable to save change", failure.Message, "OK");
+            await DisplayAlertAsync(failureTitle, failure.Message, "OK");
         else if (notify)
             await DisplayAlertAsync(title, successMessage ?? "The change was saved successfully.", "OK");
     }
@@ -887,7 +1241,9 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
                 "Sign out", "Sign out on this device?", "Sign out", "Cancel");
             if (!confirmed) return;
 
+            viewModel.Deactivate();
             try { await googleIdentity.SignOutAsync(); } catch { }
+            await api.LogoutAsync();
             await MainThread.InvokeOnMainThreadAsync(app.ShowLoginAsync);
         }
         catch (Exception exception)
@@ -898,6 +1254,157 @@ public partial class ProfilePage : ContentPage, ITabLifecycle
         {
             SignOutButton.IsEnabled = true;
         }
+    }
+
+    private async Task LoadAuthSessionsAsync(bool showError = false)
+    {
+        if (sessionsLoading) return;
+        sessionsLoading = true;
+        AuthSessionsStatusLabel.Text = "Loading active sessions...";
+        AuthSessionsStatusLabel.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+            ? Color.FromArgb("#A8B6AF") : Color.FromArgb("#66716B");
+        AuthSessionsStatusLabel.IsVisible = true;
+        try
+        {
+            var sessions = (await api.GetAsync<ApiList<AuthSessionItem>>("auth/sessions")).Data;
+            AuthSessionsStack.Children.Clear();
+            foreach (var item in sessions)
+            {
+                var title = new Label
+                {
+                    Text = item.Current ? $"{item.DeviceName} · This device" : item.DeviceName,
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    VerticalOptions = LayoutOptions.Center,
+                };
+                var detail = new Label
+                {
+                    Text = item.ActivityLabel,
+                    FontSize = 10,
+                    TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                        ? Color.FromArgb("#A8B6AF") : Color.FromArgb("#66716B"),
+                };
+                var text = new VerticalStackLayout { Spacing = 2, Children = { title, detail } };
+                var revoke = new Button
+                {
+                    Text = item.Current ? "Sign out" : "Remove",
+                    FontSize = 10,
+                    HeightRequest = 36,
+                    Padding = new Thickness(12, 0),
+                    CornerRadius = 10,
+                    BackgroundColor = Color.FromArgb("#E2F1E8"),
+                    TextColor = Color.FromArgb("#08543D"),
+                };
+                revoke.Clicked += async (_, _) => await RevokeAuthSessionAsync(item, revoke);
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(GridLength.Star),
+                        new ColumnDefinition(GridLength.Auto),
+                    },
+                    ColumnSpacing = 10,
+                    Padding = new Thickness(12, 9),
+                };
+                row.Add(text);
+                row.Add(revoke, 1);
+                AuthSessionsStack.Add(new Border
+                {
+                    Stroke = Application.Current?.RequestedTheme == AppTheme.Dark
+                        ? Color.FromArgb("#315044") : Color.FromArgb("#DCE9E2"),
+                    BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                        ? Color.FromArgb("#14231D") : Color.FromArgb("#F7FBF9"),
+                    StrokeShape = new RoundRectangle { CornerRadius = 12 },
+                    Content = row,
+                });
+            }
+            if (sessions.Count == 0)
+            {
+                AuthSessionsStatusLabel.Text = "No active sessions were found.";
+                AuthSessionsStatusLabel.IsVisible = true;
+            }
+            else
+            {
+                AuthSessionsStatusLabel.IsVisible = false;
+            }
+        }
+        catch (Exception exception) when (exception is CampusGigApiException or HttpRequestException or TaskCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine($"Unable to load sessions: {exception.Message}");
+            AuthSessionsStack.Children.Clear();
+            AuthSessionsStatusLabel.Text = "Active sessions could not be loaded. Reopen Account settings to retry.";
+            AuthSessionsStatusLabel.TextColor = Color.FromArgb("#B42318");
+            AuthSessionsStatusLabel.IsVisible = true;
+            if (showError)
+                await DisplayAlertAsync("Unable to load active sessions", exception.Message, "OK");
+        }
+        finally
+        {
+            sessionsLoading = false;
+        }
+    }
+
+    private async Task RevokeAuthSessionAsync(AuthSessionItem item, Button button)
+    {
+        var confirmed = await DisplayHostConfirmationAsync(
+            item.Current ? "Sign out this device?" : "Remove session?",
+            item.Current ? "Sign out on this device?" : $"Sign out {item.DeviceName}?",
+            item.Current ? "Sign out" : "Remove",
+            "Cancel");
+        if (!confirmed) return;
+        button.IsEnabled = false;
+        try
+        {
+            var result = await api.DeleteAsync<SessionRevocationResult>($"auth/sessions/{item.Id}");
+            if (result.Revoked == 0)
+                throw new InvalidOperationException("This session has already ended.");
+            if (item.Current)
+            {
+                await session.ClearAccessSessionAsync();
+                await ((App)Application.Current!).ShowLoginAsync();
+                return;
+            }
+            await LoadAuthSessionsAsync();
+        }
+        catch (Exception exception)
+        {
+            await DisplayHostAlertAsync("Unable to remove session", exception.Message);
+            button.IsEnabled = true;
+        }
+    }
+
+    private async void OnSignOutAllClicked(object? sender, EventArgs e)
+    {
+        if (!await DisplayHostConfirmationAsync("Sign out everywhere", "End every active CampusGig session?", "Sign out all", "Cancel"))
+            return;
+        if (sender is Button button) button.IsEnabled = false;
+        try
+        {
+            await api.PostAsync<SessionRevocationResult>("auth/logout-all");
+            await session.ClearAccessSessionAsync();
+            await ((App)Application.Current!).ShowLoginAsync();
+        }
+        catch (Exception exception)
+        {
+            await DisplayHostAlertAsync("Unable to sign out", exception.Message);
+            if (sender is Button retryButton) retryButton.IsEnabled = true;
+        }
+    }
+
+    private Task<bool> DisplayHostConfirmationAsync(
+        string title,
+        string message,
+        string accept,
+        string cancel)
+    {
+        var host = Application.Current?.Windows.FirstOrDefault()?.Page ?? this;
+        return host.DisplayAlertAsync(title, message, accept, cancel);
+    }
+
+    private Task DisplayHostAlertAsync(string title, string message)
+    {
+        var host = Application.Current?.Windows.FirstOrDefault()?.Page ?? this;
+        return host.DisplayAlertAsync(title, message, "OK");
     }
 
     private static async void OnButtonPressed(object? sender, EventArgs e)
