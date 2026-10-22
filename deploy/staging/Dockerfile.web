@@ -1,0 +1,35 @@
+FROM node:24-bookworm-slim AS build
+
+ARG PNPM_VERSION=11.25.0
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
+    NEXT_TELEMETRY_DISABLED=1
+
+RUN npm install --global "pnpm@${PNPM_VERSION}"
+WORKDIR /workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY api/package.json ./api/package.json
+RUN pnpm install --frozen-lockfile --filter campusgig...
+
+COPY app ./app
+COPY public ./public
+COPY next.config.ts tsconfig.json next-env.d.ts ./
+RUN pnpm build
+
+FROM node:24-bookworm-slim AS runtime
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
+WORKDIR /app
+
+COPY --from=build --chown=node:node /workspace/public ./public
+COPY --from=build --chown=node:node /workspace/.next/standalone ./
+COPY --from=build --chown=node:node /workspace/.next/static ./.next/static
+
+USER node
+EXPOSE 3000
+CMD ["node", "server.js"]

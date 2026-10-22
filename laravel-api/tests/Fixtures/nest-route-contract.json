@@ -1,0 +1,762 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/school-admins/{userId}",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/auth/sessions/{id}",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/conversations/{conversationId}",
+    "source": "api/src/modules/messages/conversation-inbox.controller.ts"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/provider/services/{id}/media/{mediaId}",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/services/{id}/save",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/disputes",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/disputes/{id}",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/disputes/{id}/evidence/{evidenceId}",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payouts",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payouts/{payoutId}",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payouts/destinations",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payouts/destinations/{destinationId}/sensitive-details",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/refunds",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/refunds/{id}",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/refunds/stale-revisions",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/school-admins",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/schools",
+    "source": "api/src/modules/schools/schools.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/services",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/verifications",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/verifications/{id}/document",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/mfa/status",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/password-change/{id}/status",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/password-change/pending",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/password-change/review",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/sessions",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/categories",
+    "source": "api/src/modules/categories/categories.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/conversations",
+    "source": "api/src/modules/messages/conversation-inbox.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/conversations/{conversationId}/messages",
+    "source": "api/src/modules/messages/conversation-inbox.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/health",
+    "source": "api/src/app.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/health/ready",
+    "source": "api/src/app.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/metrics",
+    "source": "api/src/monitoring/metrics.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "source": "api/src/modules/notifications/notifications.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{id}",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{id}/files/{fileId}",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}/disputes",
+    "source": "api/src/modules/disputes/disputes.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}/disputes/{disputeId}/evidence/{evidenceId}",
+    "source": "api/src/modules/disputes/disputes.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}/messages",
+    "source": "api/src/modules/messages/messages.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}/payments",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}/payments/refund-eligibility",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{orderId}/payments/revision-quote",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/payments/mobile-return",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/profile/avatar/{userId}",
+    "source": "api/src/modules/profile/profile.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/profile/student",
+    "source": "api/src/modules/profile/profile.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/profile/student/verification",
+    "source": "api/src/modules/profile/profile.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/dashboard",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/earnings",
+    "source": "api/src/modules/payments/provider-earnings.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/earnings/summary",
+    "source": "api/src/modules/payments/provider-earnings.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/payouts",
+    "source": "api/src/modules/payments/provider-payouts.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/payouts/destinations",
+    "source": "api/src/modules/payments/provider-payouts.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/profile",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/services",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/provider/services/{id}/media/{mediaId}",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/providers/{id}/public",
+    "source": "api/src/modules/provider/public-provider.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/providers/{id}/reviews",
+    "source": "api/src/modules/provider/public-provider.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/schools",
+    "source": "api/src/modules/schools/schools.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/services",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/services/{id}",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/services/{id}/media/{mediaId}",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/services/saved",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/services/saved/ids",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/support/tickets/mine",
+    "source": "api/src/modules/support/support.controller.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/schools/{id}/status",
+    "source": "api/src/modules/schools/schools.controller.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/conversations/{conversationId}/preferences",
+    "source": "api/src/modules/messages/conversation-inbox.controller.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/notifications/{id}/read",
+    "source": "api/src/modules/notifications/notifications.controller.ts"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/notifications/read-all",
+    "source": "api/src/modules/notifications/notifications.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/disputes/{id}/ready",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/disputes/{id}/request-response",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/disputes/{id}/resolve",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/disputes/{id}/review",
+    "source": "api/src/modules/disputes/admin-disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payouts/{payoutId}/approve",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payouts/{payoutId}/manual-processing",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payouts/{payoutId}/manual-settle",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payouts/{payoutId}/reject",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payouts/destinations/{destinationId}/review",
+    "source": "api/src/modules/payments/admin-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/refunds/{id}/reconcile",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/refunds/disputes/{disputeId}",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/refunds/exceptions",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/refunds/stale-revisions/{revisionPurchaseId}",
+    "source": "api/src/modules/payments/admin-refunds.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/school-admins",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/schools",
+    "source": "api/src/modules/schools/schools.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/services/{id}/approve",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/services/{id}/reject",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/verifications/{id}/approve",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/verifications/{id}/reject",
+    "source": "api/src/modules/admin/admin.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/change-password",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/forgot-password",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout-all",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/challenge",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/disable",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/recovery-codes",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/setup",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/setup/confirm",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/mfa/trusted-devices/revoke",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/password-change/{id}/cancel",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/password-change/decision",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/resend-verification",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/reset-password",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/social",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/verify-email",
+    "source": "api/src/modules/auth/auth.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/conversations/{conversationId}/messages",
+    "source": "api/src/modules/messages/conversation-inbox.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/conversations/inquiries",
+    "source": "api/src/modules/messages/conversation-inbox.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/accept",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/archive",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/cancel",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/complete",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/deliver",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/reject",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/remove",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/restore",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/review",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/revision",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/revisions/{revisionId}/correction-decision",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/revisions/correction-claim",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{id}/start",
+    "source": "api/src/modules/orders/orders.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/disputes",
+    "source": "api/src/modules/disputes/disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/disputes/{disputeId}/evidence",
+    "source": "api/src/modules/disputes/disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/disputes/{disputeId}/responses",
+    "source": "api/src/modules/disputes/disputes.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/messages",
+    "source": "api/src/modules/messages/messages.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/messages/attachments",
+    "source": "api/src/modules/messages/messages.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/payments/checkout",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/payments/refunds",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{orderId}/payments/revision-checkout",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/paymongo/webhook",
+    "source": "api/src/modules/payments/payments.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/profile/avatar",
+    "source": "api/src/modules/profile/profile.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/profile/student/verification",
+    "source": "api/src/modules/profile/profile.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/payouts",
+    "source": "api/src/modules/payments/provider-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/payouts/{payoutId}/cancel",
+    "source": "api/src/modules/payments/provider-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/payouts/destinations",
+    "source": "api/src/modules/payments/provider-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/payouts/destinations/{destinationId}/deactivate",
+    "source": "api/src/modules/payments/provider-payouts.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/archive",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/media",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/pause",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/restore",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/resume",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/revise",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/provider/services/{id}/submit",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/services/{id}/quote",
+    "source": "api/src/modules/services/services.controller.ts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/support/tickets",
+    "source": "api/src/modules/support/support.controller.ts"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/profile/student",
+    "source": "api/src/modules/profile/profile.controller.ts"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/provider/availability",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/provider/profile",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/provider/services/{id}",
+    "source": "api/src/modules/provider/provider.controller.ts"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/services/{id}/save",
+    "source": "api/src/modules/services/services.controller.ts"
+  }
+]

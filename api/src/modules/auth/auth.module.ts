@@ -7,6 +7,8 @@ import { RolesGuard } from "./roles.guard";
 import { EmailService } from "./email.service";
 import { MfaService } from "./mfa.service";
 import { PasswordChangeService } from "./password-change.service";
+import { AuthSessionService } from "./auth-session.service";
+import { SocketSessionRegistry } from "./socket-session-registry.service";
 
 @Global()
 @Module({
@@ -17,9 +19,18 @@ import { PasswordChangeService } from "./password-change.service";
     EmailService,
     MfaService,
     PasswordChangeService,
+    AuthSessionService,
+    SocketSessionRegistry,
     JwtAuthGuard,
     RolesGuard,
   ],
-  exports: [AuthService, JwtAuthGuard, RolesGuard, JwtModule],
+  exports: [
+    AuthService,
+    AuthSessionService,
+    SocketSessionRegistry,
+    JwtAuthGuard,
+    RolesGuard,
+    JwtModule,
+  ],
 })
 export class AuthModule {}

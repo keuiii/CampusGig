@@ -1,0 +1,98 @@
+groups:
+  - name: campusgig-availability
+    rules:
+      - alert: CampusGigApiDown
+        expr: up{job="campusgig-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: CampusGig API metrics target is unavailable
+          description: Prometheus has been unable to scrape the API for two minutes.
+
+      - alert: CampusGigDependencyUnavailable
+        expr: campusgig_dependency_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: CampusGig dependency is not ready
+          description: "{{ $labels.dependency }} has failed readiness checks for two minutes."
+
+      - alert: CampusGigHighServerErrorRate
+        expr: |
+          (
+            sum(rate(campusgig_http_requests_total{status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(campusgig_http_requests_total[5m])), 0.001)
+          ) > 0.05
+          and sum(rate(campusgig_http_requests_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: CampusGig API server errors exceed 5 percent
+          description: The five-minute 5xx ratio has remained above 5 percent under active traffic.
+
+      - alert: CampusGigHighApiLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(campusgig_http_request_duration_seconds_bucket[5m]))
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: CampusGig API p95 latency exceeds two seconds
+          description: The API p95 response time has remained above two seconds for ten minutes.
+
+      - alert: CampusGigPayMongoWebhookProcessingFailure
+        expr: increase(campusgig_paymongo_webhook_failures_total{stage="processing"}[5m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: PayMongo webhook processing failed
+          description: A verified PayMongo webhook failed during business processing in the last five minutes.
+
+      - alert: CampusGigPayMongoWebhookIngressRejected
+        expr: sum(increase(campusgig_paymongo_webhook_failures_total{stage=~"payload|signature"}[5m])) > 10
+        labels:
+          severity: warning
+        annotations:
+          summary: Repeated invalid PayMongo webhook traffic
+          description: More than ten malformed or invalidly signed webhook requests arrived in five minutes.
+
+  - name: campusgig-infrastructure
+    rules:
+      - alert: CampusGigLowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            /
+            node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          ) < 0.15
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: CampusGig staging disk has less than 15 percent free
+          description: "Filesystem {{ $labels.mountpoint }} has remained below the free-space threshold."
+
+      - alert: CampusGigBackupVerificationMissing
+        expr: absent(campusgig_backup_last_verified_timestamp_seconds)
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: No verified CampusGig backup metric is available
+          description: Run the backup and isolated restore-verification drill on the staging host.
+
+      - alert: CampusGigBackupVerificationStale
+        expr: time() - campusgig_backup_last_verified_timestamp_seconds > 93600
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: CampusGig backup verification is older than 26 hours
+          description: The latest successful isolated restore verification is stale.

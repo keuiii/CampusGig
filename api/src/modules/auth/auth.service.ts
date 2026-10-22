@@ -7,7 +7,6 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { JwtService } from "@nestjs/jwt";
 import { UserRole } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
 import { randomInt } from "node:crypto";
@@ -16,7 +15,7 @@ import { OAuth2Client } from "google-auth-library";
 import { PrismaService } from "../../prisma/prisma.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
-import type { AccessTokenPayload, AuthenticatedUser } from "./auth.types";
+import type { AuthenticatedUser, SessionContext } from "./auth.types";
 import { EmailService } from "./email.service";
 import type { EmailCodeDto } from "./dto/email-code.dto";
 import type { EmailOnlyDto } from "./dto/email-only.dto";
@@ -25,17 +24,18 @@ import type { ChangePasswordDto } from "./dto/change-password.dto";
 import type { SocialLoginDto } from "./dto/social-login.dto";
 import { MfaService } from "./mfa.service";
 import { PasswordChangeService } from "./password-change.service";
+import { AuthSessionService } from "./auth-session.service";
 
 @Injectable()
 export class AuthService {
   private readonly googleClient = new OAuth2Client();
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
     private readonly mfa: MfaService,
     private readonly passwordChanges: PasswordChangeService,
+    private readonly sessions: AuthSessionService,
   ) {}
 
   async register(input: RegisterDto) {
@@ -82,7 +82,11 @@ export class AuthService {
     if (user.status === "SUSPENDED" || user.status === "DEACTIVATED") {
       throw new UnauthorizedException("This account is not active");
     }
-    return this.createLoginResult(user, input.trustedDeviceToken);
+    return this.createLoginResult(
+      user,
+      input.trustedDeviceToken,
+      this.sessionContext(input),
+    );
   }
 
   async socialLogin(input: SocialLoginDto) {
@@ -118,7 +122,11 @@ export class AuthService {
         linked.user.status === "DEACTIVATED"
       )
         throw new UnauthorizedException("This account is not active");
-      return this.createLoginResult(linked.user, input.trustedDeviceToken);
+      return this.createLoginResult(
+        linked.user,
+        input.trustedDeviceToken,
+        this.sessionContext(input),
+      );
     }
     const user = await this.prisma.$transaction(async (database) => {
       const existing = await database.user.findUnique({
@@ -165,7 +173,11 @@ export class AuthService {
         include: { roles: true },
       });
     });
-    return this.createLoginResult(user, input.trustedDeviceToken);
+    return this.createLoginResult(
+      user,
+      input.trustedDeviceToken,
+      this.sessionContext(input),
+    );
   }
 
   async verifyEmail(input: EmailCodeDto) {
@@ -176,7 +188,10 @@ export class AuthService {
     if (!user)
       throw new BadRequestException("Invalid or expired verification code");
     if (user.emailVerifiedAt)
-      return this.createSession(this.toAuthenticatedUser(user));
+      return this.sessions.create(
+        this.toAuthenticatedUser(user),
+        this.sessionContext(input),
+      );
     const code = await this.validateCode(user.id, "VERIFY_EMAIL", input.code);
     const verified = await this.prisma.$transaction(async (database) => {
       await database.accountCode.update({
@@ -189,7 +204,10 @@ export class AuthService {
         include: { roles: true },
       });
     });
-    return this.createSession(this.toAuthenticatedUser(verified));
+    return this.sessions.create(
+      this.toAuthenticatedUser(verified),
+      this.sessionContext(input),
+    );
   }
 
   async resendVerification(input: EmailOnlyDto) {
@@ -244,13 +262,17 @@ export class AuthService {
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: user.id },
-        data: { passwordHash: await hash(input.password, 12) },
+        data: {
+          passwordHash: await hash(input.password, 12),
+          sessionVersion: { increment: 1 },
+        },
       }),
       this.prisma.accountCode.update({
         where: { id: code.id },
         data: { consumedAt: new Date() },
       }),
     ]);
+    this.sessions.invalidateUserSockets(user.id, "password_reset");
     const emailResult = await this.emailService
       .sendPasswordChanged(user.email)
       .catch(() => ({ delivered: false }));
@@ -300,6 +322,10 @@ export class AuthService {
     code: string,
     recoveryCode = false,
     rememberDevice = false,
+    context: SessionContext = {
+      clientType: "WEB",
+      deviceName: "Web browser",
+    },
   ) {
     const result = await this.mfa.verifyChallenge(
       challengeToken,
@@ -308,7 +334,7 @@ export class AuthService {
       rememberDevice,
     );
     return {
-      ...(await this.createSession(result.user)),
+      ...(await this.sessions.create(result.user, context)),
       ...(result.trustedDeviceToken
         ? { trustedDeviceToken: result.trustedDeviceToken, trustedForDays: 30 }
         : {}),
@@ -324,6 +350,26 @@ export class AuthService {
 
   async revokeTrustedDevices(userId: string) {
     return this.mfa.revokeTrustedDevices(userId);
+  }
+
+  refreshSession(refreshToken: string) {
+    return this.sessions.refresh(refreshToken);
+  }
+
+  logout(refreshToken?: string) {
+    return this.sessions.revokeByToken(refreshToken);
+  }
+
+  listSessions(userId: string, currentSessionId?: string) {
+    return this.sessions.list(userId, currentSessionId);
+  }
+
+  revokeSession(userId: string, sessionId: string) {
+    return this.sessions.revoke(userId, sessionId, "USER_REVOKED");
+  }
+
+  logoutAll(userId: string) {
+    return this.sessions.revokeAll(userId);
   }
 
   async beginMfaSetup(userId: string) {
@@ -362,19 +408,6 @@ export class AuthService {
     return this.mfa.regenerateRecoveryCodes(userId);
   }
 
-  private async createSession(user: AuthenticatedUser) {
-    const payload: AccessTokenPayload = {
-      sub: user.id,
-      email: user.email,
-      roles: user.roles,
-    };
-    const accessToken = await this.jwt.signAsync(payload, {
-      secret: this.config.getOrThrow<string>("JWT_SECRET"),
-      expiresIn: "7d",
-    });
-    return { accessToken, tokenType: "Bearer", expiresIn: 604800, user };
-  }
-
   private async createLoginResult(
     user: {
       id: string;
@@ -386,6 +419,10 @@ export class AuthService {
       roles: { role: UserRole }[];
     },
     trustedDeviceToken?: string,
+    context: SessionContext = {
+      clientType: "WEB",
+      deviceName: "Web browser",
+    },
   ) {
     if (
       user.mfaEnabledAt &&
@@ -396,7 +433,20 @@ export class AuthService {
         challengeToken: await this.mfa.createChallenge(user.id),
         method: "AUTHENTICATOR" as const,
       };
-    return this.createSession(this.toAuthenticatedUser(user));
+    return this.sessions.create(this.toAuthenticatedUser(user), context);
+  }
+
+  private sessionContext(input: {
+    clientType?: "WEB" | "MOBILE";
+    deviceName?: string;
+  }): SessionContext {
+    const clientType = input.clientType ?? "WEB";
+    return {
+      clientType,
+      deviceName:
+        input.deviceName?.trim() ||
+        (clientType === "MOBILE" ? "Mobile device" : "Web browser"),
+    };
   }
 
   private normalizeEmail(email: string) {

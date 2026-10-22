@@ -3,7 +3,9 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
+  Query,
   Req,
   UploadedFiles,
   UseGuards,
@@ -17,6 +19,7 @@ import { SendMessageDto } from "./dto/send-message.dto";
 import { MessagesService } from "./messages.service";
 import { SendAttachmentDto } from "./dto/send-attachment.dto";
 import { orderFileUploadOptions } from "../orders/order-file-upload.config";
+import { ListMessagesDto } from "./dto/list-messages.dto";
 
 @ApiTags("messages")
 @ApiBearerAuth()
@@ -26,15 +29,16 @@ export class MessagesController {
   constructor(private readonly messages: MessagesService) {}
   @Get() list(
     @Req() request: AuthenticatedRequest,
-    @Param("orderId") orderId: string,
+    @Param("orderId", ParseUUIDPipe) orderId: string,
+    @Query() query: ListMessagesDto,
   ) {
-    return this.messages.list(request.auth.sub, orderId);
+    return this.messages.list(request.auth.sub, orderId, query);
   }
   @Post("attachments")
   @UseInterceptors(FilesInterceptor("files", 3, orderFileUploadOptions))
   attach(
     @Req() request: AuthenticatedRequest,
-    @Param("orderId") orderId: string,
+    @Param("orderId", ParseUUIDPipe) orderId: string,
     @Body() input: SendAttachmentDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
@@ -47,7 +51,7 @@ export class MessagesController {
   }
   @Post() send(
     @Req() request: AuthenticatedRequest,
-    @Param("orderId") orderId: string,
+    @Param("orderId", ParseUUIDPipe) orderId: string,
     @Body() input: SendMessageDto,
   ) {
     return this.messages.send(request.auth.sub, orderId, input.body);

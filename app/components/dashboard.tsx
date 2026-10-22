@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Logo } from "./brand";
+import { formatMarketplaceStatus } from "../lib/marketplace-presentation";
 
 export function DashboardHeader({
   kicker,
@@ -48,9 +49,20 @@ export function Stat({
 }
 
 export function Status({ label }: { label: string }) {
+  const readableLabel = formatMarketplaceStatus(label);
+  const normalizedStatus = label.trim().toUpperCase().replaceAll(" ", "_");
+  const statusClass = normalizedStatus
+    .toLowerCase()
+    .replaceAll("_", "-")
+    .replaceAll(" ", "-");
+
   return (
-    <span className={`status ${label.toLowerCase().replace(" ", "-")}`}>
-      {label}
+    <span
+      className={`status ${statusClass}`}
+      data-status={normalizedStatus}
+      aria-label={`Status: ${readableLabel}`}
+    >
+      {readableLabel}
     </span>
   );
 }

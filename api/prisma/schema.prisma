@@ -33,6 +33,11 @@ enum SocialProvider {
   FACEBOOK
 }
 
+enum AuthClientType {
+  WEB
+  MOBILE
+}
+
 enum SchoolStatus {
   PENDING
   ACTIVE
@@ -67,6 +72,31 @@ enum PackageTier {
   PREMIUM
 }
 
+enum ServicePricingModel {
+  LEGACY_PACKAGES
+  SINGLE_PRICE_V2
+}
+
+enum OrderPricingModel {
+  LEGACY_PACKAGE_V1
+  SINGLE_PRICE_V2
+}
+
+enum RushTier {
+  HOURS_24
+  HOURS_12
+  HOURS_6
+  HOURS_3
+}
+
+enum DeliveryOption {
+  NORMAL
+  RUSH_24_HOURS
+  RUSH_12_HOURS
+  RUSH_6_HOURS
+  RUSH_3_HOURS
+}
+
 enum ServiceMediaKind {
   COVER
   PORTFOLIO
@@ -83,11 +113,20 @@ enum OrderStatus {
   REJECTED
 }
 
+enum OrderCompletionSource {
+  CLIENT_ACCEPTED
+  AUTO_REVIEW_TIMEOUT
+}
+
 enum OrderFilePurpose {
   REQUIREMENT
   MESSAGE_ATTACHMENT
   DELIVERABLE
   REVISION
+}
+
+enum DeliveryFileAccessType {
+  ACCESS_GRANTED
 }
 
 enum MessageType {
@@ -96,15 +135,56 @@ enum MessageType {
   SYSTEM
 }
 
+enum ConversationKind {
+  ORDER
+  INQUIRY
+}
+
 enum RevisionStatus {
+  AWAITING_PROVIDER_ACKNOWLEDGEMENT
   OPEN
+  DECLINED
   RESOLVED
   CANCELLED
 }
 
+enum RevisionType {
+  PROVIDER_CORRECTION
+  INCLUDED
+  PAID_EXTRA
+}
+
+enum RevisionPurchaseActivationStatus {
+  PENDING
+  ACTIVATED
+  RECONCILIATION_REQUIRED
+  REFUNDED
+}
+
 enum DisputeStatus {
   OPEN
+  WAITING_FOR_CLIENT
+  WAITING_FOR_PROVIDER
+  READY_FOR_REVIEW
   UNDER_REVIEW
+  RESOLVED_CLIENT
+  RESOLVED_PROVIDER
+  CLOSED
+}
+
+enum DisputeResponseParty {
+  CLIENT
+  PROVIDER
+}
+
+enum DisputeTimelineEventType {
+  OPENED
+  EVIDENCE_ADDED
+  RESPONSE_REQUESTED
+  RESPONSE_SUBMITTED
+  RESPONSE_DEADLINE_EXPIRED
+  READY_FOR_REVIEW
+  REVIEW_STARTED
   RESOLVED_CLIENT
   RESOLVED_PROVIDER
   CLOSED
@@ -134,50 +214,232 @@ enum PaymentStatus {
   CANCELLED
 }
 
-enum RefundStatus {
+enum ProviderEarningStatus {
   PENDING
+  AVAILABLE
+  FROZEN
+  PAYOUT_PROCESSING
+  PAID_OUT
+  REFUNDED
+}
+
+enum ProviderEarningLedgerEntryType {
+  EARNING_PENDING_CREDIT
+  EARNING_AVAILABLE_RELEASE
+  EARNING_FROZEN
+  EARNING_UNFROZEN
+  EARNING_REFUND_REVERSAL
+  EARNING_PAYOUT_RESERVED
+  EARNING_PAYOUT_RELEASED
+  EARNING_PAID_OUT
+}
+
+enum ProviderEarningSource {
+  ORIGINAL_ORDER
+  PAID_EXTRA_REVISION
+}
+
+enum RefundStatus {
+  REQUESTED
+  PENDING
+  PROCESSING
   SUCCEEDED
   FAILED
+  RECONCILIATION_REQUIRED
+}
+
+enum MarketplaceRefundSource {
+  ORIGINAL_ORDER
+  PAID_EXTRA_REVISION
+}
+
+enum MarketplaceRefundReason {
+  PAID_NOT_STARTED
+  MISSED_RUSH_DEADLINE
+  DISPUTE_CLIENT_WIN
+  STALE_REVISION_PAYMENT
+  ADMIN_EXCEPTION
+}
+
+enum RefundRequestOrigin {
+  CLIENT
+  ADMIN
+  SYSTEM
+}
+
+enum PlatformFeeLedgerEntryType {
+  REFUND_REVERSAL
+}
+
+enum PayoutDestinationType {
+  BANK_ACCOUNT
+  E_WALLET
+}
+
+enum PayoutDestinationVerificationStatus {
+  UNVERIFIED
+  ADMIN_REVIEWED
+  PROVIDER_VERIFIED
+}
+
+enum ProviderPayoutStatus {
+  REQUESTED
+  APPROVED
+  PROCESSING
+  PAID
+  FAILED
+  REJECTED
+  CANCELLED
+  RECONCILIATION_REQUIRED
+}
+
+enum PayoutSettlementMethod {
+  MANUAL
+  EXTERNAL_PROVIDER
+}
+
+enum ProviderPayoutAuditAction {
+  REQUESTED
+  CANCELLED
+  APPROVED
+  REJECTED
+  PROCESSING
+  MANUAL_SETTLED
+  EXTERNAL_RECONCILED
+  FAILED
+  RECONCILIATION_REQUIRED
+}
+
+enum SupportTicketCategory {
+  ACCOUNT
+  PAYMENT
+  ORDER
+  TECHNICAL
+  SAFETY
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketSource {
+  WEB
+  MOBILE
 }
 
 model User {
-  id                     String                    @id @default(uuid()) @db.Uuid
-  email                  String                    @unique
-  passwordHash           String
-  displayName            String
-  avatarPath             String?
-  status                 UserStatus                @default(PENDING)
-  lastSeenAt             DateTime?
-  createdAt              DateTime                  @default(now())
-  updatedAt              DateTime                  @updatedAt
-  emailVerifiedAt        DateTime?
-  mfaEnabledAt           DateTime?
-  mfaSecretCipher        String?
-  mfaPendingSecretCipher String?
-  mfaLastUsedStep        BigInt?
-  roles                  UserRoleAssignment[]
-  studentProfile         StudentProfile?
-  providerProfile        ProviderProfile?
-  services               Service[]                 @relation("ProviderServices")
-  clientOrders           Order[]                   @relation("ClientOrders")
-  providerOrders         Order[]                   @relation("ProviderOrders")
-  sentMessages           Message[]
-  conversationLinks      ConversationParticipant[]
-  uploadedFiles          OrderFile[]
-  reviewsWritten         Review[]                  @relation("ReviewsWritten")
-  reviewsReceived        Review[]                  @relation("ReviewsReceived")
-  statusChanges          OrderStatusHistory[]
-  revisionRequests       RevisionRequest[]
-  accountCodes           AccountCode[]
-  mfaRecoveryCodes       MfaRecoveryCode[]
-  mfaChallenges          MfaChallenge[]
-  trustedDevices         TrustedDevice[]
-  passwordChangeRequests PasswordChangeRequest[]
-  socialAccounts         SocialAccount[]
-  schoolAdminAssignment  SchoolAdminAssignment?
-  notifications          Notification[]            @relation("NotificationRecipient")
-  disputesOpened         OrderDispute[]            @relation("DisputesOpened")
-  disputesResolved       OrderDispute[]            @relation("DisputesResolved")
+  id                          String                       @id @default(uuid()) @db.Uuid
+  email                       String                       @unique
+  passwordHash                String
+  displayName                 String
+  avatarPath                  String?
+  status                      UserStatus                   @default(PENDING)
+  lastSeenAt                  DateTime?
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  emailVerifiedAt             DateTime?
+  mfaEnabledAt                DateTime?
+  mfaSecretCipher             String?
+  mfaPendingSecretCipher      String?
+  mfaLastUsedStep             BigInt?
+  sessionVersion              Int                          @default(0)
+  roles                       UserRoleAssignment[]
+  studentProfile              StudentProfile?
+  providerProfile             ProviderProfile?
+  services                    Service[]                    @relation("ProviderServices")
+  savedServices               SavedService[]
+  clientOrders                Order[]                      @relation("ClientOrders")
+  providerOrders              Order[]                      @relation("ProviderOrders")
+  sentMessages                Message[]
+  conversationLinks           ConversationParticipant[]
+  inquiriesStarted            Conversation[]               @relation("InquiryClient")
+  inquiriesReceived           Conversation[]               @relation("InquiryProvider")
+  uploadedFiles               OrderFile[]
+  deliverySubmissions         DeliverySubmission[]         @relation("DeliverySubmissionProvider")
+  deliveryFileAccesses        DeliveryFileAccessAudit[]    @relation("DeliveryFileAccessUser")
+  providerEarnings            ProviderEarning[]            @relation("ProviderEarningProvider")
+  earningLedgerEntries        ProviderEarningLedgerEntry[] @relation("ProviderEarningLedgerProvider")
+  reviewsWritten              Review[]                     @relation("ReviewsWritten")
+  reviewsReceived             Review[]                     @relation("ReviewsReceived")
+  statusChanges               OrderStatusHistory[]
+  revisionRequests            RevisionRequest[]
+  revisionPurchasesAsClient   OrderRevisionPurchase[]      @relation("RevisionPurchaseClient")
+  revisionPurchasesAsProvider OrderRevisionPurchase[]      @relation("RevisionPurchaseProvider")
+  accountCodes                AccountCode[]
+  mfaRecoveryCodes            MfaRecoveryCode[]
+  mfaChallenges               MfaChallenge[]
+  trustedDevices              TrustedDevice[]
+  authSessions                AuthSession[]
+  passwordChangeRequests      PasswordChangeRequest[]
+  socialAccounts              SocialAccount[]
+  schoolAdminAssignment       SchoolAdminAssignment?
+  notifications               Notification[]               @relation("NotificationRecipient")
+  disputesOpened              OrderDispute[]               @relation("DisputesOpened")
+  disputesResolved            OrderDispute[]               @relation("DisputesResolved")
+  disputeResponses            DisputeResponse[]            @relation("DisputeResponseAuthor")
+  disputeEvidence             DisputeEvidence[]            @relation("DisputeEvidenceSubmitter")
+  disputeTimelineEvents       DisputeTimelineEvent[]       @relation("DisputeTimelineActor")
+  supportTickets              SupportTicket[]
+  refundsRequested            PaymentRefund[]              @relation("RefundRequestedBy")
+  payoutDestinations          ProviderPayoutDestination[]  @relation("PayoutDestinationProvider")
+  payoutDestinationsReviewed  ProviderPayoutDestination[]  @relation("PayoutDestinationReviewer")
+  providerPayouts             ProviderPayout[]             @relation("ProviderPayoutProvider")
+  payoutsApproved             ProviderPayout[]             @relation("ProviderPayoutApprover")
+  payoutsSettled              ProviderPayout[]             @relation("ProviderPayoutSettler")
+  payoutAudits                ProviderPayoutAudit[]        @relation("ProviderPayoutAuditActor")
+}
+
+model SupportTicket {
+  id         String                @id @default(uuid()) @db.Uuid
+  userId     String                @db.Uuid
+  category   SupportTicketCategory
+  subject    String
+  message    String
+  source     SupportTicketSource
+  status     SupportTicketStatus   @default(OPEN)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  resolvedAt DateTime?
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AuthSession {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @db.Uuid
+  clientType     AuthClientType
+  deviceName     String
+  sessionVersion Int
+  expiresAt      DateTime
+  lastUsedAt     DateTime       @default(now())
+  revokedAt      DateTime?
+  revokedReason  String?
+  createdAt      DateTime       @default(now())
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens  RefreshToken[]
+
+  @@index([userId, revokedAt, lastUsedAt])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id        String      @id @default(uuid()) @db.Uuid
+  sessionId String      @db.Uuid
+  tokenHash String      @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime    @default(now())
+  session   AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, usedAt, revokedAt])
+  @@index([expiresAt])
 }
 
 model MfaRecoveryCode {
@@ -261,14 +523,20 @@ model AccountCode {
 }
 
 model ProviderProfile {
-  userId      String   @id @db.Uuid
-  headline    String
-  bio         String
-  skills      String[]
-  isAvailable Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String   @id @db.Uuid
+  headline         String
+  bio              String
+  skills           String[]
+  isAvailable      Boolean  @default(true)
+  maxActiveOrders  Int      @default(5)
+  maxPendingOrders Int      @default(50)
+  instagramUrl     String?
+  linkedinUrl      String?
+  xUrl             String?
+  portfolioUrl     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserRoleAssignment {
@@ -349,30 +617,48 @@ model Category {
 }
 
 model Service {
-  id              String           @id @default(uuid()) @db.Uuid
-  providerId      String           @db.Uuid
-  categoryId      String
-  title           String
-  slug            String           @unique
-  description     String
-  deliveryMethod  DeliveryMethod   @default(ONLINE)
-  campusLocation  String?
-  status          ServiceStatus    @default(DRAFT)
-  publishedAt     DateTime?
-  reviewedAt      DateTime?
-  reviewedBy      String?          @db.Uuid
-  rejectionReason String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  deletedAt       DateTime?
-  provider        User             @relation("ProviderServices", fields: [providerId], references: [id])
-  category        Category         @relation(fields: [categoryId], references: [id])
-  packages        ServicePackage[]
-  media           ServiceMedia[]
-  orders          Order[]
+  id                    String              @id @default(uuid()) @db.Uuid
+  providerId            String              @db.Uuid
+  categoryId            String
+  title                 String
+  slug                  String              @unique
+  description           String
+  deliveryMethod        DeliveryMethod      @default(ONLINE)
+  pricingModel          ServicePricingModel @default(LEGACY_PACKAGES)
+  basePriceCentavos     Int?
+  normalDeliveryMinutes Int?
+  includedRevisionLimit Int?
+  acceptsRushOrders     Boolean             @default(false)
+  fastestRushTier       RushTier?
+  campusLocation        String?
+  status                ServiceStatus       @default(DRAFT)
+  publishedAt           DateTime?
+  reviewedAt            DateTime?
+  reviewedBy            String?             @db.Uuid
+  rejectionReason       String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+  provider              User                @relation("ProviderServices", fields: [providerId], references: [id])
+  category              Category            @relation(fields: [categoryId], references: [id])
+  packages              ServicePackage[]
+  media                 ServiceMedia[]
+  orders                Order[]
+  savedBy               SavedService[]
 
   @@index([status, categoryId, publishedAt])
   @@index([providerId, status])
+}
+
+model SavedService {
+  userId    String   @db.Uuid
+  serviceId String   @db.Uuid
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, serviceId])
+  @@index([userId, createdAt])
 }
 
 model ServiceMedia {
@@ -407,105 +693,429 @@ model ServicePackage {
 }
 
 model Order {
-  id                  String               @id @default(uuid()) @db.Uuid
-  orderNumber         String               @unique
-  clientId            String               @db.Uuid
-  providerId          String               @db.Uuid
-  serviceId           String               @db.Uuid
-  servicePackageId    String               @db.Uuid
-  titleSnapshot       String
-  packageSnapshot     Json
-  subtotalCentavos    Int
-  platformFeeCentavos Int                  @default(0)
-  totalCentavos       Int
-  currency            String               @default("PHP")
-  requirements        String
-  dueAt               DateTime
-  status              OrderStatus          @default(REQUESTED)
-  revisionLimit       Int                  @default(0)
-  revisionsUsed       Int                  @default(0)
-  acceptedAt          DateTime?
-  startedAt           DateTime?
-  submittedAt         DateTime?
-  completedAt         DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  client              User                 @relation("ClientOrders", fields: [clientId], references: [id])
-  provider            User                 @relation("ProviderOrders", fields: [providerId], references: [id])
-  service             Service              @relation(fields: [serviceId], references: [id])
-  servicePackage      ServicePackage       @relation(fields: [servicePackageId], references: [id])
-  history             OrderStatusHistory[]
-  files               OrderFile[]
-  conversation        Conversation?
-  revisions           RevisionRequest[]
-  review              Review?
-  notifications       Notification[]
-  disputes            OrderDispute[]
-  payments            Payment[]
+  id                         String                       @id @default(uuid()) @db.Uuid
+  orderNumber                String                       @unique
+  clientRequestId            String?                      @db.Uuid
+  requestFingerprint         String?
+  clientId                   String                       @db.Uuid
+  providerId                 String                       @db.Uuid
+  serviceId                  String                       @db.Uuid
+  servicePackageId           String?                      @db.Uuid
+  pricingModel               OrderPricingModel            @default(LEGACY_PACKAGE_V1)
+  titleSnapshot              String
+  packageSnapshot            Json?
+  termsSnapshot              Json
+  basePriceCentavos          Int?
+  rushSurchargeCentavos      Int?
+  deliveryOption             DeliveryOption?
+  deliveryDurationMinutes    Int?
+  pricingPolicyVersion       Int?
+  platformFeeBasisPoints     Int?
+  rushBasisPoints            Int?
+  subtotalCentavos           Int
+  platformFeeCentavos        Int                          @default(0)
+  totalCentavos              Int
+  currency                   String                       @default("PHP")
+  requirements               String
+  dueAt                      DateTime?
+  status                     OrderStatus                  @default(REQUESTED)
+  revisionLimit              Int                          @default(0)
+  revisionsUsed              Int                          @default(0)
+  acceptedAt                 DateTime?
+  startedAt                  DateTime?
+  submittedAt                DateTime?
+  completedAt                DateTime?
+  completionSource           OrderCompletionSource?
+  reviewPolicyVersion        Int?
+  reviewStartedAt            DateTime?
+  reviewDeadlineAt           DateTime?
+  reviewDeliverySubmissionId String?                      @unique @db.Uuid
+  clientArchivedAt           DateTime?
+  clientRemovedAt            DateTime?
+  providerArchivedAt         DateTime?
+  providerRemovedAt          DateTime?
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @updatedAt
+  client                     User                         @relation("ClientOrders", fields: [clientId], references: [id])
+  provider                   User                         @relation("ProviderOrders", fields: [providerId], references: [id])
+  service                    Service                      @relation(fields: [serviceId], references: [id])
+  servicePackage             ServicePackage?              @relation(fields: [servicePackageId], references: [id], onDelete: Restrict)
+  history                    OrderStatusHistory[]
+  files                      OrderFile[]
+  deliverySubmissions        DeliverySubmission[]
+  reviewDeliverySubmission   DeliverySubmission?          @relation("OrderReviewDeliverySubmission", fields: [reviewDeliverySubmissionId], references: [id], onDelete: Restrict)
+  deliveryFileAccesses       DeliveryFileAccessAudit[]
+  conversation               Conversation?
+  revisions                  RevisionRequest[]
+  review                     Review?
+  notifications              Notification[]
+  disputes                   OrderDispute[]
+  payments                   Payment[]
+  providerEarnings           ProviderEarning[]
+  revisionPurchases          OrderRevisionPurchase[]
+  earningLedgerEntries       ProviderEarningLedgerEntry[]
+  refunds                    PaymentRefund[]
+  platformFeeLedgerEntries   PlatformFeeLedgerEntry[]
 
+  @@unique([clientId, clientRequestId])
   @@index([clientId, status, createdAt])
   @@index([providerId, status, createdAt])
+  @@index([status, reviewDeadlineAt, id])
+  @@index([clientId, clientRemovedAt, clientArchivedAt, createdAt, id], map: "Order_clientId_clientRemovedAt_clientArchivedAt_createdAt_id_id")
+  @@index([providerId, providerRemovedAt, providerArchivedAt, createdAt, id], map: "Order_providerId_providerRemovedAt_providerArchivedAt_createdAt")
 }
 
 model OrderDispute {
-  id             String        @id @default(uuid()) @db.Uuid
-  orderId        String        @unique @db.Uuid
-  openedById     String        @db.Uuid
-  reason         DisputeReason
-  details        String
-  status         DisputeStatus @default(OPEN)
-  resolutionNote String?
-  resolvedById   String?       @db.Uuid
-  resolvedAt     DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  openedBy       User          @relation("DisputesOpened", fields: [openedById], references: [id])
-  resolvedBy     User?         @relation("DisputesResolved", fields: [resolvedById], references: [id])
+  id                         String                   @id @default(uuid()) @db.Uuid
+  orderId                    String                   @db.Uuid
+  openedById                 String                   @db.Uuid
+  reason                     DisputeReason
+  details                    String
+  status                     DisputeStatus            @default(OPEN)
+  targetDeliverySubmissionId String?                  @db.Uuid
+  targetRevisionRequestId    String?                  @db.Uuid
+  targetRevisionPurchaseId   String?                  @db.Uuid
+  responseRequestedFrom      DisputeResponseParty?
+  responseRequestedAt        DateTime?
+  responseDeadlineAt         DateTime?
+  responseRequestSequence    Int                      @default(0)
+  reviewPausedAt             DateTime?
+  reviewRemainingSeconds     Int?
+  readyForReviewAt           DateTime?
+  reviewStartedAt            DateTime?
+  resolutionNote             String?
+  resolvedById               String?                  @db.Uuid
+  resolvedAt                 DateTime?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+  order                      Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  openedBy                   User                     @relation("DisputesOpened", fields: [openedById], references: [id])
+  resolvedBy                 User?                    @relation("DisputesResolved", fields: [resolvedById], references: [id])
+  targetDeliverySubmission   DeliverySubmission?      @relation("DisputeTargetDelivery", fields: [targetDeliverySubmissionId], references: [id], onDelete: Restrict)
+  targetRevisionRequest      RevisionRequest?         @relation("DisputeTargetRevision", fields: [targetRevisionRequestId], references: [id], onDelete: Restrict)
+  targetRevisionPurchase     OrderRevisionPurchase?   @relation("DisputeTargetRevisionPurchase", fields: [targetRevisionPurchaseId], references: [id], onDelete: Restrict)
+  affectedEarnings           DisputeAffectedEarning[]
+  responses                  DisputeResponse[]
+  evidence                   DisputeEvidence[]
+  timeline                   DisputeTimelineEvent[]
+  refunds                    PaymentRefund[]
 
   @@index([status, createdAt])
+  @@index([orderId, createdAt])
+  @@index([status, responseDeadlineAt, id])
+  @@index([targetDeliverySubmissionId])
+  @@index([targetRevisionRequestId])
+  @@index([targetRevisionPurchaseId])
+}
+
+model DisputeAffectedEarning {
+  id                String                @id @default(uuid()) @db.Uuid
+  disputeId         String                @db.Uuid
+  providerEarningId String                @db.Uuid
+  preFreezeStatus   ProviderEarningStatus
+  frozenAt          DateTime              @default(now())
+  restoredAt        DateTime?
+  createdAt         DateTime              @default(now())
+  dispute           OrderDispute          @relation(fields: [disputeId], references: [id], onDelete: Restrict)
+  providerEarning   ProviderEarning       @relation(fields: [providerEarningId], references: [id], onDelete: Restrict)
+
+  @@unique([disputeId, providerEarningId])
+  @@index([providerEarningId, createdAt])
+}
+
+model DisputeResponse {
+  id                  String               @id @default(uuid()) @db.Uuid
+  disputeId           String               @db.Uuid
+  responderId         String               @db.Uuid
+  requestedFrom       DisputeResponseParty
+  requestSequence     Int
+  details             String
+  responseRequestedAt DateTime
+  responseDeadlineAt  DateTime
+  createdAt           DateTime             @default(now())
+  dispute             OrderDispute         @relation(fields: [disputeId], references: [id], onDelete: Restrict)
+  responder           User                 @relation("DisputeResponseAuthor", fields: [responderId], references: [id], onDelete: Restrict)
+  evidence            DisputeEvidence[]
+
+  @@unique([disputeId, requestSequence])
+  @@index([responderId, createdAt])
+}
+
+model DisputeEvidence {
+  id            String           @id @default(uuid()) @db.Uuid
+  disputeId     String           @db.Uuid
+  responseId    String?          @db.Uuid
+  submittedById String           @db.Uuid
+  storagePath   String           @unique
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  checksum      String
+  createdAt     DateTime         @default(now())
+  dispute       OrderDispute     @relation(fields: [disputeId], references: [id], onDelete: Restrict)
+  response      DisputeResponse? @relation(fields: [responseId], references: [id], onDelete: Restrict)
+  submittedBy   User             @relation("DisputeEvidenceSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+
+  @@index([disputeId, createdAt])
+  @@index([responseId, createdAt])
+  @@index([submittedById, createdAt])
+}
+
+model DisputeTimelineEvent {
+  id        String                   @id @default(uuid()) @db.Uuid
+  disputeId String                   @db.Uuid
+  actorId   String?                  @db.Uuid
+  type      DisputeTimelineEventType
+  details   String?
+  createdAt DateTime                 @default(now())
+  dispute   OrderDispute             @relation(fields: [disputeId], references: [id], onDelete: Restrict)
+  actor     User?                    @relation("DisputeTimelineActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([disputeId, createdAt])
 }
 
 model Payment {
-  id                  String          @id @default(uuid()) @db.Uuid
-  orderId             String          @db.Uuid
-  provider            PaymentProvider @default(PAYMONGO)
-  providerPaymentId   String?         @unique
-  providerCheckoutId  String?         @unique
-  checkoutUrl         String?
-  idempotencyKey      String          @unique
-  amountCentavos      Int
-  platformFeeCentavos Int
-  providerNetCentavos Int
-  refundedCentavos    Int             @default(0)
-  currency            String          @default("PHP")
-  status              PaymentStatus   @default(PENDING)
-  failureCode         String?
-  paidAt              DateTime?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  order               Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  refunds             PaymentRefund[]
+  id                   String                       @id @default(uuid()) @db.Uuid
+  orderId              String                       @db.Uuid
+  provider             PaymentProvider              @default(PAYMONGO)
+  providerPaymentId    String?                      @unique
+  providerCheckoutId   String?                      @unique
+  checkoutUrl          String?
+  idempotencyKey       String                       @unique
+  amountCentavos       Int
+  platformFeeCentavos  Int
+  providerNetCentavos  Int
+  refundedCentavos     Int                          @default(0)
+  currency             String                       @default("PHP")
+  status               PaymentStatus                @default(PENDING)
+  failureCode          String?
+  paidAt               DateTime?
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  order                Order                        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refunds              PaymentRefund[]
+  providerEarning      ProviderEarning?             @relation("ProviderEarningPayment")
+  earningLedgerEntries ProviderEarningLedgerEntry[]
 
   @@index([orderId, status, createdAt])
   @@index([status, createdAt])
 }
 
 model PaymentRefund {
-  id               String       @id @default(uuid()) @db.Uuid
-  paymentId        String       @db.Uuid
-  providerRefundId String?      @unique
-  idempotencyKey   String       @unique
-  amountCentavos   Int
-  reason           String
-  status           RefundStatus @default(PENDING)
-  failureCode      String?
-  processedAt      DateTime?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  payment          Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  id                                String                   @id @default(uuid()) @db.Uuid
+  orderId                           String?                  @db.Uuid
+  paymentId                         String?                  @db.Uuid
+  revisionPurchaseId                String?                  @db.Uuid
+  providerEarningId                 String?                  @db.Uuid
+  triggeringDisputeId               String?                  @db.Uuid
+  requestedById                     String?                  @db.Uuid
+  sourceType                        MarketplaceRefundSource?
+  reasonCode                        MarketplaceRefundReason?
+  requestOrigin                     RefundRequestOrigin?
+  preRefundEarningStatus            ProviderEarningStatus?
+  sourceKey                         String?                  @unique
+  providerRefundId                  String?                  @unique
+  idempotencyKey                    String                   @unique
+  providerPrincipalCentavos         Int?
+  platformFeeCentavos               Int?
+  refundTotalCentavos               Int?
+  amountCentavos                    Int
+  currency                          String?
+  reason                            String
+  status                            RefundStatus             @default(REQUESTED)
+  providerStatus                    String?
+  failureCode                       String?
+  requestedAt                       DateTime                 @default(now())
+  submittedAt                       DateTime?
+  processedAt                       DateTime?
+  reconciliationRequiredAt          DateTime?
+  accountingReversedAt              DateTime?
+  providerPrincipalReversedCentavos Int                      @default(0)
+  platformFeeReversedCentavos       Int                      @default(0)
+  providerCreatedAt                 DateTime?
+  providerUpdatedAt                 DateTime?
+  createdAt                         DateTime                 @default(now())
+  updatedAt                         DateTime                 @updatedAt
+  order                             Order?                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment                           Payment?                 @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  revisionPurchase                  OrderRevisionPurchase?   @relation(fields: [revisionPurchaseId], references: [id], onDelete: Restrict)
+  providerEarning                   ProviderEarning?         @relation(fields: [providerEarningId], references: [id], onDelete: Restrict)
+  triggeringDispute                 OrderDispute?            @relation(fields: [triggeringDisputeId], references: [id], onDelete: Restrict)
+  requestedBy                       User?                    @relation("RefundRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  platformFeeLedgerEntry            PlatformFeeLedgerEntry?
 
   @@index([paymentId, status, createdAt])
+  @@index([revisionPurchaseId, status, createdAt])
+  @@index([orderId, status, createdAt])
+  @@index([status, updatedAt])
+  @@index([triggeringDisputeId])
+}
+
+model PlatformFeeLedgerEntry {
+  id             String                     @id @default(uuid()) @db.Uuid
+  orderId        String                     @db.Uuid
+  refundId       String                     @unique @db.Uuid
+  type           PlatformFeeLedgerEntryType
+  amountCentavos Int
+  currency       String
+  sourceKey      String                     @unique
+  createdAt      DateTime                   @default(now())
+  order          Order                      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  refund         PaymentRefund              @relation(fields: [refundId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, createdAt])
+}
+
+model ProviderEarning {
+  id                         String                       @id @default(uuid()) @db.Uuid
+  providerId                 String                       @db.Uuid
+  orderId                    String                       @db.Uuid
+  paymentId                  String?                      @unique @db.Uuid
+  revisionPurchaseId         String?                      @unique @db.Uuid
+  sourceType                 ProviderEarningSource        @default(ORIGINAL_ORDER)
+  currency                   String
+  grossServiceAmountCentavos Int
+  status                     ProviderEarningStatus        @default(PENDING)
+  pendingAt                  DateTime
+  availableAt                DateTime?
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @updatedAt
+  provider                   User                         @relation("ProviderEarningProvider", fields: [providerId], references: [id], onDelete: Restrict)
+  order                      Order                        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment                    Payment?                     @relation("ProviderEarningPayment", fields: [paymentId], references: [id], onDelete: Restrict)
+  revisionPurchase           OrderRevisionPurchase?       @relation(fields: [revisionPurchaseId], references: [id], onDelete: Restrict)
+  ledgerEntries              ProviderEarningLedgerEntry[]
+  disputeAssociations        DisputeAffectedEarning[]
+  refunds                    PaymentRefund[]
+  payoutItems                ProviderPayoutItem[]
+
+  @@index([providerId, status, createdAt])
+  @@index([providerId, createdAt])
+  @@index([orderId, sourceType, createdAt])
+}
+
+model ProviderEarningLedgerEntry {
+  id                       String                         @id @default(uuid()) @db.Uuid
+  providerEarningId        String                         @db.Uuid
+  providerId               String                         @db.Uuid
+  orderId                  String                         @db.Uuid
+  sourcePaymentId          String?                        @unique @db.Uuid
+  sourceRevisionPurchaseId String?                        @unique @db.Uuid
+  type                     ProviderEarningLedgerEntryType
+  amountCentavos           Int
+  currency                 String
+  sourceKey                String                         @unique
+  createdAt                DateTime                       @default(now())
+  providerEarning          ProviderEarning                @relation(fields: [providerEarningId], references: [id], onDelete: Restrict)
+  provider                 User                           @relation("ProviderEarningLedgerProvider", fields: [providerId], references: [id], onDelete: Restrict)
+  order                    Order                          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  sourcePayment            Payment?                       @relation(fields: [sourcePaymentId], references: [id], onDelete: Restrict)
+  sourceRevisionPurchase   OrderRevisionPurchase?         @relation(fields: [sourceRevisionPurchaseId], references: [id], onDelete: Restrict)
+
+  @@index([providerEarningId, createdAt])
+  @@index([providerId, createdAt])
+  @@index([orderId])
+}
+
+model ProviderPayoutDestination {
+  id                      String                              @id @default(uuid()) @db.Uuid
+  providerId              String                              @db.Uuid
+  type                    PayoutDestinationType
+  displayLabel            String
+  maskedAccountIdentifier String
+  accountHolderName       String
+  providerAdapterKey      String?
+  externalReferenceToken  String?
+  verificationStatus      PayoutDestinationVerificationStatus @default(UNVERIFIED)
+  reviewedById            String?                             @db.Uuid
+  reviewedAt              DateTime?
+  reviewNote              String?
+  isActive                Boolean                             @default(true)
+  createdAt               DateTime                            @default(now())
+  updatedAt               DateTime                            @updatedAt
+  provider                User                                @relation("PayoutDestinationProvider", fields: [providerId], references: [id], onDelete: Restrict)
+  reviewedBy              User?                               @relation("PayoutDestinationReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+  payouts                 ProviderPayout[]
+
+  @@index([providerId, type, maskedAccountIdentifier], map: "PayoutDestination_provider_type_mask_idx")
+  @@index([providerId, isActive, createdAt])
+  @@index([verificationStatus, createdAt])
+}
+
+model ProviderPayout {
+  id                         String                    @id @default(uuid()) @db.Uuid
+  providerId                 String                    @db.Uuid
+  destinationId              String                    @db.Uuid
+  clientRequestId            String                    @db.Uuid
+  sourceKey                  String                    @unique
+  currency                   String
+  requestedPrincipalCentavos Int
+  eligiblePrincipalCentavos  Int
+  payoutFeeCentavos          Int                       @default(0)
+  netDisbursementCentavos    Int
+  status                     ProviderPayoutStatus      @default(REQUESTED)
+  destinationSnapshot        Json
+  settlementMethod           PayoutSettlementMethod?
+  providerAdapterKey         String?
+  externalPayoutId           String?                   @unique
+  externalStatus             String?
+  failureCode                String?
+  reconciliationContext      String?
+  approvedById               String?                   @db.Uuid
+  settledById                String?                   @db.Uuid
+  manualSettlementReference  String?                   @unique
+  settlementNote             String?
+  settlementAt               DateTime?
+  requestedAt                DateTime                  @default(now())
+  approvedAt                 DateTime?
+  processingAt               DateTime?
+  paidAt                     DateTime?
+  failedAt                   DateTime?
+  rejectedAt                 DateTime?
+  cancelledAt                DateTime?
+  reconciliationRequiredAt   DateTime?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+  provider                   User                      @relation("ProviderPayoutProvider", fields: [providerId], references: [id], onDelete: Restrict)
+  destination                ProviderPayoutDestination @relation(fields: [destinationId], references: [id], onDelete: Restrict)
+  approvedBy                 User?                     @relation("ProviderPayoutApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  settledBy                  User?                     @relation("ProviderPayoutSettler", fields: [settledById], references: [id], onDelete: Restrict)
+  items                      ProviderPayoutItem[]
+  audits                     ProviderPayoutAudit[]
+
+  @@unique([providerId, clientRequestId])
+  @@index([providerId, status, requestedAt])
+  @@index([status, requestedAt])
+  @@index([destinationId, requestedAt])
+}
+
+model ProviderPayoutItem {
+  id                String          @id @default(uuid()) @db.Uuid
+  payoutId          String          @db.Uuid
+  providerEarningId String          @db.Uuid
+  principalCentavos Int
+  currency          String
+  reservationActive Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  payout            ProviderPayout  @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+  providerEarning   ProviderEarning @relation(fields: [providerEarningId], references: [id], onDelete: Restrict)
+
+  @@unique([payoutId, providerEarningId])
+  @@index([providerEarningId, reservationActive])
+}
+
+model ProviderPayoutAudit {
+  id        String                    @id @default(uuid()) @db.Uuid
+  payoutId  String                    @db.Uuid
+  actorId   String?                   @db.Uuid
+  action    ProviderPayoutAuditAction
+  context   Json?
+  createdAt DateTime                  @default(now())
+  payout    ProviderPayout            @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+  actor     User?                     @relation("ProviderPayoutAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([payoutId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model PaymentWebhookEvent {
@@ -523,18 +1133,21 @@ model PaymentWebhookEvent {
 }
 
 model Notification {
-  id          String    @id @default(uuid()) @db.Uuid
-  recipientId String    @db.Uuid
-  orderId     String?   @db.Uuid
-  type        String
-  title       String
-  body        String
-  readAt      DateTime?
-  createdAt   DateTime  @default(now())
-  recipient   User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  order       Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id             String        @id @default(uuid()) @db.Uuid
+  recipientId    String        @db.Uuid
+  orderId        String?       @db.Uuid
+  conversationId String?       @db.Uuid
+  type           String
+  title          String
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime      @default(now())
+  recipient      User          @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  order          Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, readAt, createdAt])
+  @@index([conversationId, recipientId, readAt])
 }
 
 model OrderStatusHistory {
@@ -542,38 +1155,97 @@ model OrderStatusHistory {
   orderId    String       @db.Uuid
   fromStatus OrderStatus?
   toStatus   OrderStatus
-  changedBy  String       @db.Uuid
+  changedBy  String?      @db.Uuid
   note       String?
   createdAt  DateTime     @default(now())
   order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  actor      User         @relation(fields: [changedBy], references: [id])
+  actor      User?        @relation(fields: [changedBy], references: [id], onDelete: Restrict)
 
   @@index([orderId, createdAt])
 }
 
 model OrderFile {
-  id           String              @id @default(uuid()) @db.Uuid
-  orderId      String              @db.Uuid
-  uploadedBy   String              @db.Uuid
-  purpose      OrderFilePurpose
-  storagePath  String              @unique
-  originalName String
-  mimeType     String
-  sizeBytes    Int
-  checksum     String?
-  createdAt    DateTime            @default(now())
-  order        Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  uploader     User                @relation(fields: [uploadedBy], references: [id])
-  attachments  MessageAttachment[]
+  id                   String                    @id @default(uuid()) @db.Uuid
+  orderId              String                    @db.Uuid
+  deliverySubmissionId String?                   @db.Uuid
+  uploadedBy           String                    @db.Uuid
+  purpose              OrderFilePurpose
+  storagePath          String                    @unique
+  originalName         String
+  mimeType             String
+  sizeBytes            Int
+  checksum             String?
+  createdAt            DateTime                  @default(now())
+  order                Order                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliverySubmission   DeliverySubmission?       @relation(fields: [deliverySubmissionId], references: [id], onDelete: Restrict)
+  uploader             User                      @relation(fields: [uploadedBy], references: [id])
+  attachments          MessageAttachment[]
+  deliveryFileAccesses DeliveryFileAccessAudit[]
+
+  @@index([deliverySubmissionId])
+}
+
+model DeliverySubmission {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  orderId            String                    @db.Uuid
+  providerId         String                    @db.Uuid
+  version            Int
+  note               String?
+  clientRequestId    String?                   @db.Uuid
+  requestFingerprint String?
+  revisionRequestId  String?                   @unique @db.Uuid
+  submittedAt        DateTime                  @default(now())
+  createdAt          DateTime                  @default(now())
+  order              Order                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reviewForOrder     Order?                    @relation("OrderReviewDeliverySubmission")
+  revisionRequest    RevisionRequest?          @relation("RevisionDeliverySubmission", fields: [revisionRequestId], references: [id], onDelete: Restrict)
+  revisionSourceFor  RevisionRequest[]         @relation("RevisionSourceDeliverySubmission")
+  revisionPurchases  OrderRevisionPurchase[]
+  provider           User                      @relation("DeliverySubmissionProvider", fields: [providerId], references: [id])
+  files              OrderFile[]
+  fileAccesses       DeliveryFileAccessAudit[]
+  targetedByDisputes OrderDispute[]            @relation("DisputeTargetDelivery")
+
+  @@unique([orderId, version])
+  @@unique([orderId, clientRequestId])
+  @@index([providerId, submittedAt])
+}
+
+model DeliveryFileAccessAudit {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  orderId              String                 @db.Uuid
+  deliverySubmissionId String                 @db.Uuid
+  fileId               String                 @db.Uuid
+  userId               String                 @db.Uuid
+  accessType           DeliveryFileAccessType @default(ACCESS_GRANTED)
+  accessedAt           DateTime               @default(now())
+  order                Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliverySubmission   DeliverySubmission     @relation(fields: [deliverySubmissionId], references: [id], onDelete: Cascade)
+  file                 OrderFile              @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user                 User                   @relation("DeliveryFileAccessUser", fields: [userId], references: [id])
+
+  @@index([orderId, accessedAt])
+  @@index([deliverySubmissionId, accessedAt])
+  @@index([fileId, accessedAt])
+  @@index([userId, accessedAt])
 }
 
 model Conversation {
-  id           String                    @id @default(uuid()) @db.Uuid
-  orderId      String                    @unique @db.Uuid
-  createdAt    DateTime                  @default(now())
-  order        Order                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  participants ConversationParticipant[]
-  messages     Message[]
+  id            String                    @id @default(uuid()) @db.Uuid
+  kind          ConversationKind          @default(ORDER)
+  orderId       String?                   @unique @db.Uuid
+  clientId      String?                   @db.Uuid
+  providerId    String?                   @db.Uuid
+  createdAt     DateTime                  @default(now())
+  order         Order?                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  client        User?                     @relation("InquiryClient", fields: [clientId], references: [id], onDelete: Cascade)
+  provider      User?                     @relation("InquiryProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  participants  ConversationParticipant[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@unique([clientId, providerId])
+  @@index([providerId, createdAt])
 }
 
 model ConversationParticipant {
@@ -582,6 +1254,8 @@ model ConversationParticipant {
   lastReadMessageId String?      @db.Uuid
   lastReadAt        DateTime?
   hiddenAt          DateTime?
+  pinnedAt          DateTime?
+  archivedAt        DateTime?
   conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -617,18 +1291,73 @@ model MessageAttachment {
 }
 
 model RevisionRequest {
-  id             String         @id @default(uuid()) @db.Uuid
-  orderId        String         @db.Uuid
-  requestedBy    String         @db.Uuid
-  sequenceNumber Int
-  instructions   String
-  status         RevisionStatus @default(OPEN)
-  resolvedAt     DateTime?
-  createdAt      DateTime       @default(now())
-  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  requester      User           @relation(fields: [requestedBy], references: [id])
+  id                         String                 @id @default(uuid()) @db.Uuid
+  orderId                    String                 @db.Uuid
+  requestedBy                String                 @db.Uuid
+  sequenceNumber             Int
+  type                       RevisionType?
+  instructions               String
+  status                     RevisionStatus         @default(OPEN)
+  sourceDeliverySubmissionId String?                @db.Uuid
+  revisionDeadlineAt         DateTime?
+  turnaroundMinutes          Int?
+  providerAcknowledgedAt     DateTime?
+  declinedAt                 DateTime?
+  resolvedAt                 DateTime?
+  createdAt                  DateTime               @default(now())
+  order                      Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  requester                  User                   @relation(fields: [requestedBy], references: [id])
+  sourceDeliverySubmission   DeliverySubmission?    @relation("RevisionSourceDeliverySubmission", fields: [sourceDeliverySubmissionId], references: [id], onDelete: Restrict)
+  deliveredSubmission        DeliverySubmission?    @relation("RevisionDeliverySubmission")
+  purchase                   OrderRevisionPurchase?
+  targetedByDisputes         OrderDispute[]         @relation("DisputeTargetRevision")
 
   @@unique([orderId, sequenceNumber])
+  @@index([orderId, status, createdAt])
+  @@index([sourceDeliverySubmissionId, createdAt])
+}
+
+model OrderRevisionPurchase {
+  id                           String                           @id @default(uuid()) @db.Uuid
+  orderId                      String                           @db.Uuid
+  sourceDeliverySubmissionId   String                           @db.Uuid
+  clientId                     String                           @db.Uuid
+  providerId                   String                           @db.Uuid
+  revisionRequestId            String?                          @unique @db.Uuid
+  instructions                 String
+  providerSubtotalCentavos     Int
+  platformFeeCentavos          Int
+  totalCentavos                Int
+  currency                     String
+  turnaroundMinutes            Int
+  pricingPolicyVersion         Int
+  pricingBasisCentavos         Int
+  deliveryDurationBasisMinutes Int
+  providerPaymentId            String?                          @unique
+  providerCheckoutId           String?                          @unique
+  checkoutUrl                  String?
+  idempotencyKey               String                           @unique
+  paymentStatus                PaymentStatus                    @default(PENDING)
+  activationStatus             RevisionPurchaseActivationStatus @default(PENDING)
+  failureCode                  String?
+  paidAt                       DateTime?
+  activatedAt                  DateTime?
+  createdAt                    DateTime                         @default(now())
+  updatedAt                    DateTime                         @updatedAt
+  order                        Order                            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  sourceDeliverySubmission     DeliverySubmission               @relation(fields: [sourceDeliverySubmissionId], references: [id], onDelete: Restrict)
+  client                       User                             @relation("RevisionPurchaseClient", fields: [clientId], references: [id], onDelete: Restrict)
+  provider                     User                             @relation("RevisionPurchaseProvider", fields: [providerId], references: [id], onDelete: Restrict)
+  revisionRequest              RevisionRequest?                 @relation(fields: [revisionRequestId], references: [id], onDelete: Restrict)
+  providerEarning              ProviderEarning?
+  earningLedgerEntries         ProviderEarningLedgerEntry[]
+  targetedByDisputes           OrderDispute[]                   @relation("DisputeTargetRevisionPurchase")
+  refunds                      PaymentRefund[]
+  refundedCentavos             Int                              @default(0)
+
+  @@index([orderId, createdAt])
+  @@index([sourceDeliverySubmissionId, paymentStatus], map: "OrderRevisionPurchase_sourceDeliverySubmissionId_paymentSta_idx")
+  @@index([paymentStatus, createdAt])
 }
 
 model Review {

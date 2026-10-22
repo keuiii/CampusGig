@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Req,
@@ -26,6 +29,7 @@ import {
   RegenerateRecoveryCodesDto,
 } from "./dto/disable-mfa.dto";
 import { PasswordChangeDecisionDto } from "./dto/password-change-decision.dto";
+import { RefreshSessionDto } from "./dto/session-client.dto";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -38,28 +42,130 @@ export class AuthController {
   }
 
   @Post("login")
-  login(@Body() input: LoginDto) {
-    return this.auth.login(input);
+  async login(
+    @Body() input: LoginDto,
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.deliverSession(
+      await this.auth.login({
+        ...input,
+        trustedDeviceToken: this.trustedDeviceToken(input, request),
+      }),
+      input.clientType,
+      response,
+    );
   }
 
   @Post("social")
-  socialLogin(@Body() input: SocialLoginDto) {
-    return this.auth.socialLogin(input);
+  async socialLogin(
+    @Body() input: SocialLoginDto,
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.deliverSession(
+      await this.auth.socialLogin({
+        ...input,
+        trustedDeviceToken: this.trustedDeviceToken(input, request),
+      }),
+      input.clientType,
+      response,
+    );
   }
 
   @Post("mfa/challenge")
-  verifyMfaChallenge(@Body() input: MfaChallengeDto) {
-    return this.auth.verifyMfaChallenge(
-      input.challengeToken,
-      input.code,
-      input.recoveryCode,
-      input.rememberDevice,
+  async verifyMfaChallenge(
+    @Body() input: MfaChallengeDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.deliverSession(
+      await this.auth.verifyMfaChallenge(
+        input.challengeToken,
+        input.code,
+        input.recoveryCode,
+        input.rememberDevice,
+        {
+          clientType: input.clientType ?? "WEB",
+          deviceName:
+            input.deviceName?.trim() ||
+            (input.clientType === "MOBILE" ? "Mobile device" : "Web browser"),
+        },
+      ),
+      input.clientType,
+      response,
     );
   }
 
   @Post("verify-email")
-  verifyEmail(@Body() input: EmailCodeDto) {
-    return this.auth.verifyEmail(input);
+  async verifyEmail(
+    @Body() input: EmailCodeDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.deliverSession(
+      await this.auth.verifyEmail(input),
+      input.clientType,
+      response,
+    );
+  }
+
+  @Post("refresh")
+  @HttpCode(200)
+  async refresh(
+    @Req() request: AuthenticatedRequest,
+    @Body() input: RefreshSessionDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const cookieToken = this.cookie(request, this.refreshCookieName());
+    const refreshToken = input.refreshToken ?? cookieToken;
+    if (!refreshToken) return this.auth.refreshSession("");
+    return this.deliverSession(
+      await this.auth.refreshSession(refreshToken),
+      input.refreshToken ? "MOBILE" : "WEB",
+      response,
+    );
+  }
+
+  @Post("logout")
+  @HttpCode(200)
+  async logout(
+    @Req() request: AuthenticatedRequest,
+    @Body() input: RefreshSessionDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.auth.logout(
+      input.refreshToken ?? this.cookie(request, this.refreshCookieName()),
+    );
+    this.clearRefreshCookie(response);
+    return result;
+  }
+
+  @Get("sessions")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  sessions(@Req() request: AuthenticatedRequest) {
+    return this.auth.listSessions(request.auth.sub, request.auth.sid);
+  }
+
+  @Delete("sessions/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  revokeSession(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.auth.revokeSession(request.auth.sub, id);
+  }
+
+  @Post("logout-all")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async logoutAll(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.auth.logoutAll(request.auth.sub);
+    this.clearRefreshCookie(response);
+    return result;
   }
 
   @Post("resend-verification")
@@ -87,15 +193,18 @@ export class AuthController {
   @Post("change-password")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  changePassword(
+  async changePassword(
     @Req() request: AuthenticatedRequest,
     @Body() input: ChangePasswordDto,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.auth.changePassword(
+    const result = await this.auth.changePassword(
       request.auth.sub,
       input,
       `${request.protocol}://${request.get("host")}`,
     );
+    if (result.status === "CONFIRMED") this.clearTrustedDeviceCookie(response);
+    return result;
   }
 
   @Get("password-change/pending")
@@ -110,7 +219,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   passwordChangeStatus(
     @Req() request: AuthenticatedRequest,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ) {
     return this.auth.passwordChangeStatus(request.auth.sub, id);
   }
@@ -120,7 +229,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   cancelPasswordChange(
     @Req() request: AuthenticatedRequest,
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
   ) {
     return this.auth.cancelPasswordChange(request.auth.sub, id);
   }
@@ -202,7 +311,120 @@ export class AuthController {
   @Post("mfa/trusted-devices/revoke")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  revokeTrustedDevices(@Req() request: AuthenticatedRequest) {
-    return this.auth.revokeTrustedDevices(request.auth.sub);
+  async revokeTrustedDevices(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.auth.revokeTrustedDevices(request.auth.sub);
+    this.clearTrustedDeviceCookie(response);
+    return result;
+  }
+
+  private deliverSession(
+    result: Record<string, unknown>,
+    clientType: "WEB" | "MOBILE" | undefined,
+    response: Response,
+  ) {
+    if (clientType === "MOBILE") return result;
+    if (result.requiresTwoFactor) {
+      this.clearTrustedDeviceCookie(response);
+      return result;
+    }
+    if (typeof result.refreshToken !== "string") return result;
+    this.setRefreshCookie(
+      response,
+      result.refreshToken,
+      typeof result.refreshExpiresIn === "number"
+        ? result.refreshExpiresIn
+        : 7 * 24 * 60 * 60,
+    );
+    if (typeof result.trustedDeviceToken === "string")
+      this.setTrustedDeviceCookie(
+        response,
+        result.trustedDeviceToken,
+        typeof result.trustedForDays === "number" ? result.trustedForDays : 30,
+      );
+    const {
+      refreshToken: _refreshToken,
+      trustedDeviceToken: _trustedDeviceToken,
+      trustedForDays: _trustedForDays,
+      ...browserResult
+    } = result;
+    return browserResult;
+  }
+
+  private setRefreshCookie(response: Response, token: string, maxAge: number) {
+    response.cookie(this.refreshCookieName(), token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth",
+      maxAge: maxAge * 1000,
+    });
+  }
+
+  private clearRefreshCookie(response: Response) {
+    response.clearCookie(this.refreshCookieName(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth",
+    });
+  }
+
+  private refreshCookieName() {
+    return "campusgig_refresh";
+  }
+
+  private setTrustedDeviceCookie(
+    response: Response,
+    token: string,
+    maxAgeDays: number,
+  ) {
+    response.cookie(this.trustedDeviceCookieName(), token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth",
+      maxAge: maxAgeDays * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  private clearTrustedDeviceCookie(response: Response) {
+    response.clearCookie(this.trustedDeviceCookieName(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth",
+    });
+  }
+
+  private trustedDeviceCookieName() {
+    return "campusgig_trusted_device";
+  }
+
+  private trustedDeviceToken(
+    input: { clientType?: "WEB" | "MOBILE"; trustedDeviceToken?: string },
+    request: AuthenticatedRequest,
+  ) {
+    return input.clientType === "MOBILE"
+      ? input.trustedDeviceToken
+      : this.cookie(request, this.trustedDeviceCookieName());
+  }
+
+  private cookie(request: AuthenticatedRequest, name: string) {
+    const header = request.headers.cookie;
+    if (!header) return undefined;
+    for (const pair of header.split(";")) {
+      const separator = pair.indexOf("=");
+      if (separator < 0) continue;
+      if (pair.slice(0, separator).trim() !== name) continue;
+      try {
+        return decodeURIComponent(pair.slice(separator + 1).trim());
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
   }
 }

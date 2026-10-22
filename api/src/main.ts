@@ -8,6 +8,14 @@ import { createHelmetOptions } from "./security/helmet-options";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set("trust proxy", "loopback, linklocal, uniquelocal");
+  const server = app.getHttpServer();
+  server.headersTimeout = 15_000;
+  server.keepAliveTimeout = 5_000;
+  server.maxRequestsPerSocket = 1_000;
   app.setGlobalPrefix("api/v1");
   app.use(helmet(createHelmetOptions(process.env.NODE_ENV)));
   const configuredOrigins = (process.env.WEB_ORIGIN ?? "http://localhost:3000")

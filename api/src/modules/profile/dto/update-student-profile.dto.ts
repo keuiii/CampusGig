@@ -11,6 +11,6 @@ import {
 export class UpdateStudentProfileDto {
   @IsUUID() schoolId!: string;
   @IsString() @MaxLength(120) program!: string;
-  @IsInt() @Min(1) @Max(10) yearLevel!: number;
+  @IsInt() @Min(1) @Max(6) yearLevel!: number;
   @IsOptional() @IsString() @MaxLength(500) bio?: string;
 }

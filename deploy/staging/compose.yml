@@ -1,0 +1,265 @@
+name: campusgig-staging
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes:
+      - clamav-signatures:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 90s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/Dockerfile.api
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/Dockerfile.api
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    volumes:
+      - api-upload-buffer:/app/private-storage
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      WEB_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+      EMAIL_ACTION_BASE_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
+      REFRESH_TOKEN_IDLE_DAYS: ${REFRESH_TOKEN_IDLE_DAYS:-7}
+      REFRESH_TOKEN_ABSOLUTE_DAYS: ${REFRESH_TOKEN_ABSOLUTE_DAYS:-30}
+      REFRESH_TOKEN_REPLAY_GRACE_SECONDS: ${REFRESH_TOKEN_REPLAY_GRACE_SECONDS:-15}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set MFA_ENCRYPTION_KEY}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:?Set EMAIL_FROM}
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:?Set GOOGLE_WEB_CLIENT_ID}
+      GOOGLE_ANDROID_CLIENT_ID: ${GOOGLE_ANDROID_CLIENT_ID:?Set GOOGLE_ANDROID_CLIENT_ID}
+      GOOGLE_IOS_CLIENT_ID: ${GOOGLE_IOS_CLIENT_ID:-}
+      PAYMONGO_MODE: ${PAYMONGO_MODE:-test}
+      PAYMONGO_SECRET_KEY: ${PAYMONGO_SECRET_KEY:?Set PAYMONGO_SECRET_KEY}
+      PAYMONGO_WEBHOOK_SECRET: ${PAYMONGO_WEBHOOK_SECRET:?Set PAYMONGO_WEBHOOK_SECRET}
+      PAYMONGO_PAYMENT_METHODS: ${PAYMONGO_PAYMENT_METHODS:-card,gcash,paymaya}
+      PLATFORM_FEE_BASIS_POINTS: ${PLATFORM_FEE_BASIS_POINTS:-500}
+      PLATFORM_FEE_MIN_CENTAVOS: ${PLATFORM_FEE_MIN_CENTAVOS:-0}
+      RUSH_24_HOURS_BASIS_POINTS: ${RUSH_24_HOURS_BASIS_POINTS:-2000}
+      RUSH_12_HOURS_BASIS_POINTS: ${RUSH_12_HOURS_BASIS_POINTS:-3000}
+      RUSH_6_HOURS_BASIS_POINTS: ${RUSH_6_HOURS_BASIS_POINTS:-4000}
+      RUSH_3_HOURS_BASIS_POINTS: ${RUSH_3_HOURS_BASIS_POINTS:-5000}
+      PAYMONGO_SUCCESS_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}/?payment=success&orderId={orderId}
+      PAYMONGO_CANCEL_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}/?payment=cancelled&orderId={orderId}
+      PAYMONGO_MOBILE_RETURN_ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+      STORAGE_DRIVER: s3
+      STORAGE_SIGNED_URL_TTL_SECONDS: ${STORAGE_SIGNED_URL_TTL_SECONDS:-300}
+      S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET}
+      S3_REGION: ${S3_REGION:?Set S3_REGION}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+      S3_PREFIX: ${S3_PREFIX:-campusgig-staging}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY}
+      S3_KMS_KEY_ID: ${S3_KMS_KEY_ID:-}
+      MALWARE_SCANNER_DRIVER: clamav
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
+      READINESS_TIMEOUT_MS: ${READINESS_TIMEOUT_MS:-5000}
+      METRICS_TOKEN_FILE: /run/secrets/metrics_token
+    secrets:
+      - metrics_token
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      clamav:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+      - edge
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:?Set GOOGLE_WEB_CLIENT_ID}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+      CAMPUSGIG_DOMAIN: ${CAMPUSGIG_DOMAIN:?Set CAMPUSGIG_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle=false
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    secrets:
+      - metrics_token
+    depends_on:
+      api:
+        condition: service_healthy
+      alertmanager:
+        condition: service_started
+      node-exporter:
+        condition: service_started
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+      - "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/containers/storage/.+)($$|/)"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+      - ../../backups/metrics:/textfile:ro
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+
+volumes:
+  alertmanager-data:
+  api-upload-buffer:
+  caddy-config:
+  caddy-data:
+  clamav-signatures:
+  postgres-data:
+  prometheus-data:
+
+secrets:
+  metrics_token:
+    file: ./secrets/metrics_token
+
+networks:
+  backend:
+    internal: true
+  edge:

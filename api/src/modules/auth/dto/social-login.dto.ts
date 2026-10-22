@@ -5,8 +5,9 @@ import {
   MaxLength,
   MinLength,
 } from "class-validator";
+import { SessionClientDto } from "./session-client.dto";
 
-export class SocialLoginDto {
+export class SocialLoginDto extends SessionClientDto {
   @IsIn(["GOOGLE"])
   provider!: "GOOGLE";
 

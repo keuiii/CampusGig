@@ -1,126 +1,100 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ConflictException, NotFoundException } from "@nestjs/common";
-import { DisputesService } from "../src/modules/disputes/disputes.service";
+import {
+  DisputeReason,
+  DisputeResponseParty,
+  DisputeStatus,
+} from "@prisma/client";
+import {
+  affectedEarningForTarget,
+  canOpenAfterExplicitAcceptance,
+  remainingReviewSeconds,
+  responseDeadline,
+  resumedReviewDeadline,
+  waitingStatus,
+} from "../src/modules/disputes/dispute-policy";
+import {
+  ACTIVE_DISPUTE_STATUSES,
+  isActiveDisputeStatus,
+} from "../src/modules/disputes/dispute-status";
 import { PaymentLedgerService } from "../src/modules/payments/payment-ledger.service";
 
-function participantOrder(status = "IN_PROGRESS") {
-  return {
-    id: "order-1",
-    clientId: "client-1",
-    providerId: "provider-1",
-    status,
-    titleSnapshot: "Logo Design",
-  };
-}
-
-test("an order participant opens one dispute and notifies the counterparty atomically", async () => {
-  let disputeInput: any;
-  let notificationInput: any;
-  const created = {
-    id: "dispute-1",
-    orderId: "order-1",
-    status: "OPEN",
-  };
-  const database = {
-    orderDispute: {
-      create: async (input: unknown) => {
-        disputeInput = input;
-        return created;
-      },
-    },
-    notification: {
-      create: async (input: unknown) => (notificationInput = input),
-    },
-  };
-  const prisma = {
-    order: { findFirst: async () => participantOrder() },
-    $transaction: async (operation: (client: typeof database) => unknown) =>
-      operation(database),
-  };
-
-  const result = await new DisputesService(prisma as never).open(
-    "client-1",
-    "order-1",
-    "QUALITY_ISSUE",
-    "The submitted work does not match the agreed requirements.",
-  );
-
-  assert.equal(disputeInput.data.openedById, "client-1");
-  assert.equal(disputeInput.data.reason, "QUALITY_ISSUE");
-  assert.equal(notificationInput.data.recipientId, "provider-1");
-  assert.equal(notificationInput.data.type, "ORDER_DISPUTE_OPENED");
-  assert.equal(result.data.status, "OPEN");
+test("Phase H defines every unresolved dispute state as active", () => {
+  assert.deepEqual(ACTIVE_DISPUTE_STATUSES, [
+    "OPEN",
+    "WAITING_FOR_CLIENT",
+    "WAITING_FOR_PROVIDER",
+    "READY_FOR_REVIEW",
+    "UNDER_REVIEW",
+  ]);
+  assert.equal(isActiveDisputeStatus(DisputeStatus.RESOLVED_CLIENT), false);
+  assert.equal(isActiveDisputeStatus(DisputeStatus.RESOLVED_PROVIDER), false);
+  assert.equal(isActiveDisputeStatus(DisputeStatus.CLOSED), false);
 });
 
-test("a dispute cannot be opened before the provider accepts the request", async () => {
-  const prisma = {
-    order: { findFirst: async () => participantOrder("REQUESTED") },
-  };
-  await assert.rejects(
-    () =>
-      new DisputesService(prisma as never).open(
-        "client-1",
-        "order-1",
-        "OTHER",
-        "There is a problem with this request.",
-      ),
-    ConflictException,
+test("response requests persist an exact 48-hour window and matching wait state", () => {
+  const requestedAt = new Date("2026-10-07T00:00:00.000Z");
+  assert.equal(
+    responseDeadline(requestedAt).toISOString(),
+    "2026-10-09T00:00:00.000Z",
+  );
+  assert.equal(
+    waitingStatus(DisputeResponseParty.CLIENT),
+    DisputeStatus.WAITING_FOR_CLIENT,
+  );
+  assert.equal(
+    waitingStatus(DisputeResponseParty.PROVIDER),
+    DisputeStatus.WAITING_FOR_PROVIDER,
   );
 });
 
-test("users outside an order cannot read its dispute", async () => {
-  const prisma = { order: { findFirst: async () => null } };
-  await assert.rejects(
-    () => new DisputesService(prisma as never).forOrder("outsider", "order-1"),
-    NotFoundException,
+test("paid revision targeting selects only the explicitly associated earning", () => {
+  const earnings = [
+    { id: "original", sourceType: "ORIGINAL_ORDER", revisionPurchaseId: null },
+    {
+      id: "revision-1",
+      sourceType: "PAID_EXTRA_REVISION",
+      revisionPurchaseId: "purchase-1",
+    },
+    {
+      id: "revision-2",
+      sourceType: "PAID_EXTRA_REVISION",
+      revisionPurchaseId: "purchase-2",
+    },
+  ];
+  assert.equal(affectedEarningForTarget(earnings, null)?.id, "original");
+  assert.equal(
+    affectedEarningForTarget(earnings, "purchase-2")?.id,
+    "revision-2",
+  );
+  assert.equal(affectedEarningForTarget(earnings, "missing"), undefined);
+});
+
+test("provider resolution resumes exactly the remaining review duration", () => {
+  const pausedAt = new Date("2026-10-07T10:00:00.000Z");
+  const oldDeadline = new Date("2026-10-07T11:00:01.000Z");
+  const remaining = remainingReviewSeconds(oldDeadline, pausedAt);
+  assert.equal(remaining, 3_601);
+  assert.equal(
+    resumedReviewDeadline(
+      new Date("2026-10-10T00:00:00.000Z"),
+      remaining,
+    ).toISOString(),
+    "2026-10-10T01:00:01.000Z",
   );
 });
 
-test("administrator resolution is conditional and notifies both participants", async () => {
-  let updateInput: any;
-  let notificationsInput: any;
-  const dispute = {
-    id: "dispute-1",
-    orderId: "order-1",
-    status: "UNDER_REVIEW",
-    order: { clientId: "client-1", providerId: "provider-1" },
-  };
-  const database = {
-    orderDispute: {
-      updateMany: async (input: unknown) => {
-        updateInput = input;
-        return { count: 1 };
-      },
-      findUniqueOrThrow: async () => ({
-        ...dispute,
-        status: "RESOLVED_CLIENT",
-      }),
-    },
-    notification: {
-      createMany: async (input: unknown) => (notificationsInput = input),
-    },
-  };
-  const prisma = {
-    orderDispute: { findUnique: async () => dispute },
-    $transaction: async (operation: (client: typeof database) => unknown) =>
-      operation(database),
-  };
-
-  const result = await new DisputesService(prisma as never).resolve(
-    "admin-1",
-    "dispute-1",
-    "RESOLVED_CLIENT",
-    "The evidence supports a refund to the client.",
+test("explicit acceptance permits only payment and conduct escalations", () => {
+  assert.equal(
+    canOpenAfterExplicitAcceptance(DisputeReason.PAYMENT_ISSUE),
+    true,
   );
-
-  assert.equal(updateInput.data.resolvedById, "admin-1");
-  assert.equal(updateInput.data.status, "RESOLVED_CLIENT");
-  assert.deepEqual(
-    notificationsInput.data.map((item: { recipientId: string }) => item.recipientId),
-    ["client-1", "provider-1"],
+  assert.equal(canOpenAfterExplicitAcceptance(DisputeReason.CONDUCT), true);
+  assert.equal(
+    canOpenAfterExplicitAcceptance(DisputeReason.QUALITY_ISSUE),
+    false,
   );
-  assert.equal(result.data.status, "RESOLVED_CLIENT");
+  assert.equal(canOpenAfterExplicitAcceptance(DisputeReason.OTHER), false);
 });
 
 test("pending payment snapshots preserve the order total and fee", async () => {

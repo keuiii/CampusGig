@@ -1,8 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import type { AuthUser } from "../../types";
+import {
+  evaluateWebPassword,
+  webPasswordConfirmationMatches,
+} from "./web-password-rules";
 
 export function UnifiedAccount({
   onAuthenticated,
@@ -15,6 +20,7 @@ export function UnifiedAccount({
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
   const [mfaChallenge, setMfaChallenge] = useState("");
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
@@ -23,11 +29,29 @@ export function UnifiedAccount({
   const [resetUsesRecovery, setResetUsesRecovery] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const googleButton = useRef<HTMLDivElement>(null);
+  const onAuthenticatedRef = useRef(onAuthenticated);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  useEffect(() => {
+    onAuthenticatedRef.current = onAuthenticated;
+  }, [onAuthenticated]);
+  const finishAuthentication = useCallback(
+    (session: Awaited<ReturnType<typeof api.login>>) => {
+      if ("requiresTwoFactor" in session) {
+        setMfaChallenge(session.challengeToken);
+        setMode("mfa");
+        setCode("");
+        setNotice("Open your authenticator app and enter the current code.");
+        return;
+      }
+      onAuthenticatedRef.current(session.accessToken, session.user);
+    },
+    [],
+  );
   useEffect(() => {
     if (
       !googleClientId ||
@@ -61,12 +85,7 @@ export function UnifiedAccount({
           setSubmitting(true);
           setError("");
           try {
-            const session = await api.socialLogin(
-              "GOOGLE",
-              credential,
-              window.localStorage.getItem("campusgig.trustedDevice") ??
-                undefined,
-            );
+            const session = await api.socialLogin("GOOGLE", credential);
             finishAuthentication(session);
           } catch (caught) {
             setError(
@@ -100,25 +119,7 @@ export function UnifiedAccount({
     script.dataset.campusgigGoogle = "true";
     script.onload = startGoogle;
     document.head.appendChild(script);
-  }, [googleClientId, mode, onAuthenticated]);
-  function finishAuthentication(
-    session: Awaited<ReturnType<typeof api.login>>,
-  ) {
-    if ("requiresTwoFactor" in session) {
-      window.localStorage.removeItem("campusgig.trustedDevice");
-      setMfaChallenge(session.challengeToken);
-      setMode("mfa");
-      setCode("");
-      setNotice("Open your authenticator app and enter the current code.");
-      return;
-    }
-    if (session.trustedDeviceToken)
-      window.localStorage.setItem(
-        "campusgig.trustedDevice",
-        session.trustedDeviceToken,
-      );
-    onAuthenticated(session.accessToken, session.user);
-  }
+  }, [finishAuthentication, googleClientId, mode]);
   function switchMode(
     next: "login" | "register" | "verify" | "forgot" | "reset" | "mfa",
   ) {
@@ -127,8 +128,10 @@ export function UnifiedAccount({
     setError("");
     setNotice("");
     setPassword("");
+    setConfirmPassword("");
     setCode("");
     setShowPassword(false);
+    setShowConfirmPassword(false);
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -136,13 +139,11 @@ export function UnifiedAccount({
     setError("");
     try {
       if (mode === "login") {
-        const session = await api.login(
-          email.trim(),
-          password,
-          window.localStorage.getItem("campusgig.trustedDevice") ?? undefined,
-        );
+        const session = await api.login(email.trim(), password);
         finishAuthentication(session);
       } else if (mode === "register") {
+        if (!webPasswordConfirmationMatches(password, confirmPassword))
+          throw new Error("Enter the same password again to confirm it.");
         const result = await api.register(
           displayName.trim(),
           email.trim(),
@@ -223,6 +224,11 @@ export function UnifiedAccount({
             : mode === "login"
               ? "CampusGig will automatically open the workspace allowed for your account."
               : "Create a Client account. Select Student only if you attend a participating school.";
+  const passwordStrength = evaluateWebPassword(password);
+  const passwordsMatch = webPasswordConfirmationMatches(
+    password,
+    confirmPassword,
+  );
   const formReady =
     mode === "mfa"
       ? useRecoveryCode
@@ -236,11 +242,18 @@ export function UnifiedAccount({
             ? code.length === 6 && password.length >= 8
             : email.trim().includes("@") &&
               password.length >= 8 &&
-              (mode === "login" || displayName.trim().length >= 2);
+              (mode === "login" ||
+                (displayName.trim().length >= 2 && passwordsMatch));
   return (
     <main className="admin-login-page">
       <section className="admin-login-card unified-auth-card">
-        <div className="admin-login-mark">C</div>
+        <Image
+          className="admin-login-mark"
+          src="/brand/campusgig-mark.svg"
+          alt="CampusGig"
+          width={56}
+          height={56}
+        />
         <span className="kicker">ONE CAMPUSGIG ACCOUNT</span>
         <div key={`intro-${mode}`} className="auth-copy-transition">
           <h1>{title}</h1>
@@ -388,13 +401,54 @@ export function UnifiedAccount({
               </div>
             </label>
           )}
-          {(mode === "register" || mode === "reset") && (
-            <div
-              className={`web-password-rule ${password.length >= 8 ? "ready" : ""}`}
-            >
-              <span>{password.length >= 8 ? "✓" : "○"}</span> Minimum 8
-              characters
+          {(mode === "register" || mode === "reset") && password.length > 0 && (
+            <div className={`web-password-strength ${passwordStrength.tone}`}>
+              <div>
+                <span>Password strength</span>
+                <b>{passwordStrength.label}</b>
+              </div>
+              <i aria-hidden="true">
+                <span
+                  style={{ width: `${passwordStrength.progress * 100}%` }}
+                />
+              </i>
+              <small className={password.length >= 8 ? "ready" : ""}>
+                {password.length >= 8 ? "✓" : "○"} Minimum 8 characters
+              </small>
             </div>
+          )}
+          {mode === "register" && (
+            <label>
+              Confirm password
+              <div className="web-password-field">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Enter password again"
+                  minLength={8}
+                  required
+                  autoComplete="new-password"
+                  aria-invalid={confirmPassword.length > 0 && !passwordsMatch}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                >
+                  {showConfirmPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <small
+                className={`web-password-match ${confirmPassword.length > 0 ? (passwordsMatch ? "ready" : "invalid") : ""}`}
+                aria-live="polite"
+              >
+                {confirmPassword.length === 0
+                  ? "Passwords must match"
+                  : passwordsMatch
+                    ? "Passwords match"
+                    : "Passwords do not match"}
+              </small>
+            </label>
           )}
           {mode === "reset" && (
             <label>
@@ -428,7 +482,7 @@ export function UnifiedAccount({
           {notice && <div className="auth-notice">{notice}</div>}
           {error && <div className="admin-login-error">{error}</div>}
           <button
-            className="primary-button wide"
+            className="primary-button auth-submit-button"
             disabled={submitting || !formReady}
           >
             {submitting

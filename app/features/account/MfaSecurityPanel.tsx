@@ -1,26 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/* eslint-disable @next/next/no-img-element -- The QR code is an in-memory data URL and cannot use the Next image optimizer. */
+import { useCallback, useEffect, useState } from "react";
+import { useAppDialog } from "../../components/app-dialog";
 import { api } from "../../lib/api";
-import type { MfaSetup, MfaStatus } from "../../types";
+import type { AuthSession, MfaSetup, MfaStatus } from "../../types";
 
 export function MfaSecurityPanel({
   token,
   notify,
+  onSessionEnded,
 }: {
   token: string;
   notify: (message: string) => void;
+  onSessionEnded: () => void;
 }) {
+  const appDialog = useAppDialog();
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [setup, setSetup] = useState<MfaSetup | null>(null);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [sessions, setSessions] = useState<AuthSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState("");
 
-  async function refresh() {
-    setStatus(await api.mfaStatus(token));
-  }
+  const refresh = useCallback(async () => {
+    setSessionsLoading(true);
+    const [mfaResult, sessionsResult] = await Promise.allSettled([
+      api.mfaStatus(token),
+      api.authSessions(token),
+    ]);
+    if (mfaResult.status === "fulfilled") setStatus(mfaResult.value);
+    if (sessionsResult.status === "fulfilled") {
+      setSessions(sessionsResult.value.data);
+      setSessionsError("");
+    } else {
+      setSessions([]);
+      setSessionsError(
+        sessionsResult.reason instanceof Error
+          ? sessionsResult.reason.message
+          : "Active sessions could not be loaded",
+      );
+    }
+    setSessionsLoading(false);
+    if (mfaResult.status === "rejected") throw mfaResult.reason;
+  }, [token]);
   useEffect(() => {
     void refresh().catch((error) =>
       notify(
@@ -29,7 +55,7 @@ export function MfaSecurityPanel({
           : "Unable to load security settings",
       ),
     );
-  }, [token]);
+  }, [notify, refresh]);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -79,7 +105,13 @@ export function MfaSecurityPanel({
 
       {setup && !status.enabled && (
         <div className="mfa-setup-grid">
-          <img src={setup.qrCodeDataUrl} alt="Authenticator setup QR code" />
+          <img
+            src={setup.qrCodeDataUrl}
+            alt="Authenticator setup QR code"
+            width={220}
+            height={220}
+            decoding="async"
+          />
           <div>
             <h3>Scan this QR code</h3>
             <p>
@@ -157,7 +189,6 @@ export function MfaSecurityPanel({
               onClick={() =>
                 void run(async () => {
                   const result = await api.revokeTrustedDevices(token);
-                  window.localStorage.removeItem("campusgig.trustedDevice");
                   await refresh();
                   notify(
                     `${result.revoked} trusted device${result.revoked === 1 ? "" : "s"} removed`,
@@ -226,6 +257,99 @@ export function MfaSecurityPanel({
           )}
         </div>
       )}
+
+      <div className="auth-session-panel">
+        <div className="auth-session-heading">
+          <div>
+            <h3>Active sessions</h3>
+            <p>Devices currently signed in to your CampusGig account.</p>
+          </div>
+          {sessions.length > 1 && (
+            <button
+              className="outline-action danger"
+              disabled={busy}
+              onClick={() =>
+                void (async () => {
+                  if (
+                    !(await appDialog.confirm({
+                      title: "Sign out every device?",
+                      message:
+                        "This will immediately end every CampusGig session, including the device you are using now.",
+                      confirmLabel: "Sign out all",
+                      cancelLabel: "Keep sessions",
+                      tone: "danger",
+                    }))
+                  )
+                    return;
+                  await run(async () => {
+                    await api.logoutAll(token);
+                    onSessionEnded();
+                  });
+                })()
+              }
+            >
+              Sign out all
+            </button>
+          )}
+        </div>
+        <div className="auth-session-list">
+          {sessionsLoading && <small>Loading active sessions...</small>}
+          {!sessionsLoading && sessionsError && (
+            <div>
+              <small role="alert">{sessionsError}</small>
+              <button
+                className="outline-action"
+                disabled={busy}
+                onClick={() =>
+                  void refresh().catch((error) =>
+                    notify(
+                      error instanceof Error
+                        ? error.message
+                        : "Unable to load security settings",
+                    ),
+                  )
+                }
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {sessions.map((session) => (
+            <div className="auth-session-row" key={session.id}>
+              <div>
+                <b>
+                  {session.deviceName}
+                  {session.current ? " · This device" : ""}
+                </b>
+                <small>
+                  {session.clientType === "MOBILE" ? "Mobile app" : "Web"} ·
+                  Last used {new Date(session.lastUsedAt).toLocaleString()}
+                </small>
+              </div>
+              <button
+                className="outline-action"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    const result = await api.revokeAuthSession(
+                      token,
+                      session.id,
+                    );
+                    if (result.revoked === 0)
+                      throw new Error("This session has already ended");
+                    if (session.current) return onSessionEnded();
+                    await refresh();
+                    notify("Device signed out");
+                  })
+                }
+              >
+                Sign out
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+      {appDialog.dialog}
     </section>
   );
 }

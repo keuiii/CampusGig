@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "../../components/dashboard";
+import { useAppDialog } from "../../components/app-dialog";
 import { api } from "../../lib/api";
+import { SkeletonCollection } from "../../components/Skeletons";
 import type { AuthUser, Verification } from "../../types";
 
 export function SchoolAdminDashboard({
@@ -16,25 +18,64 @@ export function SchoolAdminDashboard({
   notify: (s: string) => void;
   onLogout: () => void;
 }) {
+  const appDialog = useAppDialog();
   const [queue, setQueue] = useState<Verification[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     api
       .verifications(token)
-      .then(setQueue)
+      .then((page) => {
+        setQueue(page.data);
+        setNextCursor(page.pagination.nextCursor);
+        setHasMore(page.pagination.hasMore);
+      })
       .catch(() => notify("Unable to load your school verification queue"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [notify, token]);
+  async function loadMore() {
+    if (loadingMore || !nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const page = await api.verifications(token, nextCursor);
+      setQueue((current) => [...current, ...page.data]);
+      setNextCursor(page.pagination.nextCursor);
+      setHasMore(page.pagination.hasMore);
+    } catch (caught) {
+      notify(caught instanceof Error ? caught.message : "Unable to load more");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
   async function review(item: Verification, decision: "approve" | "reject") {
     const reason =
       decision === "reject"
-        ? window
-            .prompt(
-              "Why is this verification being rejected? The student will see this reason.",
-            )
-            ?.trim()
+        ? await appDialog.prompt({
+            title: "Return this verification?",
+            message:
+              "Explain what must be corrected. The student will receive this reason.",
+            placeholder: "Describe the verification issue…",
+            minLength: 3,
+            maxLength: 500,
+            confirmLabel: "Return verification",
+            cancelLabel: "Keep reviewing",
+            tone: "danger",
+          })
         : "";
     if (decision === "reject" && !reason) return;
+    if (
+      decision === "approve" &&
+      !(await appDialog.confirm({
+        title: "Approve this student?",
+        message:
+          "The student identity will be verified for your assigned school.",
+        confirmLabel: "Approve student",
+        cancelLabel: "Review again",
+      }))
+    )
+      return;
     try {
       if (decision === "approve") await api.approveVerification(token, item.id);
       else await api.rejectVerification(token, item.id, reason!);
@@ -73,7 +114,10 @@ export function SchoolAdminDashboard({
         }
       />
       {loading ? (
-        <div className="admin-loading">Loading your school workspace…</div>
+        <SkeletonCollection
+          kind="admin"
+          label="Loading your school workspace"
+        />
       ) : (
         <section className="panel admin-panel">
           <div className="panel-title">
@@ -136,8 +180,18 @@ export function SchoolAdminDashboard({
               <p>New submissions from your assigned school will appear here.</p>
             </div>
           )}
+          {hasMore && (
+            <button
+              className="primary-button"
+              disabled={loadingMore}
+              onClick={() => void loadMore()}
+            >
+              {loadingMore ? "Loading..." : "Load more verifications"}
+            </button>
+          )}
         </section>
       )}
+      {appDialog.dialog}
     </main>
   );
 }

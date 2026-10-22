@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { io } from "socket.io-client";
+import { realtimeSocketEnabled } from "../realtime/realtime-config";
 import { api } from "../../lib/api";
+import { apiUrl } from "../../lib/http-client";
+import { SkeletonCollection } from "../../components/Skeletons";
 import type {
   AuthUser,
   StudentProfile,
@@ -28,43 +32,64 @@ export function ProviderAccessGuide({
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [error, setError] = useState("");
 
-  async function refresh() {
-    if (!isStudent) return;
-    const startedAt = Date.now();
-    const isManualRefresh = checked;
-    setLoading(true);
-    setError("");
-    try {
-      const [profileResult, verificationResult, currentUser] =
-        await Promise.all([
-          api.studentProfile(token),
-          api.studentVerification(token),
-          api.me(token),
-        ]);
-      setProfile(profileResult.data);
-      setVerification(verificationResult.data);
-      onAccountRefreshed(currentUser);
-      setLastCheckedAt(new Date());
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Unable to check provider eligibility.",
-      );
-    } finally {
-      if (isManualRefresh) {
-        const remaining = 850 - (Date.now() - startedAt);
-        if (remaining > 0)
-          await new Promise((resolve) => window.setTimeout(resolve, remaining));
+  const refresh = useCallback(
+    async (manual = false) => {
+      if (!isStudent) return;
+      const startedAt = Date.now();
+      setLoading(true);
+      setError("");
+      try {
+        const [profileResult, verificationResult, currentUser] =
+          await Promise.all([
+            api.studentProfile(token),
+            api.studentVerification(token),
+            api.me(token),
+          ]);
+        setProfile(profileResult.data);
+        setVerification(verificationResult.data);
+        onAccountRefreshed(currentUser);
+        setLastCheckedAt(new Date());
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to check provider eligibility.",
+        );
+      } finally {
+        if (manual) {
+          const remaining = 850 - (Date.now() - startedAt);
+          if (remaining > 0)
+            await new Promise((resolve) =>
+              window.setTimeout(resolve, remaining),
+            );
+        }
+        setLoading(false);
+        setChecked(true);
       }
-      setLoading(false);
-      setChecked(true);
-    }
-  }
+    },
+    [isStudent, onAccountRefreshed, token],
+  );
 
   useEffect(() => {
-    void refresh();
-  }, [token, isStudent]);
+    void refresh(false);
+  }, [refresh]);
+
+  useEffect(() => {
+    const endpoint = apiUrl();
+    if (!endpoint || !isStudent) return;
+    if (!realtimeSocketEnabled()) return;
+    const socket = io(`${new URL(endpoint).origin}/realtime`, {
+      auth: { token },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+    socket.on("account:changed", (event: { resource?: string }) => {
+      if (event.resource === "identity") void refresh(false);
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [isStudent, refresh, token]);
 
   if (!isStudent) {
     return (
@@ -158,7 +183,11 @@ export function ProviderAccessGuide({
           services to the CampusGig community.
         </p>
         {!checked ? (
-          <div className="provider-access-loading">Checking your progress…</div>
+          <SkeletonCollection
+            kind="admin"
+            count={4}
+            label="Checking provider access progress"
+          />
         ) : (
           <div className={`provider-steps ${loading ? "refreshing" : ""}`}>
             {steps.map((step, index) => (
@@ -193,7 +222,7 @@ export function ProviderAccessGuide({
           <button
             className="outline-action"
             disabled={loading}
-            onClick={() => void refresh()}
+            onClick={() => void refresh(true)}
           >
             <span
               className={`refresh-progress-icon ${loading ? "spinning" : ""}`}

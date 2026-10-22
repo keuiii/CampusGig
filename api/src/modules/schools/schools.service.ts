@@ -2,10 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import type { CreateSchoolDto } from "./dto/create-school.dto";
 import type { UpdateSchoolStatusDto } from "./dto/update-school-status.dto";
+import { MessagesGateway } from "../messages/messages.gateway";
 
 @Injectable()
 export class SchoolsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: MessagesGateway,
+  ) {}
   async findAll() {
     const schools = await this.prisma.school.findMany({
       where: { status: "ACTIVE" },
@@ -20,7 +24,7 @@ export class SchoolsService {
     };
   }
   async create(input: CreateSchoolDto) {
-    return this.prisma.school.create({
+    const school = await this.prisma.school.create({
       data: {
         name: input.name.trim(),
         shortName: input.shortName.trim(),
@@ -28,11 +32,15 @@ export class SchoolsService {
         address: input.address?.trim() || null,
       },
     });
+    this.realtime.publishMarketplaceChanged("school", school.id);
+    return school;
   }
   async updateStatus(id: string, input: UpdateSchoolStatusDto) {
-    return this.prisma.school.update({
+    const school = await this.prisma.school.update({
       where: { id },
       data: { status: input.status },
     });
+    this.realtime.publishMarketplaceChanged("school", school.id);
+    return school;
   }
 }

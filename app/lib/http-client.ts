@@ -1,5 +1,7 @@
 const configuredApiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+  process.env.NEXT_PUBLIC_API_URL?.trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/v1$/i, "") ?? "";
 
 export function apiUrl() {
   if (!configuredApiUrl || typeof window === "undefined") {
@@ -36,6 +38,72 @@ export class ApiError extends Error {
   }
 }
 
+export function signalUnauthorized(status: number, authenticated: boolean) {
+  if (status === 401 && authenticated && typeof window !== "undefined")
+    window.dispatchEvent(new Event("campusgig:unauthorized"));
+}
+
+type RefreshedBrowserSession = {
+  accessToken: string;
+  expiresIn: number;
+  user: {
+    id: string;
+    email: string;
+    displayName: string;
+    hasAvatar: boolean;
+    status: string;
+    roles: string[];
+  };
+};
+
+let browserRefresh: Promise<RefreshedBrowserSession | null> | null = null;
+
+export function refreshBrowserSession() {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  if (browserRefresh) return browserRefresh;
+  browserRefresh = fetch(`${apiUrl()}/api/v1/auth/refresh`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  })
+    .then(async (response) => {
+      if (!response.ok) return null;
+      const session = (await response.json()) as RefreshedBrowserSession;
+      window.dispatchEvent(
+        new CustomEvent("campusgig:session-refreshed", { detail: session }),
+      );
+      return session;
+    })
+    .catch(() => null)
+    .finally(() => {
+      browserRefresh = null;
+    });
+  return browserRefresh;
+}
+
+export async function authenticatedFetch(
+  url: string,
+  init: RequestInit,
+  token?: string,
+) {
+  const send = (accessToken?: string) =>
+    fetch(url, {
+      ...init,
+      credentials: "include",
+      headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...init.headers,
+      },
+    });
+  let response = await send(token);
+  if (response.status !== 401 || !token) return response;
+  const refreshed = await refreshBrowserSession();
+  if (refreshed) response = await send(refreshed.accessToken);
+  return response;
+}
+
 function errorMessage(body: unknown, fallback: string) {
   if (!body || typeof body !== "object") return fallback;
   const response = body as {
@@ -54,19 +122,22 @@ export async function request<T>(
   const baseUrl = apiUrl();
   if (!baseUrl) throw new ApiError(0, "Backend API is not configured");
 
-  const response = await fetch(`${baseUrl}/api/v1${path}`, {
-    ...init,
-    cache: "no-store",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
+  const response = await authenticatedFetch(
+    `${baseUrl}/api/v1${path}`,
+    {
+      ...init,
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
     },
-  });
+    token,
+  );
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
+    signalUnauthorized(response.status, Boolean(token));
     throw new ApiError(response.status, errorMessage(body, "Request failed"));
   }
 
@@ -79,14 +150,18 @@ export async function uploadForm<T>(
   token: string,
   fallbackMessage: string,
 ) {
-  const response = await fetch(`${apiUrl()}/api/v1${path}`, {
-    method: "POST",
-    cache: "no-store",
-    headers: { Authorization: `Bearer ${token}` },
-    body: form,
-  });
+  const response = await authenticatedFetch(
+    `${apiUrl()}/api/v1${path}`,
+    {
+      method: "POST",
+      cache: "no-store",
+      body: form,
+    },
+    token,
+  );
   const body = await response.json().catch(() => null);
   if (!response.ok) {
+    signalUnauthorized(response.status, true);
     throw new ApiError(response.status, errorMessage(body, fallbackMessage));
   }
   return body as T;

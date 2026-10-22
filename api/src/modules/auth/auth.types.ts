@@ -13,4 +13,14 @@ export type AccessTokenPayload = {
   sub: string;
   email: string;
   roles: UserRole[];
+  sessionVersion: number;
+  sid?: string;
+  exp?: number;
+};
+
+export type SessionClient = "WEB" | "MOBILE";
+
+export type SessionContext = {
+  clientType: SessionClient;
+  deviceName: string;
 };

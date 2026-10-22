@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Post,
   Put,
   Req,
@@ -14,8 +15,9 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
-import { basename, resolve } from "node:path";
 import { UserRole } from "@prisma/client";
+import { StorageService } from "../../common/storage/storage.service";
+import { sendStoredFile } from "../../common/storage/storage-response";
 import type { AuthenticatedRequest } from "../auth/jwt-auth.guard";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { Roles } from "../auth/roles.decorator";
@@ -24,12 +26,15 @@ import { UpdateStudentProfileDto } from "./dto/update-student-profile.dto";
 import { ProfileService } from "./profile.service";
 import { VerificationService } from "./verification.service";
 import { verificationUploadOptions } from "./verification-upload.config";
-import { avatarStorageRoot, avatarUploadOptions } from "./avatar-upload.config";
+import { avatarUploadOptions } from "./avatar-upload.config";
 
 @ApiTags("profile")
 @Controller("profile")
 export class AccountProfileController {
-  constructor(private readonly profiles: ProfileService) {}
+  constructor(
+    private readonly profiles: ProfileService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Post("avatar")
   @ApiBearerAuth()
@@ -44,11 +49,15 @@ export class AccountProfileController {
   }
 
   @Get("avatar/:userId")
-  async avatar(@Param("userId") userId: string, @Res() response: Response) {
+  async avatar(
+    @Param("userId", ParseUUIDPipe) userId: string,
+    @Res() response: Response,
+  ) {
     const avatarPath = await this.profiles.getAvatarPath(userId);
-    return response.sendFile(resolve(avatarStorageRoot, basename(avatarPath)), {
-      maxAge: "1h",
-    });
+    return sendStoredFile(
+      response,
+      await this.storage.delivery("avatars", avatarPath),
+    );
   }
 }
 

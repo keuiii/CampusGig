@@ -3,15 +3,16 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { unlink } from "node:fs/promises";
-import { resolve } from "node:path";
 import { PrismaService } from "../../prisma/prisma.service";
+import { StorageService } from "../../common/storage/storage.service";
 import type { UpdateStudentProfileDto } from "./dto/update-student-profile.dto";
-import { avatarStorageRoot } from "./avatar-upload.config";
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
   async getAvatarPath(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -28,14 +29,18 @@ export class ProfileService {
       where: { id: userId },
       select: { avatarPath: true },
     });
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { avatarPath: file.filename },
-    });
-    if (previous?.avatarPath && previous.avatarPath !== file.filename)
-      await unlink(resolve(avatarStorageRoot, previous.avatarPath)).catch(
-        () => undefined,
-      );
+    const storagePath = await this.storage.persistUpload("avatars", file);
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { avatarPath: storagePath },
+      });
+    } catch (error) {
+      await this.storage.delete("avatars", storagePath);
+      throw error;
+    }
+    if (previous?.avatarPath && previous.avatarPath !== storagePath)
+      await this.storage.delete("avatars", previous.avatarPath);
     return { data: { hasAvatar: true } };
   }
   async getStudentProfile(userId: string) {

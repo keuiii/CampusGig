@@ -1,9 +1,11 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Avatar URLs use the runtime-configured CampusGig API origin. */
 import { useState } from "react";
 import { api } from "../../lib/api";
 import type { AuthUser } from "../../types";
 import { MfaSecurityPanel } from "./MfaSecurityPanel";
+import { SupportPanel } from "./SupportPanel";
 
 export function WebAccountProfile({
   token,
@@ -71,6 +73,9 @@ export function WebAccountProfile({
               <img
                 src={api.avatarUrl(user.id, avatarVersion)}
                 alt={`${user.displayName} profile`}
+                width={96}
+                height={96}
+                decoding="async"
               />
             ) : (
               user.displayName.slice(0, 2).toUpperCase()
@@ -118,7 +123,12 @@ export function WebAccountProfile({
           </button>
         </div>
       </section>
-      <MfaSecurityPanel token={token} notify={notify} />
+      <MfaSecurityPanel
+        token={token}
+        notify={notify}
+        onSessionEnded={onLogout}
+      />
+      <SupportPanel token={token} notify={notify} />
     </main>
   );
 }

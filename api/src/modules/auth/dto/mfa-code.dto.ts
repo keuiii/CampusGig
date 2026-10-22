@@ -5,6 +5,7 @@ import {
   Length,
   Matches,
 } from "class-validator";
+import { SessionClientDto } from "./session-client.dto";
 
 export class MfaCodeDto {
   @IsString()
@@ -12,7 +13,7 @@ export class MfaCodeDto {
   code!: string;
 }
 
-export class MfaChallengeDto {
+export class MfaChallengeDto extends SessionClientDto {
   @IsString()
   @Length(32, 200)
   challengeToken!: string;

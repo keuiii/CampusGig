@@ -12,6 +12,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import type { ChangePasswordDto } from "./dto/change-password.dto";
 import { EmailService } from "./email.service";
 import { MfaService } from "./mfa.service";
+import { AuthSessionService } from "./auth-session.service";
 
 @Injectable()
 export class PasswordChangeService {
@@ -20,6 +21,7 @@ export class PasswordChangeService {
     private readonly email: EmailService,
     private readonly config: ConfigService,
     private readonly mfa: MfaService,
+    private readonly sessions?: AuthSessionService,
   ) {}
 
   async request(userId: string, input: ChangePasswordDto, origin: string) {
@@ -49,7 +51,10 @@ export class PasswordChangeService {
         async (database) => {
           await database.user.update({
             where: { id: userId },
-            data: { passwordHash: newPasswordHash },
+            data: {
+              passwordHash: newPasswordHash,
+              sessionVersion: { increment: 1 },
+            },
           });
           await database.passwordChangeRequest.updateMany({
             where: { userId, status: "PENDING" },
@@ -62,6 +67,7 @@ export class PasswordChangeService {
           return revoked.count;
         },
       );
+      this.sessions?.invalidateUserSockets(userId, "password_changed");
       void this.email.sendPasswordChanged(user.email).catch(() => undefined);
       return {
         status: "CONFIRMED" as const,
@@ -179,9 +185,13 @@ export class PasswordChangeService {
           throw new ConflictException("Request already handled");
         await database.user.update({
           where: { id: request.userId },
-          data: { passwordHash: request.newPasswordHash },
+          data: {
+            passwordHash: request.newPasswordHash,
+            sessionVersion: { increment: 1 },
+          },
         });
       });
+      this.sessions?.invalidateUserSockets(request.userId, "password_changed");
       const user = await this.prisma.user.findUnique({
         where: { id: request.userId },
         select: { email: true },

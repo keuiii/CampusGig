@@ -4,8 +4,10 @@ import {
   SchoolsController,
 } from "./schools.controller";
 import { SchoolsService } from "./schools.service";
+import { MessagesModule } from "../messages/messages.module";
 
 @Module({
+  imports: [MessagesModule],
   controllers: [SchoolsController, AdminSchoolsController],
   providers: [SchoolsService],
 })

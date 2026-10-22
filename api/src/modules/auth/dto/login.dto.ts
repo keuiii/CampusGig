@@ -5,8 +5,9 @@ import {
   MaxLength,
   MinLength,
 } from "class-validator";
+import { SessionClientDto } from "./session-client.dto";
 
-export class LoginDto {
+export class LoginDto extends SessionClientDto {
   @IsEmail()
   @MaxLength(254)
   email!: string;

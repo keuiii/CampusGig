@@ -1,15 +1,37 @@
 "use client";
 
+import Image from "next/image";
 import type { ReactNode } from "react";
 
-type IconName = "search" | "bell" | "arrow" | "check" | "clock";
+type IconName =
+  | "search"
+  | "bell"
+  | "arrow"
+  | "check"
+  | "clock"
+  | "refresh"
+  | "card"
+  | "download"
+  | "flag"
+  | "exit";
 
 export function Logo({ onClick }: { onClick?: () => void }) {
   return (
-    <button className="logo" onClick={onClick ?? (() => location.reload())}>
-      <span className="logo-mark">C</span>
-      <span>
-        Campus<span>Gig</span>
+    <button
+      className="logo"
+      onClick={onClick ?? (() => location.reload())}
+      aria-label="CampusGig home"
+    >
+      <Image
+        className="logo-mark"
+        src="/brand/campusgig-mark.svg"
+        alt=""
+        width={42}
+        height={42}
+      />
+      <span className="logo-wordmark" aria-hidden="true">
+        <span className="logo-campus">Campus</span>
+        <span className="logo-gig">Gig</span>
       </span>
     </button>
   );
@@ -40,6 +62,39 @@ export function Icon({ name }: { name: IconName }) {
       <>
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 2" />
+      </>
+    ),
+    refresh: (
+      <>
+        <path d="M20 11a8 8 0 1 0-2.34 5.66" />
+        <path d="M20 4v7h-7" />
+      </>
+    ),
+    card: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M7 15h3" />
+      </>
+    ),
+    download: (
+      <>
+        <path d="M12 3v12" />
+        <path d="m7 10 5 5 5-5" />
+        <path d="M5 21h14" />
+      </>
+    ),
+    flag: (
+      <>
+        <path d="M5 21V4" />
+        <path d="M5 5h11l-2 4 2 4H5" />
+      </>
+    ),
+    exit: (
+      <>
+        <path d="M10 5H5v14h5" />
+        <path d="M13 8l4 4-4 4" />
+        <path d="M8 12h9" />
       </>
     ),
   };

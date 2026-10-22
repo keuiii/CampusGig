@@ -5,16 +5,26 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { unlink } from "node:fs/promises";
+import {
+  decodeDateCursor,
+  encodeDateCursor,
+} from "../../common/cursor-pagination";
 import { PrismaService } from "../../prisma/prisma.service";
+import { StorageService } from "../../common/storage/storage.service";
+import { MessagesGateway } from "../messages/messages.gateway";
 
 @Injectable()
 export class VerificationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+    private readonly realtime: MessagesGateway,
+  ) {}
 
   async submit(userId: string, file?: Express.Multer.File) {
     if (!file)
       throw new BadRequestException("Select a student ID image or PDF");
+    let storagePath: string | undefined;
     try {
       const profile = await this.prisma.studentProfile.findUnique({
         where: { userId },
@@ -29,12 +39,17 @@ export class VerificationService {
         );
       if (profile.verificationStatus === "APPROVED")
         throw new ConflictException("Your account is already verified");
+      const persistedPath = await this.storage.persistUpload(
+        "student-ids",
+        file,
+      );
+      storagePath = persistedPath;
       const request = await this.prisma.$transaction(async (database) => {
         const created = await database.verificationRequest.create({
           data: {
             userId,
             schoolId: profile.schoolId,
-            studentIdFilePath: file.filename,
+            studentIdFilePath: persistedPath,
           },
         });
         await database.studentProfile.update({
@@ -51,7 +66,8 @@ export class VerificationService {
         },
       };
     } catch (error) {
-      await unlink(file.path).catch(() => undefined);
+      if (storagePath) await this.storage.delete("student-ids", storagePath);
+      else await this.storage.discardUpload(file);
       throw error;
     }
   }
@@ -71,22 +87,43 @@ export class VerificationService {
     return { data: request };
   }
 
-  async listPending(reviewerId?: string, platformAdmin = true) {
+  async listPending(
+    reviewerId?: string,
+    platformAdmin = true,
+    cursor?: string,
+    limit = 20,
+  ) {
     const schoolId = platformAdmin
       ? undefined
       : await this.requireAssignedSchool(reviewerId!);
+    const decoded = cursor ? decodeDateCursor(cursor, "verification") : null;
     const requests = await this.prisma.verificationRequest.findMany({
-      where: { status: "PENDING", ...(schoolId ? { schoolId } : {}) },
+      where: {
+        status: "PENDING",
+        ...(schoolId ? { schoolId } : {}),
+        ...(decoded
+          ? {
+              OR: [
+                { submittedAt: { gt: decoded.date } },
+                { submittedAt: decoded.date, id: { gt: decoded.id } },
+              ],
+            }
+          : {}),
+      },
       include: { school: true },
-      orderBy: { submittedAt: "asc" },
+      orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
+      take: limit + 1,
     });
+    const hasMore = requests.length > limit;
+    const page = hasMore ? requests.slice(0, limit) : requests;
     const users = await this.prisma.user.findMany({
-      where: { id: { in: requests.map((item) => item.userId) } },
+      where: { id: { in: page.map((item) => item.userId) } },
       include: { studentProfile: true },
     });
     const usersById = new Map(users.map((user) => [user.id, user]));
+    const last = page.at(-1);
     return {
-      data: requests.map((request) => {
+      data: page.map((request) => {
         const user = usersById.get(request.userId);
         return {
           id: request.id,
@@ -101,6 +138,13 @@ export class VerificationService {
           documentName: "Student ID",
         };
       }),
+      pagination: {
+        hasMore,
+        nextCursor:
+          hasMore && last
+            ? encodeDateCursor({ date: last.submittedAt, id: last.id })
+            : null,
+      },
     };
   }
 
@@ -151,6 +195,7 @@ export class VerificationService {
           update: {},
         });
     });
+    this.realtime.publishAccountChanged(request.userId, "identity");
     return { data: { id, status } };
   }
 

@@ -1,9 +1,15 @@
 import { Type } from "class-transformer";
-import { DeliveryMethod, PackageTier } from "@prisma/client";
+import {
+  DeliveryMethod,
+  PackageTier,
+  RushTier,
+  ServicePricingModel,
+} from "@prisma/client";
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -30,10 +36,21 @@ export class CreateServiceDto {
   @IsString() @MinLength(50) @MaxLength(3000) description!: string;
   @IsEnum(DeliveryMethod) deliveryMethod!: DeliveryMethod;
   @IsOptional() @IsString() @MaxLength(160) campusLocation?: string;
+  @IsOptional() @IsEnum(ServicePricingModel) pricingModel?: ServicePricingModel;
+  @IsOptional() @IsInt() @Min(100) @Max(10000000) basePriceCentavos?: number;
+  @IsOptional()
+  @IsInt()
+  @Min(60)
+  @Max(129600)
+  normalDeliveryMinutes?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(20) includedRevisionLimit?: number;
+  @IsOptional() @IsBoolean() acceptsRushOrders?: boolean;
+  @IsOptional() @IsEnum(RushTier) fastestRushTier?: RushTier;
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(3)
   @ValidateNested({ each: true })
   @Type(() => CreateServicePackageDto)
-  packages!: CreateServicePackageDto[];
+  packages?: CreateServicePackageDto[];
 }

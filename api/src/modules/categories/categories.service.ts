@@ -15,6 +15,7 @@ export class CategoriesService {
               where: {
                 status: "PUBLISHED",
                 provider: {
+                  providerProfile: { isAvailable: true },
                   studentProfile: { school: { status: "ACTIVE" } },
                 },
               },

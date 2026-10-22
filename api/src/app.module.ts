@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { AdminModule } from "./modules/admin/admin.module";
@@ -14,11 +14,19 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { MessagesModule } from "./modules/messages/messages.module";
 import { DisputesModule } from "./modules/disputes/disputes.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
+import { StorageModule } from "./common/storage/storage.module";
+import { SupportModule } from "./modules/support/support.module";
+import { RequestRateLimitMiddleware } from "./security/request-rate-limit.middleware";
+import { TrafficProtectionModule } from "./security/traffic-protection.module";
+import { HttpMetricsMiddleware } from "./monitoring/http-metrics.middleware";
+import { MonitoringModule } from "./monitoring/monitoring.module";
+import { validateEnvironment } from "./config/environment";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     PrismaModule,
+    StorageModule,
     AuthModule,
     SchoolsModule,
     CategoriesModule,
@@ -28,10 +36,19 @@ import { PaymentsModule } from "./modules/payments/payments.module";
     DisputesModule,
     PaymentsModule,
     NotificationsModule,
+    SupportModule,
     ProfileModule,
     ProviderModule,
     AdminModule,
+    TrafficProtectionModule,
+    MonitoringModule,
   ],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(HttpMetricsMiddleware, RequestRateLimitMiddleware)
+      .forRoutes("*");
+  }
+}

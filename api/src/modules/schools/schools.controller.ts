@@ -4,6 +4,7 @@ import {
   Get,
   Header,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -42,7 +43,7 @@ export class AdminSchoolsController {
     return this.schools.create(input);
   }
   @Patch(":id/status") updateStatus(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() input: UpdateSchoolStatusDto,
   ) {
     return this.schools.updateStatus(id, input);

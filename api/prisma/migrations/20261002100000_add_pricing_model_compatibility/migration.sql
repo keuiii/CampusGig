@@ -1,0 +1,9 @@
+CREATE TYPE "ServicePricingModel" AS ENUM ('LEGACY_PACKAGES', 'SINGLE_PRICE_V2');
+CREATE TYPE "OrderPricingModel" AS ENUM ('LEGACY_PACKAGE_V1', 'SINGLE_PRICE_V2');
+
+ALTER TABLE "Service"
+ADD COLUMN "pricingModel" "ServicePricingModel" NOT NULL DEFAULT 'LEGACY_PACKAGES';
+
+ALTER TABLE "Order"
+ADD COLUMN "pricingModel" "OrderPricingModel" NOT NULL DEFAULT 'LEGACY_PACKAGE_V1',
+ADD COLUMN "termsSnapshot" JSONB;
